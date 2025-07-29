@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MetromontCastLink.Client\MetromontCastLink.Client.csproj" />
+    <PackageReference Include="Autodesk.Forge" Version="1.9.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.0" />
+	    <PackageReference Include="Syncfusion.Blazor.Grid" Version="30.1.42" />
+    <PackageReference Include="Syncfusion.Blazor.TreeGrid" Version="30.1.42" />
+    <PackageReference Include="Syncfusion.Blazor.Navigations" Version="30.1.42" />
+	  <PackageReference Include="Syncfusion.Blazor.Themes" Version="30.1.42" />
+  </ItemGroup>
+
+</Project>
