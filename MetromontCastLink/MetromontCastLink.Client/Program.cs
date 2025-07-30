@@ -4,8 +4,15 @@ using MetromontCastLink.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+// Add Syncfusion Blazor
 builder.Services.AddSyncfusionBlazor();
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddScoped<IACCService, ACCService>();
 
+// Add HttpClient
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+// Add Services
+builder.Services.AddScoped<IACCService, ACCService>();
+builder.Services.AddScoped<IStorageService, StorageService>();
+
+// Build and run
 await builder.Build().RunAsync();

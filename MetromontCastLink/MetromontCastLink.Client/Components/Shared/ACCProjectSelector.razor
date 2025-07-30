@@ -1,5 +1,153 @@
-﻿<h3>ACCProjectSelector</h3>
+﻿@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Popups
+@inject IACCService ACCService
+
+<div class="acc-project-selector">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="selector-label">@Label</label>
+    }
+
+    <div class="selector-container">
+        <SfDropDownList TValue="string" TItem="ACCProject" Value="@SelectedProjectId"
+                        DataSource="@Projects" Placeholder="@Placeholder"
+                        AllowFiltering="true" FilterType="FilterType.Contains">
+            <DropDownListFieldSettings Text="Name" Value="Id" />
+            <DropDownListTemplates TItem="ACCProject">
+                <ItemTemplate>
+                    <div class="project-item">
+                        <div class="project-name">@((context as ACCProject)?.Name)</div>
+                        <div class="project-details">
+                            <span class="project-number">@((context as ACCProject)?.Number)</span>
+                            @if (!string.IsNullOrEmpty((context as ACCProject)?.Location))
+                            {
+                                <span class="project-location">• @((context as ACCProject)?.Location)</span>
+                            }
+                        </div>
+                    </div>
+                </ItemTemplate>
+            </DropDownListTemplates>
+            <DropDownListEvents TValue="string" TItem="ACCProject" ValueChange="OnValueChange" />
+        </SfDropDownList>
+
+        @if (ShowProjectInfo && SelectedProject != null)
+        {
+            <SfTooltip OpensOn="Click" Content="@GetProjectTooltipContent()">
+                <div class="project-info-icon">
+                    <span class="e-icons e-info"></span>
+                </div>
+            </SfTooltip>
+        }
+    </div>
+</div>
+
+<style>
+    .acc-project-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .selector-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .selector-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .project-item {
+        padding: 0.25rem 0;
+    }
+
+    .project-name {
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .project-details {
+        font-size: 0.75rem;
+        color: #64748b;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .project-info-icon {
+        cursor: pointer;
+        color: #3b82f6;
+        transition: color 0.2s;
+    }
+
+        .project-info-icon:hover {
+            color: #2563eb;
+        }
+</style>
 
 @code {
+    [Parameter] public string? SelectedProjectId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedProjectIdChanged { get; set; }
+    [Parameter] public EventCallback<ACCProject?> OnProjectSelected { get; set; }
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Placeholder { get; set; } = "Select a project";
+    [Parameter] public bool ShowProjectInfo { get; set; } = false;
 
+    private List<ACCProject> Projects = new();
+    private ACCProject? SelectedProject;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+
+        if (!string.IsNullOrEmpty(SelectedProjectId))
+        {
+            SelectedProject = Projects.FirstOrDefault(p => p.Id == SelectedProjectId);
+        }
+    }
+
+    private async Task LoadProjects()
+    {
+        try
+        {
+            Projects = await ACCService.GetProjectsAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+            Projects = new List<ACCProject>();
+        }
+    }
+
+    private async Task OnValueChange(ChangeEventArgs<string, ACCProject> args)
+    {
+        SelectedProjectId = args.Value;
+        SelectedProject = args.ItemData;
+
+        await SelectedProjectIdChanged.InvokeAsync(SelectedProjectId);
+        await OnProjectSelected.InvokeAsync(SelectedProject);
+
+        if (!string.IsNullOrEmpty(SelectedProjectId))
+        {
+            await ACCService.SetCurrentProjectAsync(SelectedProjectId);
+        }
+    }
+
+    private string GetProjectTooltipContent()
+    {
+        if (SelectedProject == null) return "";
+
+        return $@"
+            <div style='padding: 0.5rem;'>
+                <div><strong>{SelectedProject.Name}</strong></div>
+                <div>Number: {SelectedProject.Number}</div>
+                <div>Location: {SelectedProject.Location}</div>
+                <div>Status: {SelectedProject.Status}</div>
+            </div>
+        ";
+    }
 }

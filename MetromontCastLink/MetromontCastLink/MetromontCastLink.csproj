@@ -1,21 +1,48 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>d197cc60-7076-4b13-8d86-3b3fdb34f4e4</UserSecretsId>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+		<StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+		<UserSecretsId>8c43dc60-e1b5-4c7b-bb81-0cd6ed7cb810</UserSecretsId>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\MetromontCastLink.Client\MetromontCastLink.Client.csproj" />
-    <PackageReference Include="Autodesk.Forge" Version="1.9.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.7" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.0" />
-	    <PackageReference Include="Syncfusion.Blazor.Grid" Version="30.1.42" />
-    <PackageReference Include="Syncfusion.Blazor.TreeGrid" Version="30.1.42" />
-    <PackageReference Include="Syncfusion.Blazor.Navigations" Version="30.1.42" />
-	  <PackageReference Include="Syncfusion.Blazor.Themes" Version="30.1.42" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0" />
+		<PackageReference Include="Syncfusion.Blazor.Buttons" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Calendars" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Core" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Data" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.DropDowns" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Grid" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Inputs" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Lists" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Notifications" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Popups" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Spinner" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.SplitButtons" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.TreeGrid" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Navigations" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Themes" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Schedule" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Blazor.Charts" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.ExcelExport.Net.Core" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.Licensing" Version="30.1.42" />
+		<PackageReference Include="Syncfusion.PdfExport.Net.Core" Version="30.1.42" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\MetromontCastLink.Shared\MetromontCastLink.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Components\Pages\Engineering\Components\" />
+		<Folder Include="Components\Pages\Production\Components\" />
+		<Folder Include="Components\Pages\QualityControl\Components\" />
+		<Folder Include="wwwroot\css\" />
+		<Folder Include="wwwroot\data\" />
+	</ItemGroup>
 
 </Project>
