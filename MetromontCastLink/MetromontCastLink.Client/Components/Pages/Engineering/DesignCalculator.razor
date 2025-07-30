@@ -1,5 +1,674 @@
-﻿<h3>DesignCalculator</h3>
+﻿@page "/engineering/calculator"
+@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Navigations
+@inject NavigationManager Navigation
+@inject IACCService ACCService
+@inject IStorageService StorageService
+
+<PageTitle>Design Calculator - Engineering</PageTitle>
+
+<div class="design-calculator-page">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-left">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="GoBack">Back</SfButton>
+                <h2>Engineering Design Calculator</h2>
+            </div>
+            <div class="header-right">
+                <SfButton CssClass="e-outline" IconCss="e-icons e-reset" @onclick="ResetCalculator">Reset</SfButton>
+                <SfButton CssClass="e-primary" IconCss="e-icons e-save" @onclick="SaveCalculation" 
+                         Disabled="@(!HasCalculationResults)">Save</SfButton>
+                <SfButton CssClass="e-success" IconCss="e-icons e-export" @onclick="ExportResults" 
+                         Disabled="@(!HasCalculationResults)">Export</SfButton>
+            </div>
+        </div>
+    </div>
+
+    <div class="calculator-container">
+        <!-- Left Panel: Calculator Type Selection -->
+        <div class="calculator-sidebar">
+            <h3>Calculation Type</h3>
+            <SfTab @ref="CalculatorTab" HeaderPlacement="HeaderPosition.Left" Height="100%">
+                <TabItems>
+                    <TabItem Header="Beam Design">
+                        <ContentTemplate>
+                            <BeamDesignCalculator @ref="BeamCalculator" OnCalculationComplete="OnCalculationComplete" />
+                        </ContentTemplate>
+                    </TabItem>
+                    <TabItem Header="Column Design">
+                        <ContentTemplate>
+                            <ColumnDesignCalculator @ref="ColumnCalculator" OnCalculationComplete="OnCalculationComplete" />
+                        </ContentTemplate>
+                    </TabItem>
+                    <TabItem Header="Connection Design">
+                        <ContentTemplate>
+                            <ConnectionDesignCalculator @ref="ConnectionCalculator" OnCalculationComplete="OnCalculationComplete" />
+                        </ContentTemplate>
+                    </TabItem>
+                    <TabItem Header="Shear Design">
+                        <ContentTemplate>
+                            <ShearDesignCalculator @ref="ShearCalculator" OnCalculationComplete="OnCalculationComplete" />
+                        </ContentTemplate>
+                    </TabItem>
+                </TabItems>
+            </SfTab>
+        </div>
+
+        <!-- Right Panel: Results Display -->
+        <div class="results-panel">
+            <h3>Calculation Results</h3>
+            @if (CurrentResults != null)
+            {
+                <div class="results-content">
+                    <div class="result-header">
+                        <h4>@CurrentResults.CalculationType</h4>
+                        <SfChip>
+                            <ChipItems>
+                                <ChipItem Text="@CurrentResults.Status" CssClass="@GetStatusClass(CurrentResults.Status)" />
+                            </ChipItems>
+                        </SfChip>
+                    </div>
+
+                    <div class="result-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">Design Code:</span>
+                            <span class="summary-value">@CurrentResults.DesignCode</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Safety Factor:</span>
+                            <span class="summary-value">@CurrentResults.SafetyFactor.ToString("F2")</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Utilization:</span>
+                            <span class="summary-value @GetUtilizationClass(CurrentResults.Utilization)">
+                                @CurrentResults.Utilization.ToString("P0")
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="result-details">
+                        <h5>Detailed Results</h5>
+                        <div class="details-grid">
+                            @foreach (var detail in CurrentResults.Details)
+                            {
+                                <div class="detail-item">
+                                    <span class="detail-label">@detail.Label:</span>
+                                    <span class="detail-value">@detail.Value @detail.Unit</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (CurrentResults.Warnings.Any())
+                    {
+                        <div class="result-warnings">
+                            <h5>Warnings</h5>
+                            @foreach (var warning in CurrentResults.Warnings)
+                            {
+                                <div class="warning-item">
+                                    <span class="e-icons e-warning"></span>
+                                    <span>@warning</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-results">
+                    <div class="no-results-icon">📊</div>
+                    <p>No calculation results yet. Select a calculation type and enter values to begin.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Calculation History -->
+    <div class="history-section">
+        <h3>Calculation History</h3>
+        @if (CalculationHistory.Any())
+        {
+            <div class="history-list">
+                @foreach (var calc in CalculationHistory.OrderByDescending(c => c.Timestamp).Take(5))
+                {
+                    <div class="history-item" @onclick="() => LoadCalculation(calc)">
+                        <div class="history-icon">
+                            <span class="@GetCalculationIcon(calc.Type)"></span>
+                        </div>
+                        <div class="history-info">
+                            <span class="history-type">@calc.Type</span>
+                            <span class="history-time">@calc.Timestamp.ToString("MMM dd, HH:mm")</span>
+                        </div>
+                        <div class="history-result">
+                            <span class="@GetUtilizationClass(calc.Utilization)">@calc.Utilization.ToString("P0")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="no-history">No previous calculations</p>
+        }
+    </div>
+</div>
+
+<!-- Beam Design Calculator Component -->
+@code {
+    @* This would be a separate component in a real application *@
+    public class BeamDesignCalculator : ComponentBase
+    {
+        [Parameter] public EventCallback<CalculationResult> OnCalculationComplete { get; set; }
+
+        // Beam design specific inputs
+        private double BeamLength { get; set; }
+        private double BeamWidth { get; set; }
+        private double BeamHeight { get; set; }
+        private double ConcreteStrength { get; set; } = 5000; // psi
+        private double SteelYield { get; set; } = 60000; // psi
+        private double DeadLoad { get; set; }
+        private double LiveLoad { get; set; }
+
+        public async Task Calculate()
+        {
+            // Simplified beam design calculation
+            var totalLoad = DeadLoad + LiveLoad;
+            var moment = (totalLoad * Math.Pow(BeamLength, 2)) / 8;
+            var requiredAs = moment / (0.9 * SteelYield * 0.9 * BeamHeight);
+            var providedAs = 2.5; // sq in (example)
+            var utilization = requiredAs / providedAs;
+
+            var result = new CalculationResult
+            {
+                CalculationType = "Beam Design",
+                Status = utilization <= 1.0 ? "Pass" : "Fail",
+                DesignCode = "ACI 318-19",
+                SafetyFactor = 1.5,
+                Utilization = utilization,
+                Details = new List<ResultDetail>
+                {
+                    new ResultDetail { Label = "Beam Length", Value = BeamLength.ToString("F1"), Unit = "ft" },
+                    new ResultDetail { Label = "Design Moment", Value = moment.ToString("F0"), Unit = "ft-lb" },
+                    new ResultDetail { Label = "Required Steel", Value = requiredAs.ToString("F2"), Unit = "sq in" },
+                    new ResultDetail { Label = "Provided Steel", Value = providedAs.ToString("F2"), Unit = "sq in" }
+                },
+                Warnings = utilization > 0.9 ? new List<string> { "Utilization exceeds 90%" } : new List<string>()
+            };
+
+            await OnCalculationComplete.InvokeAsync(result);
+        }
+    }
+
+    // Similar components for Column, Connection, and Shear would be defined here
+}
+
+<style>
+    .design-calculator-page {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .header-left h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .header-right {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .calculator-container {
+        display: grid;
+        grid-template-columns: 2fr 3fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .calculator-sidebar {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .calculator-sidebar h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .results-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .results-panel h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .results-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .result-header h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .status-pass .e-chip {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-fail .e-chip {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .result-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .summary-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .utilization-safe {
+        color: #059669;
+    }
+
+    .utilization-warning {
+        color: #f59e0b;
+    }
+
+    .utilization-danger {
+        color: #dc2626;
+    }
+
+    .result-details {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .result-details h5 {
+        margin: 0 0 0.75rem 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .detail-value {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .result-warnings {
+        background: #fef3c7;
+        border: 1px solid #fbbf24;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .result-warnings h5 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #92400e;
+    }
+
+    .warning-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #92400e;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .warning-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .no-results-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+
+    .no-results p {
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .history-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .history-section h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .history-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .history-item:hover {
+        background: #e5e7eb;
+    }
+
+    .history-icon {
+        width: 40px;
+        height: 40px;
+        background: #e0e7ff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4f46e5;
+    }
+
+    .history-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .history-type {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .history-time {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .history-result {
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .no-history {
+        text-align: center;
+        color: #9ca3af;
+        margin: 0;
+        padding: 2rem;
+    }
+
+    /* Tab customization */
+    .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text {
+        color: #4f46e5;
+    }
+
+    .e-tab .e-tab-header .e-indicator {
+        background: #4f46e5;
+    }
+
+    @media (max-width: 1024px) {
+        .calculator-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
 @code {
+    private SfTab? CalculatorTab;
+    private BeamDesignCalculator? BeamCalculator;
+    private ColumnDesignCalculator? ColumnCalculator;
+    private ConnectionDesignCalculator? ConnectionCalculator;
+    private ShearDesignCalculator? ShearCalculator;
 
+    private CalculationResult? CurrentResults;
+    private List<CalculationHistory> CalculationHistory = new();
+    private bool HasCalculationResults => CurrentResults != null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCalculationHistory();
+    }
+
+    private async Task LoadCalculationHistory()
+    {
+        // Load from local storage or service
+        // For demo purposes, adding sample data
+        CalculationHistory = new List<CalculationHistory>
+        {
+            new CalculationHistory
+            {
+                Id = Guid.NewGuid().ToString(),
+                Type = "Beam Design",
+                Timestamp = DateTime.Now.AddHours(-2),
+                Utilization = 0.85
+            },
+            new CalculationHistory
+            {
+                Id = Guid.NewGuid().ToString(),
+                Type = "Column Design",
+                Timestamp = DateTime.Now.AddDays(-1),
+                Utilization = 0.92
+            }
+        };
+    }
+
+    private void OnCalculationComplete(CalculationResult result)
+    {
+        CurrentResults = result;
+        
+        // Add to history
+        CalculationHistory.Add(new CalculationHistory
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = result.CalculationType,
+            Timestamp = DateTime.Now,
+            Utilization = result.Utilization,
+            Result = result
+        });
+
+        StateHasChanged();
+    }
+
+    private async Task SaveCalculation()
+    {
+        if (CurrentResults == null) return;
+
+        // Save to storage service
+        // Implementation would save to OSS
+        
+        StateHasChanged();
+    }
+
+    private async Task ExportResults()
+    {
+        if (CurrentResults == null) return;
+
+        // Export to PDF or Excel
+        // Implementation would use Syncfusion export features
+    }
+
+    private void ResetCalculator()
+    {
+        CurrentResults = null;
+        // Reset all calculator inputs
+        StateHasChanged();
+    }
+
+    private void LoadCalculation(CalculationHistory history)
+    {
+        if (history.Result != null)
+        {
+            CurrentResults = history.Result;
+            StateHasChanged();
+        }
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status.ToLower() == "pass" ? "status-pass" : "status-fail";
+    }
+
+    private string GetUtilizationClass(double utilization)
+    {
+        if (utilization <= 0.7) return "utilization-safe";
+        if (utilization <= 0.9) return "utilization-warning";
+        return "utilization-danger";
+    }
+
+    private string GetCalculationIcon(string type)
+    {
+        return type switch
+        {
+            "Beam Design" => "e-icons e-horizontal",
+            "Column Design" => "e-icons e-vertical",
+            "Connection Design" => "e-icons e-link",
+            "Shear Design" => "e-icons e-cut",
+            _ => "e-icons e-calculator"
+        };
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/engineering");
+    }
+
+    // Component stubs (would be separate files in real implementation)
+    public class ColumnDesignCalculator : BeamDesignCalculator { }
+    public class ConnectionDesignCalculator : BeamDesignCalculator { }
+    public class ShearDesignCalculator : BeamDesignCalculator { }
+
+    // Models
+    public class CalculationResult
+    {
+        public string CalculationType { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string DesignCode { get; set; } = "";
+        public double SafetyFactor { get; set; }
+        public double Utilization { get; set; }
+        public List<ResultDetail> Details { get; set; } = new();
+        public List<string> Warnings { get; set; } = new();
+    }
+
+    public class ResultDetail
+    {
+        public string Label { get; set; } = "";
+        public string Value { get; set; } = "";
+        public string Unit { get; set; } = "";
+    }
+
+    public class CalculationHistory
+    {
+        public string Id { get; set; } = "";
+        public string Type { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+        public double Utilization { get; set; }
+        public CalculationResult? Result { get; set; }
+    }
 }

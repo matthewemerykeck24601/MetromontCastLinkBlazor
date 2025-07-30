@@ -1,9 +1,11 @@
-﻿using MetromontCastLink.Client;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+﻿using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Syncfusion.Blazor;
+using MetromontCastLink.Client.Services;
 
-//Register Syncfusion license https://help.syncfusion.com/common/essential-studio/licensing/how-to-generate
-//Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("YOUR LICENSE KEY");
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
 builder.Services.AddSyncfusionBlazor();
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped<IACCService, ACCService>();
+
 await builder.Build().RunAsync();

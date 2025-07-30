@@ -5,21 +5,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["MetromontCastLink.styles.css"]" />
-	<link href="syncfusion-blazor-icons.css" rel="stylesheet" />
-    <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
-	
-    <HeadOutlet @rendermode="InteractiveAuto" />
-<link rel="stylesheet" href="_content/Syncfusion.Blazor.Themes/fluent2.css" />
-<script src="_content/Syncfusion.Blazor.Core/scripts/syncfusion-blazor.min.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="MetromontCastLink.styles.css" />
+    <link href="_content/Syncfusion.Blazor.Themes/bootstrap5.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css" />
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.min.js"></script>
+    <script src="js/forge-viewer.js"></script>
+
+    <HeadOutlet />
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveAuto" />
+    <Routes />
     <script src="_framework/blazor.web.js"></script>
+    <script src="_content/Syncfusion.Blazor/scripts/syncfusion-blazor.min.js"></script>
 </body>
 
 </html>

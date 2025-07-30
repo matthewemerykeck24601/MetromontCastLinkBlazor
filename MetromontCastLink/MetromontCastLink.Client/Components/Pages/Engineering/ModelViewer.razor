@@ -1,5 +1,287 @@
-﻿<h3>ModelViewer</h3>
+﻿@page "/engineering/viewer"
+@using MetromontCastLink.Shared.Models
+@inject IJSRuntime JSRuntime
+@inject IACCService ACCService
+@inject NavigationManager Navigation
+
+<PageTitle>3D Model Viewer - Engineering</PageTitle>
+
+<div class="model-viewer-page">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-left">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="GoBack">Back</SfButton>
+                <h2>3D Model Viewer</h2>
+            </div>
+            <div class="header-right">
+                <ACCProjectSelector @bind-SelectedProjectId="@CurrentProjectId" 
+                    OnProjectSelected="OnProjectSelected"
+                    ShowProjectInfo="false" />
+            </div>
+        </div>
+    </div>
+
+    <div class="viewer-container">
+        <!-- Model Selection Panel -->
+        <div class="model-selection-panel">
+            <h3>Available Models</h3>
+            
+            @if (IsLoadingModels)
+            {
+                <div class="loading-models">
+                    <SfSpinner Size="30" Label="Loading models..." />
+                </div>
+            }
+            else if (!AvailableModels.Any())
+            {
+                <div class="no-models">
+                    <p>No models found in the selected project.</p>
+                </div>
+            }
+            else
+            {
+                <div class="model-list">
+                    @foreach (var model in AvailableModels)
+                    {
+                        <div class="model-item @(model.Urn == SelectedModelUrn ? "selected" : "")" 
+                             @onclick="() => SelectModel(model)">
+                            <div class="model-icon">
+                                <span class="e-icons e-3d-model"></span>
+                            </div>
+                            <div class="model-info">
+                                <h4>@model.Name</h4>
+                                <span class="model-version">Version @model.Version</span>
+                                <span class="model-date">@model.LastModified.ToString("MMM dd, yyyy")</span>
+                            </div>
+                            @if (model.Urn == SelectedModelUrn)
+                            {
+                                <span class="e-icons e-check selected-indicator"></span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Forge Viewer Panel -->
+        <div class="viewer-panel">
+            <div class="viewer-toolbar">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-home" @onclick="ResetView" 
+                         Disabled="@(!IsViewerLoaded)" Title="Reset View" />
+                <SfButton CssClass="e-flat" IconCss="e-icons e-zoom-in" @onclick="ZoomIn" 
+                         Disabled="@(!IsViewerLoaded)" Title="Zoom In" />
+                <SfButton CssClass="e-flat" IconCss="e-icons e-zoom-out" @onclick="ZoomOut" 
+                         Disabled="@(!IsViewerLoaded)" Title="Zoom Out" />
+                <div class="toolbar-separator"></div>
+                <SfButton CssClass="e-flat" IconCss="e-icons e-cut" @onclick="ToggleSection" 
+                         Disabled="@(!IsViewerLoaded)" Title="Section View" />
+                <SfButton CssClass="e-flat" IconCss="e-icons e-eye" @onclick="ToggleVisibility" 
+                         Disabled="@(!IsViewerLoaded)" Title="Show/Hide Elements" />
+                <SfButton CssClass="e-flat" IconCss="e-icons e-ruler" @onclick="ToggleMeasure" 
+                         Disabled="@(!IsViewerLoaded)" Title="Measure" />
+                <div class="toolbar-separator"></div>
+                <SfButton CssClass="e-flat" IconCss="e-icons e-export" @onclick="ExportView" 
+                         Disabled="@(!IsViewerLoaded)" Title="Export View" />
+            </div>
+            
+            <div id="forgeViewer" class="forge-viewer-container"></div>
+            
+            @if (!IsViewerLoaded && !string.IsNullOrEmpty(SelectedModelUrn))
+            {
+                <div class="viewer-loading">
+                    <SfSpinner Size="50" Label="Loading 3D model..." />
+                </div>
+            }
+            else if (string.IsNullOrEmpty(SelectedModelUrn))
+            {
+                <div class="viewer-empty">
+                    <div class="empty-icon">🏗️</div>
+                    <h3>No Model Selected</h3>
+                    <p>Select a model from the left panel to view it here.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Model Properties Panel -->
+    @if (SelectedModel != null && ShowProperties)
+    {
+        <div class="properties-panel">
+            <div class="properties-header">
+                <h3>Model Properties</h3>
+                <SfButton CssClass="e-flat e-round" IconCss="e-icons e-close" 
+                         @onclick="() => ShowProperties = false" />
+            </div>
+            <div class="properties-content">
+                <div class="property-group">
+                    <label>Name:</label>
+                    <span>@SelectedModel.Name</span>
+                </div>
+                <div class="property-group">
+                    <label>Version:</label>
+                    <span>@SelectedModel.Version</span>
+                </div>
+                <div class="property-group">
+                    <label>Size:</label>
+                    <span>@FormatFileSize(SelectedModel.Size)</span>
+                </div>
+                <div class="property-group">
+                    <label>Created By:</label>
+                    <span>@SelectedModel.CreatedBy</span>
+                </div>
+                <div class="property-group">
+                    <label>Last Modified:</label>
+                    <span>@SelectedModel.LastModified.ToString("MMM dd, yyyy HH:mm")</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
+    private string? CurrentProjectId;
+    private List<ACCModel> AvailableModels = new();
+    private ACCModel? SelectedModel;
+    private string? SelectedModelUrn;
+    private bool IsLoadingModels;
+    private bool IsViewerLoaded;
+    private bool ShowProperties;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize Forge Viewer
+            await InitializeForgeViewer();
+        }
+    }
+
+    private async Task InitializeForgeViewer()
+    {
+        var token = await ACCService.GetAccessTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            await JSRuntime.InvokeVoidAsync("initializeForgeViewer", "forgeViewer", token);
+        }
+    }
+
+    private async Task OnProjectSelected(ACCProject? project)
+    {
+        if (project != null)
+        {
+            await LoadModels(project.Id);
+        }
+    }
+
+    private async Task LoadModels(string projectId)
+    {
+        IsLoadingModels = true;
+        StateHasChanged();
+
+        try
+        {
+            // This would call your API to get models from ACC
+            // For now, using sample data
+            AvailableModels = new List<ACCModel>
+            {
+                new ACCModel
+                {
+                    Id = "model1",
+                    Name = "Building A - Structural Model",
+                    Urn = "dXJuOmFkc2sud2lwcHJvZDpmcy5maWxlOnZmLkl6",
+                    Version = "3",
+                    Size = 125000000,
+                    CreatedBy = "John Smith",
+                    LastModified = DateTime.Now.AddDays(-5)
+                },
+                new ACCModel
+                {
+                    Id = "model2",
+                    Name = "Building B - Level 2",
+                    Urn = "dXJuOmFkc2sud2lwcHJvZDpmcy5maWxlOnZmLkp6",
+                    Version = "2",
+                    Size = 89000000,
+                    CreatedBy = "Sarah Johnson",
+                    LastModified = DateTime.Now.AddDays(-10)
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading models: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingModels = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectModel(ACCModel model)
+    {
+        SelectedModel = model;
+        SelectedModelUrn = model.Urn;
+        ShowProperties = true;
+        
+        // Load model in viewer
+        await JSRuntime.InvokeVoidAsync("loadModel", model.Urn);
+        IsViewerLoaded = true;
+        
+        StateHasChanged();
+    }
+
+    private async Task ResetView()
+    {
+        await JSRuntime.InvokeVoidAsync("resetView");
+    }
+
+    private async Task ZoomIn()
+    {
+        await JSRuntime.InvokeVoidAsync("zoomIn");
+    }
+
+    private async Task ZoomOut()
+    {
+        await JSRuntime.InvokeVoidAsync("zoomOut");
+    }
+
+    private async Task ToggleSection()
+    {
+        await JSRuntime.InvokeVoidAsync("toggleSectionView");
+    }
+
+    private async Task ToggleVisibility()
+    {
+        await JSRuntime.InvokeVoidAsync("toggleVisibility");
+    }
+
+    private async Task ToggleMeasure()
+    {
+        await JSRuntime.InvokeVoidAsync("toggleMeasure");
+    }
+
+    private async Task ExportView()
+    {
+        await JSRuntime.InvokeVoidAsync("exportView");
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/engineering");
+    }
 }

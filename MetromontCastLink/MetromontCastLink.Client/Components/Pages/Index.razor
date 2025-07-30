@@ -1,81 +1,643 @@
 ﻿@page "/"
+@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Charts
+@inject NavigationManager Navigation
+@inject IACCService ACCService
 
-<PageTitle>Index</PageTitle>
-<span class="pageheader">Selected Controls</span>
-<br />
-<p class="pagecontent">The following Syncfusion Blazor components can be set up in an application for you with the Syncfusion Blazor Template Studio. A fast, easy start with Syncfusion Blazor components lets you concentrate on the important part: learning.</p>
-<div class="controlregion">
+<PageTitle>Home - Metromont CastLink</PageTitle>
 
- <h5 class="productheader"> Grids</h5>
-<ul class="ulstyle">
-	<li class="list">
- 	<NavLink class="nav-link" href="datagrid-features">
- 	<span class="syncfusion-blazor-index-icons syncfusion-blazor-icon-datagrid" aria-hidden="true"></span>DataGrid
- 	</NavLink>
- 	</li>
-	<li class="list">
- 	<NavLink class="nav-link" href="treegrid-features">
- 	<span class="syncfusion-blazor-index-icons syncfusion-blazor-icon-treegrid" aria-hidden="true"></span>Tree Grid
- 	</NavLink>
- 	</li>
+<div class="home-page">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1>Welcome to CastLink</h1>
+                <p>Integrated precast concrete manufacturing management platform</p>
+                @if (IsAuthenticated)
+                {
+                    <p class="user-greeting">Hello, @UserName! You have access to @ProjectCount projects.</p>
+                }
+            </div>
+            <div class="welcome-actions">
+                @if (!IsAuthenticated)
+                {
+                    <SfButton CssClass="e-primary e-large" @onclick="ConnectToACC">
+                        Connect to Autodesk Construction Cloud
+                    </SfButton>
+                }
+                else
+                {
+                    <ACCProjectSelector @bind-SelectedProjectId="@CurrentProjectId" 
+                        ShowProjectInfo="true" 
+                        Label="Active Project" />
+                }
+            </div>
+        </div>
+    </div>
 
-</ul>
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h2>Quick Actions</h2>
+        <div class="actions-grid">
+            <div class="action-card" @onclick="() => NavigateTo('/quality/bed-report-selection')">
+                <div class="action-icon quality">
+                    <span class="e-icons e-quality"></span>
+                </div>
+                <span>New QC Report</span>
+            </div>
+            <div class="action-card" @onclick="() => NavigateTo('/engineering/calculator')">
+                <div class="action-icon engineering">
+                    <span class="e-icons e-calculator"></span>
+                </div>
+                <span>Design Calculator</span>
+            </div>
+            <div class="action-card" @onclick="() => NavigateTo('/engineering/viewer')">
+                <div class="action-icon model">
+                    <span class="e-icons e-3d-model"></span>
+                </div>
+                <span>View Models</span>
+            </div>
+            <div class="action-card" @onclick="() => NavigateTo('/production/scheduling')">
+                <div class="action-icon production">
+                    <span class="e-icons e-calendar"></span>
+                </div>
+                <span>Production Schedule</span>
+            </div>
+        </div>
+    </div>
 
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid">
+        <!-- Module Status -->
+        <div class="dashboard-card">
+            <h3>Module Status</h3>
+            <div class="module-list">
+                <div class="module-item">
+                    <div class="module-info">
+                        <span class="module-icon quality">
+                            <span class="e-icons e-quality"></span>
+                        </span>
+                        <div>
+                            <h4>Quality Control</h4>
+                            <p>Bed QC Reports & Inspections</p>
+                        </div>
+                    </div>
+                    <SfChip>
+                        <ChipItems>
+                            <ChipItem Text="Active" CssClass="status-active" />
+                        </ChipItems>
+                    </SfChip>
+                </div>
+                <div class="module-item">
+                    <div class="module-info">
+                        <span class="module-icon engineering">
+                            <span class="e-icons e-engineering"></span>
+                        </span>
+                        <div>
+                            <h4>Engineering</h4>
+                            <p>Design tools & calculations</p>
+                        </div>
+                    </div>
+                    <SfChip>
+                        <ChipItems>
+                            <ChipItem Text="Active" CssClass="status-active" />
+                        </ChipItems>
+                    </SfChip>
+                </div>
+                <div class="module-item">
+                    <div class="module-info">
+                        <span class="module-icon production">
+                            <span class="e-icons e-production"></span>
+                        </span>
+                        <div>
+                            <h4>Production</h4>
+                            <p>Scheduling & bed management</p>
+                        </div>
+                    </div>
+                    <SfChip>
+                        <ChipItems>
+                            <ChipItem Text="Development" CssClass="status-development" />
+                        </ChipItems>
+                    </SfChip>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="dashboard-card">
+            <h3>Recent Activity</h3>
+            <div class="activity-timeline">
+                @if (RecentActivities.Any())
+                {
+                    @foreach (var activity in RecentActivities.Take(5))
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-dot @activity.Type"></div>
+                            <div class="timeline-content">
+                                <p>@activity.Description</p>
+                                <span class="timeline-time">@GetRelativeTime(activity.Timestamp)</span>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="no-activity">No recent activity to display</p>
+                }
+            </div>
+        </div>
+
+        <!-- Statistics Chart -->
+        <div class="dashboard-card chart-card">
+            <h3>Weekly Statistics</h3>
+            <SfChart Height="300px">
+                <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
+                    <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
+                </ChartPrimaryXAxis>
+                <ChartPrimaryYAxis>
+                    <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
+                    <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
+                </ChartPrimaryYAxis>
+                <ChartSeriesCollection>
+                    <ChartSeries DataSource="@ChartData" Name="QC Reports" XName="Day" YName="Reports" Type="ChartSeriesType.Column">
+                        <ChartSeriesAnimation Enable="true" Duration="1000"></ChartSeriesAnimation>
+                    </ChartSeries>
+                    <ChartSeries DataSource="@ChartData" Name="Calculations" XName="Day" YName="Calculations" Type="ChartSeriesType.Line">
+                        <ChartMarker Visible="true" Height="10" Width="10"></ChartMarker>
+                    </ChartSeries>
+                </ChartSeriesCollection>
+                <ChartLegendSettings Visible="true" Position="LegendPosition.Top"></ChartLegendSettings>
+            </SfChart>
+        </div>
+    </div>
+
+    <!-- Platform Features -->
+    <div class="features-section">
+        <h2>Platform Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="e-icons e-cloud"></span>
+                </div>
+                <h4>ACC Integration</h4>
+                <p>Seamless connection with Autodesk Construction Cloud for project data and model access.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="e-icons e-shield"></span>
+                </div>
+                <h4>Secure Storage</h4>
+                <p>OSS backend with encrypted storage for all your quality reports and calculations.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="e-icons e-mobile"></span>
+                </div>
+                <h4>Mobile Ready</h4>
+                <p>Responsive design works on tablets and mobile devices for field operations.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="e-icons e-analytics"></span>
+                </div>
+                <h4>Real-time Analytics</h4>
+                <p>Track production metrics and quality trends with interactive dashboards.</p>
+            </div>
+        </div>
+    </div>
 </div>
+
 <style>
-    .ulstyle {
-        margin-top: 10px;
-        margin-bottom: 20px;
-        display: inline-block;
-        list-style-type: none !important;
-        padding-left: 0px !important;
+    .home-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
     }
 
-    .controlregion {
-        margin-top: 50px;
+    .welcome-section {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 3rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 
-    .pagecontent {
-        font-family: sans-serif !important;
-font-size: 16px;
-color: #333333;
-letter-spacing: 0.34px;
-line-height: 24px;
-margin-top: 10px;
-    }
-    
-
-    .list {
-        float: left;
-        line-height: 40px;
-        min-width: 280px;
-        font-family: sans-serif !important;
-        font-size: 19px;
-        color: #0073DC;
+    .welcome-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
     }
 
-    .syncfusion-blazor-index-icons {
-        font-family: "sbicons";
-        color: #0073DC !important;
-        font-style: normal;
-        font-weight: normal;
-        font-variant: normal;
-        text-transform: none;
-        padding-right: 13px;
-        font-size: 18px;
+    .welcome-text h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 700;
     }
 
-    .productheader {
-        font-family: sans-serif !important;
-        font-size: 19px !important;
-        color: #333333 !important;
-        letter-spacing: 0.41px ;
+    .welcome-text p {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        opacity: 0.9;
     }
 
-    .pageheader {
-        font-family: sans-serif !important;
-        font-size: 24px !important;
-        color: #333333 ;
-        font-weight: bold !important;
+    .user-greeting {
+        font-size: 1rem;
+        opacity: 0.8;
+        margin-top: 1rem;
+    }
+
+    .quick-actions {
+        margin-bottom: 2rem;
+    }
+
+    .quick-actions h2 {
+        margin: 0 0 1rem 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        border: 2px solid transparent;
+    }
+
+    .action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        border-color: #e2e8f0;
+    }
+
+    .action-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 0.75rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+    }
+
+    .action-icon.quality {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .action-icon.engineering {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    }
+
+    .action-icon.model {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .action-icon.production {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .action-card span {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .dashboard-card h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .chart-card {
+        grid-column: span 2;
+    }
+
+    .module-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .module-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .module-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .module-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .module-icon.quality {
+        background: #10b981;
+    }
+
+    .module-icon.engineering {
+        background: #6366f1;
+    }
+
+    .module-icon.production {
+        background: #ef4444;
+    }
+
+    .module-info h4 {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .module-info p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .status-active .e-chip {
+        background: #d1fae5;
+        color: #065f46;
+        font-size: 0.75rem;
+    }
+
+    .status-development .e-chip {
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 0.75rem;
+    }
+
+    .activity-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .timeline-item {
+        display: flex;
+        gap: 0.75rem;
+        position: relative;
+    }
+
+    .timeline-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-top: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .timeline-dot.report {
+        background: #10b981;
+    }
+
+    .timeline-dot.calculation {
+        background: #6366f1;
+    }
+
+    .timeline-dot.model {
+        background: #f59e0b;
+    }
+
+    .timeline-content p {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+
+    .timeline-time {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .no-activity {
+        text-align: center;
+        color: #9ca3af;
+        padding: 2rem;
+    }
+
+    .features-section {
+        margin-top: 3rem;
+    }
+
+    .features-section h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .feature-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .feature-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1rem;
+        background: #f3f4f6;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: #6366f1;
+    }
+
+    .feature-card h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .feature-card p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #6b7280;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+        .welcome-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-card {
+            grid-column: span 1;
+        }
+
+        .actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 </style>
+
+@code {
+    private bool IsAuthenticated { get; set; }
+    private string UserName { get; set; } = "User";
+    private int ProjectCount { get; set; }
+    private string? CurrentProjectId { get; set; }
+    private List<Activity> RecentActivities = new();
+    private List<ChartDataPoint> ChartData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        await LoadDashboardData();
+        GenerateChartData();
+    }
+
+    private async Task CheckAuthentication()
+    {
+        IsAuthenticated = await ACCService.IsAuthenticatedAsync();
+        if (IsAuthenticated)
+        {
+            var userProfile = await ACCService.GetUserProfileAsync();
+            if (userProfile != null)
+            {
+                UserName = userProfile.Name.Split(' ').FirstOrDefault() ?? "User";
+            }
+
+            var projects = await ACCService.GetProjectsAsync();
+            ProjectCount = projects.Count;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        // This would load from your storage service
+        // For demo, using sample data
+        RecentActivities = new List<Activity>
+        {
+            new Activity
+            {
+                Type = "report",
+                Description = "Bed QC Report created for Flat Bed #1",
+                Timestamp = DateTime.Now.AddHours(-2)
+            },
+            new Activity
+            {
+                Type = "calculation",
+                Description = "Beam design calculation completed",
+                Timestamp = DateTime.Now.AddHours(-5)
+            },
+            new Activity
+            {
+                Type = "model",
+                Description = "3D model viewed: Building A - Level 2",
+                Timestamp = DateTime.Now.AddDays(-1)
+            }
+        };
+    }
+
+    private void GenerateChartData()
+    {
+        var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+        var random = new Random();
+        
+        ChartData = days.Select(day => new ChartDataPoint
+        {
+            Day = day,
+            Reports = random.Next(2, 8),
+            Calculations = random.Next(3, 12)
+        }).ToList();
+    }
+
+    private async Task ConnectToACC()
+    {
+        await ACCService.InitiateAuthenticationAsync();
+    }
+
+    private void NavigateTo(string path)
+    {
+        Navigation.NavigateTo(path);
+    }
+
+    private string GetRelativeTime(DateTime timestamp)
+    {
+        var timeSpan = DateTime.Now - timestamp;
+        
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes} minutes ago";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours} hours ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays} days ago";
+        
+        return timestamp.ToString("MMM dd");
+    }
+
+    private class Activity
+    {
+        public string Type { get; set; } = "";
+        public string Description { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+    }
+
+    private class ChartDataPoint
+    {
+        public string Day { get; set; } = "";
+        public int Reports { get; set; }
+        public int Calculations { get; set; }
+    }
+}
