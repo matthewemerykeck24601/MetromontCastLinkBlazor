@@ -1,4 +1,4 @@
-﻿// ACCService.cs
+﻿// MetromontCastLink.Client/Services/ACCService.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +31,9 @@ namespace MetromontCastLink.Client.Services
             _httpClient = httpClient;
             _jsRuntime = jsRuntime;
             _clientId = configuration["ACC:ClientId"] ?? throw new InvalidOperationException("ACC ClientId not configured");
-            _callbackUrl = configuration["ACC:CallbackUrl"] ?? "https://localhost:5001/";
+            _callbackUrl = configuration["ACC:CallbackUrl"] ?? "https://localhost:7050/signin-acc";
+
+            // These scopes match your authentication.js file
             _scopes = new[]
             {
                 "data:read",
@@ -83,6 +85,85 @@ namespace MetromontCastLink.Client.Services
             return null;
         }
 
+        public async Task HandleCallbackAsync(string code)
+        {
+            try
+            {
+                // Exchange the authorization code for an access token
+                var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/callback");
+                tokenRequest.Content = JsonContent.Create(new
+                {
+                    code = code,
+                    redirect_uri = _callbackUrl
+                });
+
+                var response = await _httpClient.SendAsync(tokenRequest);
+                if (response.IsSuccessStatusCode)
+                {
+                    var tokenData = await response.Content.ReadFromJsonAsync<TokenResponse>();
+                    if (tokenData != null && !string.IsNullOrEmpty(tokenData.AccessToken))
+                    {
+                        _accessToken = tokenData.AccessToken;
+                        _tokenExpiry = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn);
+
+                        // Store token in session storage
+                        await StoreTokenAsync(new StoredToken
+                        {
+                            AccessToken = tokenData.AccessToken,
+                            ExpiresAt = _tokenExpiry,
+                            RefreshToken = tokenData.RefreshToken,
+                            Scope = tokenData.Scope
+                        });
+
+                        // Log scope analysis
+                        LogScopeAnalysis(tokenData.Scope);
+
+                        // Notify listeners
+                        AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs
+                        {
+                            IsAuthenticated = true,
+                            UserId = null
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error handling callback: {ex.Message}");
+            }
+        }
+
+        private void LogScopeAnalysis(string? grantedScopes)
+        {
+            if (string.IsNullOrEmpty(grantedScopes)) return;
+
+            var hasDataWrite = grantedScopes.Contains("data:write");
+            var hasDataCreate = grantedScopes.Contains("data:create");
+            var hasBucketCreate = grantedScopes.Contains("bucket:create");
+            var hasBucketRead = grantedScopes.Contains("bucket:read");
+            var hasBucketUpdate = grantedScopes.Contains("bucket:update");
+            var hasBucketDelete = grantedScopes.Contains("bucket:delete");
+
+            Console.WriteLine("=== SCOPE ANALYSIS ===");
+            Console.WriteLine($"Granted scopes: {grantedScopes}");
+            Console.WriteLine($"Data permissions: Write={hasDataWrite}, Create={hasDataCreate}");
+            Console.WriteLine($"Bucket permissions: Create={hasBucketCreate}, Read={hasBucketRead}, Update={hasBucketUpdate}, Delete={hasBucketDelete}");
+            Console.WriteLine($"Full bucket permissions: {hasBucketCreate && hasBucketRead && hasBucketUpdate && hasBucketDelete}");
+            Console.WriteLine("======================");
+        }
+
+        private string BuildAuthorizationUrl()
+        {
+            var scope = string.Join(" ", _scopes);
+            var authUrl = $"https://developer.api.autodesk.com/authentication/v2/authorize" +
+                         $"?response_type=code" +
+                         $"&client_id={Uri.EscapeDataString(_clientId)}" +
+                         $"&redirect_uri={Uri.EscapeDataString(_callbackUrl)}" +
+                         $"&scope={Uri.EscapeDataString(scope)}";
+            return authUrl;
+        }
+
+        // Rest of the implementation remains the same...
         public async Task<UserProfile?> GetUserProfileAsync()
         {
             if (_userProfile != null)
@@ -110,9 +191,8 @@ namespace MetromontCastLink.Client.Services
                         Id = data.userId?.ToString() ?? "",
                         Name = $"{data.firstName} {data.lastName}",
                         Email = data.emailId?.ToString() ?? "",
-                        Role = "User" // ACC doesn't provide role in user profile
+                        Role = data.jobTitle?.ToString() ?? ""
                     };
-                    return _userProfile;
                 }
             }
             catch (Exception ex)
@@ -120,12 +200,12 @@ namespace MetromontCastLink.Client.Services
                 Console.WriteLine($"Error getting user profile: {ex.Message}");
             }
 
-            return null;
+            return _userProfile;
         }
 
         public async Task<List<ACCProject>> GetProjectsAsync()
         {
-            if (_projects != null && _projects.Any())
+            if (_projects != null)
             {
                 return _projects;
             }
@@ -138,41 +218,39 @@ namespace MetromontCastLink.Client.Services
 
             try
             {
-                // First get the hub
-                var hubRequest = new HttpRequestMessage(HttpMethod.Get, "https://developer.api.autodesk.com/project/v1/hubs");
-                hubRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                // Get hubs first
+                var hubsRequest = new HttpRequestMessage(HttpMethod.Get, "https://developer.api.autodesk.com/project/v1/hubs");
+                hubsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var hubResponse = await _httpClient.SendAsync(hubRequest);
-                if (!hubResponse.IsSuccessStatusCode)
+                var hubsResponse = await _httpClient.SendAsync(hubsRequest);
+                if (hubsResponse.IsSuccessStatusCode)
                 {
-                    return new List<ACCProject>();
-                }
-
-                var hubData = await hubResponse.Content.ReadFromJsonAsync<ForgeApiResponse<HubData>>();
-                var hub = hubData?.Data?.FirstOrDefault();
-                if (hub == null)
-                {
-                    return new List<ACCProject>();
-                }
-
-                // Then get projects
-                var projectsRequest = new HttpRequestMessage(HttpMethod.Get, $"https://developer.api.autodesk.com/project/v1/hubs/{hub.Id}/projects");
-                projectsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var projectsResponse = await _httpClient.SendAsync(projectsRequest);
-                if (projectsResponse.IsSuccessStatusCode)
-                {
-                    var projectsData = await projectsResponse.Content.ReadFromJsonAsync<ForgeApiResponse<ProjectData>>();
-                    _projects = projectsData?.Data?.Select(p => new ACCProject
+                    var hubsData = await hubsResponse.Content.ReadFromJsonAsync<ForgeApiResponse<HubData>>();
+                    if (hubsData?.Data != null && hubsData.Data.Any())
                     {
-                        Id = p.Id,
-                        Name = p.Attributes?.Name ?? "Unnamed Project",
-                        Number = p.Attributes?.Number ?? "",
-                        Location = p.Attributes?.Location ?? "",
-                        Status = p.Attributes?.Status ?? "active"
-                    }).ToList() ?? new List<ACCProject>();
+                        var hubId = hubsData.Data.First().Id;
 
-                    return _projects;
+                        // Get projects for the hub
+                        var projectsRequest = new HttpRequestMessage(HttpMethod.Get,
+                            $"https://developer.api.autodesk.com/project/v1/hubs/{hubId}/projects");
+                        projectsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                        var projectsResponse = await _httpClient.SendAsync(projectsRequest);
+                        if (projectsResponse.IsSuccessStatusCode)
+                        {
+                            var projectsData = await projectsResponse.Content.ReadFromJsonAsync<ForgeApiResponse<ProjectData>>();
+                            _projects = projectsData?.Data?.Select(p => new ACCProject
+                            {
+                                Id = p.Id,
+                                Name = p.Attributes?.Name ?? "Unnamed Project",
+                                Number = p.Attributes?.Number ?? "",
+                                Location = p.Attributes?.Location ?? "",
+                                Status = p.Attributes?.Status ?? "active"
+                            }).ToList() ?? new List<ACCProject>();
+
+                            return _projects;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -226,7 +304,8 @@ namespace MetromontCastLink.Client.Services
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"https://developer.api.autodesk.com/project/v1/projects/{projectId}/users");
+                var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"https://developer.api.autodesk.com/project/v1/projects/{projectId}/users");
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
                 var response = await _httpClient.SendAsync(request);
@@ -261,49 +340,67 @@ namespace MetromontCastLink.Client.Services
 
             // Clear stored data
             await _jsRuntime.InvokeVoidAsync("sessionStorage.clear");
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "forgeToken");
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "acc_token_data");
 
-            AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs { IsAuthenticated = false });
+            AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs
+            {
+                IsAuthenticated = false,
+                UserId = null
+            });
         }
 
-        private string BuildAuthorizationUrl()
-        {
-            var scope = string.Join(" ", _scopes);
-            var responseType = "code";
-            var prompt = "login";
-
-            return $"https://developer.api.autodesk.com/authentication/v2/authorize" +
-                   $"?response_type={responseType}" +
-                   $"&client_id={_clientId}" +
-                   $"&redirect_uri={Uri.EscapeDataString(_callbackUrl)}" +
-                   $"&scope={Uri.EscapeDataString(scope)}" +
-                   $"&prompt={prompt}";
-        }
-
+        // Helper methods
         private async Task<StoredToken?> GetStoredTokenAsync()
         {
             try
             {
-                var tokenJson = await _jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "forge_token");
-                if (!string.IsNullOrEmpty(tokenJson))
+                var json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", "acc_token_data");
+                if (!string.IsNullOrEmpty(json))
                 {
-                    return System.Text.Json.JsonSerializer.Deserialize<StoredToken>(tokenJson);
+                    return System.Text.Json.JsonSerializer.Deserialize<StoredToken>(json);
                 }
             }
             catch { }
             return null;
         }
 
-        private bool IsTokenExpired(StoredToken token)
+        private async Task StoreTokenAsync(StoredToken token)
         {
-            return token.ExpiresAt <= DateTime.UtcNow;
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(token);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "acc_token_data", json);
+            }
+            catch { }
         }
 
-        // Helper classes for API responses
+        private bool IsTokenExpired(StoredToken token)
+        {
+            return token.ExpiresAt <= DateTime.UtcNow.AddMinutes(-5);
+        }
+
+        // Helper classes
         private class StoredToken
         {
             public string AccessToken { get; set; } = "";
             public DateTime ExpiresAt { get; set; }
+            public string? RefreshToken { get; set; }
+            public string? Scope { get; set; }
+        }
+
+        private class TokenResponse
+        {
+            [System.Text.Json.Serialization.JsonPropertyName("access_token")]
+            public string AccessToken { get; set; } = "";
+
+            [System.Text.Json.Serialization.JsonPropertyName("expires_in")]
+            public int ExpiresIn { get; set; }
+
+            [System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
+            public string? RefreshToken { get; set; }
+
+            [System.Text.Json.Serialization.JsonPropertyName("scope")]
+            public string? Scope { get; set; }
         }
 
         private class ForgeApiResponse<T>
