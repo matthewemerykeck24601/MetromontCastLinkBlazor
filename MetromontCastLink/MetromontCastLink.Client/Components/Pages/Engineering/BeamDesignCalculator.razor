@@ -1,0 +1,160 @@
+﻿@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+
+<div class="calculator-form">
+    <h4>Beam Design Calculator</h4>
+
+    <div class="form-section">
+        <h5>Beam Dimensions</h5>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Length (ft)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@BeamLength" Min="0" Format="F2" />
+            </div>
+            <div class="form-group">
+                <label>Width (in)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@BeamWidth" Min="0" Format="F2" />
+            </div>
+            <div class="form-group">
+                <label>Height (in)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@BeamHeight" Min="0" Format="F2" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h5>Material Properties</h5>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Concrete Strength (psi)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@ConcreteStrength" Min="3000" Max="10000" />
+            </div>
+            <div class="form-group">
+                <label>Steel Yield (psi)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@SteelYield" Min="40000" Max="80000" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h5>Loading</h5>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Dead Load (plf)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@DeadLoad" Min="0" />
+            </div>
+            <div class="form-group">
+                <label>Live Load (plf)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@LiveLoad" Min="0" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <SfButton CssClass="e-primary" @onclick="Calculate">Calculate</SfButton>
+        <SfButton CssClass="e-outline" @onclick="Reset">Reset</SfButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<CalculationResult> OnCalculationComplete { get; set; }
+
+    // Beam design specific inputs
+    private double BeamLength { get; set; } = 30;
+    private double BeamWidth { get; set; } = 12;
+    private double BeamHeight { get; set; } = 24;
+    private double ConcreteStrength { get; set; } = 5000;
+    private double SteelYield { get; set; } = 60000;
+    private double DeadLoad { get; set; } = 100;
+    private double LiveLoad { get; set; } = 50;
+
+    private async Task Calculate()
+    {
+        // Simplified beam design calculation per PCI guidelines
+        var totalLoad = DeadLoad + LiveLoad;
+        var moment = (totalLoad * Math.Pow(BeamLength, 2)) / 8;
+        var requiredAs = moment / (0.9 * SteelYield * 0.9 * BeamHeight);
+        var providedAs = 2.5; // sq in (example)
+        var utilization = requiredAs / providedAs;
+
+        var result = new CalculationResult
+        {
+            CalculationType = "Beam Design",
+            Status = utilization <= 1.0 ? "Pass" : "Fail",
+            DesignCode = "ACI 318-19 / PCI",
+            SafetyFactor = 1.5,
+            Utilization = utilization,
+            Details = new List<ResultDetail>
+            {
+                new ResultDetail { Label = "Beam Length", Value = BeamLength.ToString("F1"), Unit = "ft" },
+                new ResultDetail { Label = "Design Moment", Value = moment.ToString("F0"), Unit = "ft-lb" },
+                new ResultDetail { Label = "Required Steel", Value = requiredAs.ToString("F2"), Unit = "sq in" },
+                new ResultDetail { Label = "Provided Steel", Value = providedAs.ToString("F2"), Unit = "sq in" }
+            },
+            Warnings = utilization > 0.9 ? new List<string> { "Utilization exceeds 90%" } : new List<string>()
+        };
+
+        await OnCalculationComplete.InvokeAsync(result);
+    }
+
+    private void Reset()
+    {
+        BeamLength = 30;
+        BeamWidth = 12;
+        BeamHeight = 24;
+        ConcreteStrength = 5000;
+        SteelYield = 60000;
+        DeadLoad = 100;
+        LiveLoad = 50;
+    }
+}
+
+<style>
+    .calculator-form {
+        padding: 1rem;
+    }
+
+        .calculator-form h4 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+    .form-section {
+        margin-bottom: 1.5rem;
+    }
+
+        .form-section h5 {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+    .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    }</style>

@@ -1,16 +1,14 @@
 ﻿@page "/production/scheduling"
-@using MetromontCastLink.Client.Models
+@using MetromontCastLink.Shared.Models
 @using MetromontCastLink.Client.Services
 @using Syncfusion.Blazor.Schedule
-@using Syncfusion.Blazor.Calendars
-@using Syncfusion.Blazor.Buttons
-@using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Inputs
-@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Notifications
-@inject NavigationManager Navigation
 @inject IACCService ACCService
-@inject IJSRuntime JSRuntime
+@inject IStorageService StorageService
+@inject NavigationManager Navigation
 
 <PageTitle>Production Scheduling - Metromont CastLink</PageTitle>
 
@@ -22,9 +20,11 @@
                 <h2>Production Scheduling</h2>
             </div>
             <div class="header-right">
-                <SfButton CssClass="e-outline" IconCss="e-icons e-refresh" @onclick="RefreshSchedule">Refresh</SfButton>
                 <SfButton CssClass="e-primary" IconCss="e-icons e-add" @onclick="ShowNewScheduleDialog">
                     New Schedule
+                </SfButton>
+                <SfButton CssClass="e-outline" IconCss="e-icons e-refresh" @onclick="RefreshSchedule">
+                    Refresh
                 </SfButton>
             </div>
         </div>
@@ -119,18 +119,20 @@
                         TextField="Name" IdField="Id" ColorField="Color" />
                 </ScheduleResources>
                 <ScheduleEventSettings DataSource="@ProductionEvents">
-                    <Template>
-                        <div class="event-template @GetStatusClass((context as ProductionEvent)?.Status)">
-                            <div class="event-header">
-                                <span class="event-title">@((context as ProductionEvent)?.ProductName)</span>
-                                <span class="event-status">@((context as ProductionEvent)?.Status)</span>
+                    <ScheduleEventSettingsTemplate>
+                        <Template>
+                            <div class="event-template @GetStatusClass((context as ProductionEvent)?.Status)">
+                                <div class="event-header">
+                                    <span class="event-title">@((context as ProductionEvent)?.ProductName)</span>
+                                    <span class="event-status">@((context as ProductionEvent)?.Status)</span>
+                                </div>
+                                <div class="event-details">
+                                    <span>@((context as ProductionEvent)?.Quantity) pcs</span>
+                                    <span>@((context as ProductionEvent)?.ProjectName)</span>
+                                </div>
                             </div>
-                            <div class="event-details">
-                                <span>@((context as ProductionEvent)?.Quantity) pcs</span>
-                                <span>@((context as ProductionEvent)?.ProjectName)</span>
-                            </div>
-                        </div>
-                    </Template>
+                        </Template>
+                    </ScheduleEventSettingsTemplate>
                 </ScheduleEventSettings>
                 <ScheduleEvents TValue="ProductionEvent" 
                     EventRendered="OnEventRendered"
@@ -142,7 +144,7 @@
 </div>
 
 <!-- New Schedule Dialog -->
-<SfDialog @ref="NewScheduleDialog" Width="600px" IsModal="true" ShowCloseIcon="true">
+<SfDialog @ref="NewScheduleDialog" Width="600px" IsModal="true" ShowCloseIcon="true" Visible="false">
     <DialogTemplates>
         <Header>Create Production Schedule</Header>
         <Content>
@@ -221,8 +223,8 @@
     private string? CurrentProjectId;
     private DateTime? StartDate = DateTime.Today.AddDays(-7);
     private DateTime? EndDate = DateTime.Today.AddDays(14);
-    private string[]? SelectedBedTypes = new string[] { };
-    private string[]? SelectedProductTypes = new string[] { };
+    private string[] SelectedBedTypes = new string[] { };
+    private string[] SelectedProductTypes = new string[] { };
 
     private List<ProductionEvent> ProductionEvents = new();
     private List<BedResource> BedResources = new();
@@ -356,7 +358,7 @@
         await LoadProductionEvents();
     }
 
-    private void ShowNewScheduleDialog()
+    private async Task ShowNewScheduleDialog()
     {
         NewEvent = new ProductionEvent
         {
@@ -365,35 +367,41 @@
             EndTime = DateTime.Today.AddHours(15),
             Status = "Scheduled"
         };
-        NewScheduleDialog?.Show();
+        
+        if (NewScheduleDialog != null)
+        {
+            await NewScheduleDialog.ShowAsync();
+        }
     }
 
-    private void CloseNewScheduleDialog()
+    private async Task CloseNewScheduleDialog()
     {
-        NewScheduleDialog?.Hide();
+        if (NewScheduleDialog != null)
+        {
+            await NewScheduleDialog.HideAsync();
+        }
     }
 
     private async Task SaveNewSchedule()
     {
         if (ValidateNewEvent())
         {
-            // Get project name if project is selected
-            if (!string.IsNullOrEmpty(NewEvent.ProjectId))
-            {
-                var projects = await ACCService.GetProjectsAsync();
-                var project = projects.FirstOrDefault(p => p.Id == NewEvent.ProjectId);
-                NewEvent.ProjectName = project?.Name ?? "Unknown Project";
-            }
-
             ProductionEvents.Add(NewEvent);
-            await ScheduleRef!.RefreshEventsAsync();
-            CloseNewScheduleDialog();
+            if (ScheduleRef != null)
+            {
+                await ScheduleRef.RefreshEventsAsync();
+            }
+            await CloseNewScheduleDialog();
             
-            await ShowToast("Success", "Production schedule created successfully");
-        }
-        else
-        {
-            await ShowToast("Error", "Please fill in all required fields");
+            if (ToastObj != null)
+            {
+                await ToastObj.ShowAsync(new ToastModel
+                {
+                    Title = "Success",
+                    Content = "Production schedule created successfully",
+                    CssClass = "e-toast-success"
+                });
+            }
         }
     }
 
@@ -410,94 +418,29 @@
     private async Task RefreshSchedule()
     {
         await LoadProductionEvents();
-        await ScheduleRef!.RefreshEventsAsync();
-        await ShowToast("Info", "Schedule refreshed");
+        if (ScheduleRef != null)
+        {
+            await ScheduleRef.RefreshEventsAsync();
+        }
     }
 
     private void OnEventRendered(EventRenderedArgs<ProductionEvent> args)
     {
-        // Additional customization of event appearance if needed
+        // Customize event appearance
     }
 
-    private async Task OnActionBegin(ActionEventArgs<ProductionEvent> args)
+    private void OnActionBegin(Syncfusion.Blazor.Schedule.ActionEventArgs<ProductionEvent> args)
     {
-        if (args.ActionType == ActionType.EventCreate || args.ActionType == ActionType.EventChange)
-        {
-            // Validate event data
-            var eventData = args.AddedRecords?.FirstOrDefault() ?? args.ChangedRecords?.FirstOrDefault();
-            if (eventData != null && string.IsNullOrEmpty(eventData.ProductName))
-            {
-                args.Cancel = true;
-                await ShowToast("Error", "Product name is required");
-            }
-        }
+        // Handle schedule actions
     }
 
-    private async Task OnActionComplete(ActionEventArgs<ProductionEvent> args)
+    private void OnActionComplete(Syncfusion.Blazor.Schedule.ActionEventArgs<ProductionEvent> args)
     {
-        if (args.ActionType == ActionType.EventCreate)
-        {
-            await ShowToast("Success", "Event created successfully");
-        }
-        else if (args.ActionType == ActionType.EventChange)
-        {
-            await ShowToast("Success", "Event updated successfully");
-        }
-        else if (args.ActionType == ActionType.EventRemove)
-        {
-            await ShowToast("Success", "Event removed successfully");
-        }
-    }
-
-    private async Task ShowToast(string title, string content)
-    {
-        await ToastObj!.ShowAsync(new ToastModel
-        {
-            Title = title,
-            Content = content,
-            Timeout = 3000
-        });
+        // Handle action completion
     }
 
     private void GoBack()
     {
         Navigation.NavigateTo("/production");
-    }
-
-    // Model Classes
-    public class ProductionEvent
-    {
-        public string Id { get; set; } = "";
-        public string ProductName { get; set; } = "";
-        public string ProductType { get; set; } = "";
-        public int? Quantity { get; set; }
-        public string BedId { get; set; } = "";
-        public string? ProjectId { get; set; }
-        public string? ProjectName { get; set; }
-        public DateTime? StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
-        public string Status { get; set; } = "Scheduled";
-        public string? DesignNumber { get; set; }
-        public string? Notes { get; set; }
-    }
-
-    public class BedResource
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Color { get; set; } = "";
-        public bool IsAvailable { get; set; }
-    }
-
-    public class BedType
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-    }
-
-    public class ProductType
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
     }
 }

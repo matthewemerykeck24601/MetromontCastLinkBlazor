@@ -1,6 +1,8 @@
 ﻿@page "/engineering/calculator"
 @using MetromontCastLink.Shared.Models
+@using MetromontCastLink.Client.Services
 @using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Buttons
 @inject NavigationManager Navigation
 @inject IACCService ACCService
 @inject IStorageService StorageService
@@ -57,410 +59,99 @@
         <!-- Right Panel: Results Display -->
         <div class="results-panel">
             <h3>Calculation Results</h3>
-            @if (CurrentResults != null)
+            @if (CurrentResult != null)
             {
-                <div class="results-content">
+                <div class="result-summary">
                     <div class="result-header">
-                        <h4>@CurrentResults.CalculationType</h4>
-                        <SfChip>
-                            <ChipItems>
-                                <ChipItem Text="@CurrentResults.Status" CssClass="@GetStatusClass(CurrentResults.Status)" />
-                            </ChipItems>
-                        </SfChip>
+                        <span class="result-type">@CurrentResult.CalculationType</span>
+                        <span class="result-status @GetStatusClass(CurrentResult.Status)">
+                            @CurrentResult.Status
+                        </span>
                     </div>
-
-                    <div class="result-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">Design Code:</span>
-                            <span class="summary-value">@CurrentResults.DesignCode</span>
+                    <div class="result-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">Design Code</span>
+                            <span class="metric-value">@CurrentResult.DesignCode</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Safety Factor:</span>
-                            <span class="summary-value">@CurrentResults.SafetyFactor.ToString("F2")</span>
+                        <div class="metric-item">
+                            <span class="metric-label">Safety Factor</span>
+                            <span class="metric-value">@CurrentResult.SafetyFactor.ToString("F2")</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Utilization:</span>
-                            <span class="summary-value @GetUtilizationClass(CurrentResults.Utilization)">
-                                @CurrentResults.Utilization.ToString("P1")
+                        <div class="metric-item critical">
+                            <span class="metric-label">Utilization</span>
+                            <span class="metric-value @GetUtilizationClass(CurrentResult.Utilization)">
+                                @CurrentResult.Utilization.ToString("P0")
                             </span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="result-details">
-                        <h5>Calculation Details</h5>
-                        @foreach (var detail in CurrentResults.Details)
+                <div class="result-details">
+                    <h4>Details</h4>
+                    <div class="details-grid">
+                        @foreach (var detail in CurrentResult.Details)
                         {
                             <div class="detail-item">
-                                <span class="detail-label">@detail.Label:</span>
+                                <span class="detail-label">@detail.Label</span>
                                 <span class="detail-value">@detail.Value @detail.Unit</span>
                             </div>
                         }
                     </div>
-
-                    @if (CurrentResults.Warnings.Any())
-                    {
-                        <div class="result-warnings">
-                            <h5>Warnings</h5>
-                            @foreach (var warning in CurrentResults.Warnings)
-                            {
-                                <div class="warning-item">
-                                    <SfTooltip Content="@warning">
-                                        <i class="e-icons e-warning"></i>
-                                        @warning
-                                    </SfTooltip>
-                                </div>
-                            }
-                        </div>
-                    }
                 </div>
+
+                @if (CurrentResult.Warnings.Any())
+                {
+                    <div class="result-warnings">
+                        <h5>Warnings</h5>
+                        @foreach (var warning in CurrentResult.Warnings)
+                        {
+                            <div class="warning-item">
+                                <span class="e-icons e-warning"></span>
+                                <span>@warning</span>
+                            </div>
+                        }
+                    </div>
+                }
             }
             else
             {
                 <div class="no-results">
-                    <p>Select a calculation type and run calculations to see results here.</p>
+                    <div class="no-results-icon">📐</div>
+                    <p>Select a calculation type and enter values to begin.</p>
                 </div>
-            }
-        </div>
-
-        <!-- Bottom Panel: Calculation History -->
-        <div class="history-panel">
-            <h3>Calculation History</h3>
-            @if (calculationHistoryList.Any())
-            {
-                <div class="history-list">
-                    @foreach (var history in calculationHistoryList.OrderByDescending(h => h.Timestamp))
-                    {
-                        <div class="history-item" @onclick="() => LoadCalculation(history)">
-                            <div class="history-icon">
-                                <i class="@GetCalculationIcon(history.Type)"></i>
-                            </div>
-                            <div class="history-info">
-                                <div class="history-type">@history.Type</div>
-                                <div class="history-time">@history.Timestamp.ToString("MMM dd, yyyy HH:mm")</div>
-                            </div>
-                            <div class="history-result @GetUtilizationClass(history.Utilization)">
-                                @history.Utilization.ToString("P1")
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="no-history">No calculation history available.</p>
             }
         </div>
     </div>
-</div>
 
-<style>
-    .design-calculator-page {
-        padding: 1rem;
-        max-width: 1600px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-    }
-
-    .header-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .header-left h2 {
-        margin: 0;
-        color: #1e293b;
-        font-size: 1.5rem;
-        font-weight: 600;
-    }
-
-    .header-right {
-        display: flex;
-        gap: 0.75rem;
-    }
-
-    .calculator-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr auto;
-        gap: 1.5rem;
-        height: calc(100vh - 200px);
-        min-height: 600px;
-    }
-
-    .calculator-sidebar {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-    }
-
-    .calculator-sidebar h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .results-panel {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        overflow-y: auto;
-    }
-
-    .results-panel h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .results-content {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-
-    .result-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .result-header h4 {
-        margin: 0;
-        color: #1e293b;
-        font-size: 1.25rem;
-        font-weight: 600;
-    }
-
-    .result-summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    .summary-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .summary-label {
-        font-size: 0.875rem;
-        color: #64748b;
-        font-weight: 500;
-    }
-
-    .summary-value {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .result-details {
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 1rem;
-    }
-
-    .result-details h5 {
-        margin: 0 0 0.75rem 0;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .detail-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .detail-item:last-child {
-        border-bottom: none;
-    }
-
-    .detail-label {
-        color: #64748b;
-        font-weight: 500;
-    }
-
-    .detail-value {
-        color: #1e293b;
-        font-weight: 600;
-    }
-
-    .result-warnings {
-        background: #fef3cd;
-        border: 1px solid #fde047;
-        border-radius: 8px;
-        padding: 1rem;
-    }
-
-    .result-warnings h5 {
-        margin: 0 0 0.75rem 0;
-        color: #a16207;
-        font-size: 1rem;
-        font-weight: 600;
-    }
-
-    .warning-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #a16207;
-        margin-bottom: 0.5rem;
-    }
-
-    .warning-item:last-child {
-        margin-bottom: 0;
-    }
-
-    .no-results {
-        text-align: center;
-        color: #9ca3af;
-        margin: 2rem 0;
-    }
-
-    .history-panel {
-        grid-column: 1 / -1;
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .history-panel h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .history-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .history-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem;
-        background: #f9fafb;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .history-item:hover {
-        background: #e5e7eb;
-    }
-
-    .history-icon {
-        width: 40px;
-        height: 40px;
-        background: #e0e7ff;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #4f46e5;
-    }
-
-    .history-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
-    }
-
-    .history-type {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #1e293b;
-    }
-
-    .history-time {
-        font-size: 0.75rem;
-        color: #6b7280;
-    }
-
-    .history-result {
-        font-size: 0.875rem;
-        font-weight: 600;
-    }
-
-    .no-history {
-        text-align: center;
-        color: #9ca3af;
-        margin: 0;
-        padding: 2rem;
-    }
-
-    /* Status Classes */
-    .status-pass {
-        background: #dcfce7;
-        color: #15803d;
-    }
-
-    .status-fail {
-        background: #fecaca;
-        color: #dc2626;
-    }
-
-    /* Utilization Classes */
-    .utilization-safe {
-        color: #15803d;
-    }
-
-    .utilization-warning {
-        color: #d97706;
-    }
-
-    .utilization-danger {
-        color: #dc2626;
-    }
-
-    /* Tab customization */
-    .e-tab .e-tab-header .e-toolbar-item.e-active .e-tab-text {
-        color: #4f46e5;
-    }
-
-    .e-tab .e-tab-header .e-indicator {
-        background: #4f46e5;
-    }
-
-    @media (max-width: 1024px) {
-        .calculator-container {
-            grid-template-columns: 1fr;
+    <!-- Calculation History -->
+    <div class="history-section">
+        <h3>Calculation History</h3>
+        @if (CalculationHistory.Any())
+        {
+            <div class="history-list">
+                @foreach (var calc in CalculationHistory.OrderByDescending(c => c.Timestamp).Take(5))
+                {
+                    <div class="history-item" @onclick="() => LoadCalculation(calc)">
+                        <div class="history-icon">
+                            <span class="@GetCalculationIcon(calc.Type)"></span>
+                        </div>
+                        <div class="history-info">
+                            <span class="history-type">@calc.Type</span>
+                            <span class="history-time">@calc.Timestamp.ToString("MMM dd, HH:mm")</span>
+                        </div>
+                        <div class="history-result">
+                            <span class="@GetUtilizationClass(calc.Utilization)">@calc.Utilization.ToString("P0")</span>
+                        </div>
+                    </div>
+                }
+            </div>
         }
-    }
-</style>
+        else
+        {
+            <p class="no-history">No previous calculations</p>
+        }
+    </div>
+</div>
 
 @code {
     private SfTab? CalculatorTab;
@@ -469,92 +160,80 @@
     private ConnectionDesignCalculator? ConnectionCalculator;
     private ShearDesignCalculator? ShearCalculator;
 
-    private CalculationResult? CurrentResults;
-    private List<CalculationHistory> calculationHistoryList = new();
-    private bool HasCalculationResults => CurrentResults != null;
+    private CalculationResult? CurrentResult;
+    private List<CalculationHistory> CalculationHistory = new();
+    private bool HasCalculationResults => CurrentResult != null;
 
     protected override async Task OnInitializedAsync()
     {
+        // Load calculation history from storage
         await LoadCalculationHistory();
     }
 
-    private async Task LoadCalculationHistory()
+    private async Task OnCalculationComplete(CalculationResult result)
     {
-        // Load from local storage or service
-        // For demo purposes, adding sample data
-        calculationHistoryList = new List<CalculationHistory>
-        {
-            new CalculationHistory
-            {
-                Id = Guid.NewGuid().ToString(),
-                Type = "Beam Design",
-                Timestamp = DateTime.Now.AddHours(-2),
-                Utilization = 0.85
-            },
-            new CalculationHistory
-            {
-                Id = Guid.NewGuid().ToString(),
-                Type = "Column Design",
-                Timestamp = DateTime.Now.AddDays(-1),
-                Utilization = 0.92
-            }
-        };
-    }
-
-    private void OnCalculationComplete(CalculationResult result)
-    {
-        CurrentResults = result;
+        CurrentResult = result;
         
         // Add to history
-        calculationHistoryList.Add(new CalculationHistory
+        var historyItem = new CalculationHistory
         {
             Id = Guid.NewGuid().ToString(),
             Type = result.CalculationType,
             Timestamp = DateTime.Now,
             Utilization = result.Utilization,
             Result = result
-        });
-
+        };
+        
+        CalculationHistory.Insert(0, historyItem);
         StateHasChanged();
     }
 
     private async Task SaveCalculation()
     {
-        if (CurrentResults == null) return;
+        if (CurrentResult == null) return;
 
-        // Save to storage service
-        // Implementation would save to OSS
-        
-        StateHasChanged();
+        try
+        {
+            // Save to ACC storage
+            var json = System.Text.Json.JsonSerializer.Serialize(CurrentResult);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            var fileName = $"calc_{DateTime.Now:yyyyMMddHHmmss}.json";
+            
+            // await StorageService.UploadFileAsync(fileName, bytes, "application/json");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving calculation: {ex.Message}");
+        }
     }
 
     private async Task ExportResults()
     {
-        if (CurrentResults == null) return;
+        if (CurrentResult == null) return;
 
-        // Export to PDF or Excel
-        // Implementation would use Syncfusion export features
+        // Export logic here
     }
 
     private void ResetCalculator()
     {
-        CurrentResults = null;
-        // Reset all calculator inputs
+        CurrentResult = null;
         StateHasChanged();
     }
 
-    private void LoadCalculation(CalculationHistory history)
+    private async Task LoadCalculationHistory()
     {
-        if (history.Result != null)
-        {
-            CurrentResults = history.Result;
-            StateHasChanged();
-        }
+        // Load from storage
+    }
+
+    private void LoadCalculation(CalculationHistory calc)
+    {
+        CurrentResult = calc.Result;
+        StateHasChanged();
     }
 
     private string GetStatusClass(string status)
     {
-        return status.ToLower() == "pass" ? "status-pass" : "status-fail";
+        return status == "Pass" ? "status-pass" : "status-fail";
     }
 
     private string GetUtilizationClass(double utilization)
@@ -585,32 +264,4 @@
     public class ColumnDesignCalculator : BeamDesignCalculator { }
     public class ConnectionDesignCalculator : BeamDesignCalculator { }
     public class ShearDesignCalculator : BeamDesignCalculator { }
-
-    // Models
-    public class CalculationResult
-    {
-        public string CalculationType { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string DesignCode { get; set; } = "";
-        public double SafetyFactor { get; set; }
-        public double Utilization { get; set; }
-        public List<ResultDetail> Details { get; set; } = new();
-        public List<string> Warnings { get; set; } = new();
-    }
-
-    public class ResultDetail
-    {
-        public string Label { get; set; } = "";
-        public string Value { get; set; } = "";
-        public string Unit { get; set; } = "";
-    }
-
-    public class CalculationHistory
-    {
-        public string Id { get; set; } = "";
-        public string Type { get; set; } = "";
-        public DateTime Timestamp { get; set; }
-        public double Utilization { get; set; }
-        public CalculationResult? Result { get; set; }
-    }
 }
