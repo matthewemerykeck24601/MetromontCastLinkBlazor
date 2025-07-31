@@ -10,9 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.7" />
     <PackageReference Include="Syncfusion.Blazor.Buttons" Version="30.1.42" />
     <PackageReference Include="Syncfusion.Blazor.Calendars" Version="30.1.42" />
+    <PackageReference Include="Syncfusion.Blazor.Charts" Version="30.1.42" />
     <PackageReference Include="Syncfusion.Blazor.Core" Version="30.1.42" />
     <PackageReference Include="Syncfusion.Blazor.Data" Version="30.1.42" />
     <PackageReference Include="Syncfusion.Blazor.DropDowns" Version="30.1.42" />
@@ -21,6 +22,7 @@
 	    <PackageReference Include="Syncfusion.Blazor.Lists" Version="30.1.42" />
 	    <PackageReference Include="Syncfusion.Blazor.Notifications" Version="30.1.42" />
 	    <PackageReference Include="Syncfusion.Blazor.Popups" Version="30.1.42" />
+	    <PackageReference Include="Syncfusion.Blazor.Schedule" Version="30.1.42" />
 	    <PackageReference Include="Syncfusion.Blazor.Spinner" Version="30.1.42" />
 	    <PackageReference Include="Syncfusion.Blazor.SplitButtons" Version="30.1.42" />
     <PackageReference Include="Syncfusion.Blazor.TreeGrid" Version="30.1.42" />
@@ -37,6 +39,10 @@
     <Folder Include="Components\Pages\QualityControl\Components\" />
     <Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\data\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MetromontCastLink.Shared\MetromontCastLink.Shared.csproj" />
   </ItemGroup>
   
   

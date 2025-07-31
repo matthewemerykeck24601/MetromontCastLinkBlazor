@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// MetromontCastLink.Shared/Models/ACCModel.cs
+using System;
 
 namespace MetromontCastLink.Shared.Models
 {
@@ -15,5 +12,9 @@ namespace MetromontCastLink.Shared.Models
         public long Size { get; set; }
         public string CreatedBy { get; set; } = "";
         public DateTime LastModified { get; set; }
+        public string ProjectId { get; set; } = "";
+        public string FolderId { get; set; } = "";
+        public string FileType { get; set; } = "";
+        public string Status { get; set; } = "";
     }
 }

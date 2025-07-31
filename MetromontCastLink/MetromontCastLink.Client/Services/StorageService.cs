@@ -1,6 +1,6 @@
 ﻿// MetromontCastLink.Client/Services/StorageService.cs
-using MetromontCastLink.Client.Models;
 using MetromontCastLink.Shared.Models;
+using MetromontCastLink.Client.Services;
 using Microsoft.JSInterop;
 using System;
 using System.Collections.Generic;
@@ -63,23 +63,25 @@ namespace MetromontCastLink.Client.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<StorageResult>();
-                    return result ?? new StorageResult { Success = false, Message = "Invalid response" };
+                    return result ?? new StorageResult { Success = false, Message = "Failed to parse response" };
                 }
                 else
                 {
+                    var errorContent = await response.Content.ReadAsStringAsync();
                     return new StorageResult
                     {
                         Success = false,
-                        Message = $"Failed to save report: {response.StatusCode}"
+                        Message = $"HTTP {response.StatusCode}: {errorContent}"
                     };
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error saving report: {ex.Message}");
                 return new StorageResult
                 {
                     Success = false,
-                    Message = $"Error saving report: {ex.Message}"
+                    Message = ex.Message
                 };
             }
         }
@@ -94,10 +96,10 @@ namespace MetromontCastLink.Client.Services
                     return new List<QCReportListItem>();
                 }
 
-                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/oss-storage/reports/{projectId}");
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/oss-storage/reports/{projectId}");
+                httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await _httpClient.SendAsync(httpRequest);
                 if (response.IsSuccessStatusCode)
                 {
                     var reports = await response.Content.ReadFromJsonAsync<List<QCReportListItem>>();
@@ -122,10 +124,10 @@ namespace MetromontCastLink.Client.Services
                     return null;
                 }
 
-                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/oss-storage/report/{bucketKey}/{objectKey}");
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/oss-storage/report/{bucketKey}/{objectKey}");
+                httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await _httpClient.SendAsync(httpRequest);
                 if (response.IsSuccessStatusCode)
                 {
                     return await response.Content.ReadFromJsonAsync<QCReport>();
@@ -149,26 +151,35 @@ namespace MetromontCastLink.Client.Services
                     return new StorageResult
                     {
                         Success = false,
-                        Message = "Not authenticated"
+                        Message = "Not authenticated with ACC"
                     };
                 }
 
-                var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/oss-storage/report/{bucketKey}/{objectKey}");
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                var httpRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/oss-storage/report/{bucketKey}/{objectKey}");
+                httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var response = await _httpClient.SendAsync(request);
-                return new StorageResult
+                var response = await _httpClient.SendAsync(httpRequest);
+                if (response.IsSuccessStatusCode)
                 {
-                    Success = response.IsSuccessStatusCode,
-                    Message = response.IsSuccessStatusCode ? "Report deleted" : "Failed to delete report"
-                };
+                    return new StorageResult { Success = true, Message = "Report deleted successfully" };
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return new StorageResult
+                    {
+                        Success = false,
+                        Message = $"HTTP {response.StatusCode}: {errorContent}"
+                    };
+                }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error deleting report: {ex.Message}");
                 return new StorageResult
                 {
                     Success = false,
-                    Message = $"Error deleting report: {ex.Message}"
+                    Message = ex.Message
                 };
             }
         }
@@ -178,7 +189,7 @@ namespace MetromontCastLink.Client.Services
             try
             {
                 var json = JsonSerializer.Serialize(report);
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"qc_report_{report.ReportId}", json);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"report_{report.ReportId}", json);
             }
             catch (Exception ex)
             {
