@@ -1,6 +1,13 @@
 ﻿@page "/quality/bed-report/{BedId}"
 @using MetromontCastLink.Shared.Models
+@using MetromontCastLink.Client.Services
 @using System.Text.Json
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.Navigations
 @inject IACCService ACCService
 @inject IStorageService StorageService
 @inject IJSRuntime JSRuntime
@@ -42,8 +49,8 @@
         <div class="form-grid">
             <div class="form-group">
                 <label>Project Name <span class="required">*</span></label>
-                <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@SelectedProjectId" 
-                    DataSource="@Projects" Placeholder="Select a project">
+                <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@SelectedProjectId"
+                                DataSource="@Projects" Placeholder="Select a project">
                     <DropDownListFieldSettings Text="Name" Value="Id" />
                     <DropDownListEvents TValue="string" TItem="ACCProject" ValueChange="OnProjectChange" />
                 </SfDropDownList>
@@ -58,15 +65,15 @@
             </div>
             <div class="form-group">
                 <label>Calculated By <span class="required">*</span></label>
-                <SfDropDownList TValue="string" TItem="ProjectMember" @bind-Value="@CalculatedBy" 
-                    DataSource="@ProjectMembers" Placeholder="Select team member">
+                <SfDropDownList TValue="string" TItem="ProjectMember" @bind-Value="@CalculatedBy"
+                                DataSource="@ProjectMembers" Placeholder="Select team member">
                     <DropDownListFieldSettings Text="Name" Value="Name" />
                 </SfDropDownList>
             </div>
             <div class="form-group">
                 <label>Reviewed By</label>
-                <SfDropDownList TValue="string" TItem="ProjectMember" @bind-Value="@ReviewedBy" 
-                    DataSource="@ProjectMembers" Placeholder="Select reviewer">
+                <SfDropDownList TValue="string" TItem="ProjectMember" @bind-Value="@ReviewedBy"
+                                DataSource="@ProjectMembers" Placeholder="Select reviewer">
                     <DropDownListFieldSettings Text="Name" Value="Name" />
                 </SfDropDownList>
             </div>
@@ -89,89 +96,92 @@
                 <span class="calculator-icon">⚡</span>
                 Self-Stressing Bed Calculator
             </h3>
-            
+
             <div class="calculator-inputs">
                 <div class="input-group">
                     <label>Initial Pull (lbs/strand)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_InitialPull" 
-                        Placeholder="0" Format="n0" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_InitialPull"
+                                      Placeholder="0" Format="n0" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Required Force (lbs)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_RequiredForce" 
-                        Placeholder="0" Format="n0" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_RequiredForce"
+                                      Placeholder="0" Format="n0" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>MOE (psi)</label>
-                    <SfDropDownList TValue="double?" @bind-Value="@SS_MOE" DataSource="@MOEValues" 
-                        Placeholder="Select MOE" @onchange="CalculateAll">
+                    <SfDropDownList TValue="double?" TItem="object" @bind-Value="@SS_MOE" DataSource="@MOEValues"
+                                    Placeholder="Select MOE" @onchange="CalculateAll">
                         <DropDownListFieldSettings Text="Text" Value="Value" />
                     </SfDropDownList>
                 </div>
                 <div class="input-group">
                     <label>Number of Strands</label>
-                    <SfNumericTextBox TValue="int?" @bind-Value="@SS_NumberOfStrands" 
-                        Placeholder="0" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="int?" @bind-Value="@SS_NumberOfStrands"
+                                      Placeholder="0" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Adj Bed Short (in)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_AdjBedShortening" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_AdjBedShortening"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Block Length (ft)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_BlockLength" 
-                        Placeholder="0" Format="n1" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_BlockLength"
+                                      Placeholder="0" Format="n1" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Strand Size</label>
-                    <SfDropDownList TValue="string" @bind-Value="@SS_StrandSize" DataSource="@StrandSizes" 
-                        Placeholder="Select size" @onchange="OnStrandSizeChange">
+                    <SfDropDownList TValue="string" TItem="StrandSize" @bind-Value="@SS_StrandSize" DataSource="@StrandSizes"
+                                    Placeholder="Select size" @onchange="OnStrandSizeChange">
                         <DropDownListFieldSettings Text="Name" Value="Name" />
                     </SfDropDownList>
                 </div>
                 <div class="input-group">
                     <label>Strand Area (in²)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_StrandArea" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_StrandArea"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Dead End Seat (in)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_DeadEndSeating" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_DeadEndSeating"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Live End Seat (in)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_LiveEndSeating" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@SS_LiveEndSeating"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
             </div>
 
+            <!-- Self-Stressing Results -->
             <div class="calculator-results">
-                <h4>Results</h4>
-                <div class="result-item">
-                    <span>Basic Elongation:</span>
-                    <span class="result-value">@SS_BasicElongation.ToString("F3") in</span>
-                </div>
-                <div class="result-item">
-                    <span>Bed Shortening:</span>
-                    <span class="result-value">@SS_BedShortening.ToString("F3") in</span>
-                </div>
-                <div class="result-item">
-                    <span>Total Elongation:</span>
-                    <span class="result-value">@SS_TotalElongation.ToString("F3") in</span>
-                </div>
-                <div class="result-item">
-                    <span>Seating Loss:</span>
-                    <span class="result-value">@SS_SeatingLoss.ToString("F3") in</span>
-                </div>
-                <div class="result-item critical">
-                    <span>Desired Elongation (Rounded):</span>
-                    <span class="result-value">@SS_DesiredElongationRounded.ToString("F3") in</span>
-                </div>
-                <div class="result-item critical">
-                    <span>Calculated Pull (Rounded):</span>
-                    <span class="result-value">@SS_CalculatedPullRounded.ToString("N0") lbs</span>
+                <h4>Calculated Results</h4>
+                <div class="results-grid">
+                    <div class="result-item">
+                        <label>Basic Elongation (in)</label>
+                        <div class="result-value">@SS_BasicElongation.ToString("F3")</div>
+                    </div>
+                    <div class="result-item">
+                        <label>Bed Shortening (in)</label>
+                        <div class="result-value">@SS_BedShortening.ToString("F3")</div>
+                    </div>
+                    <div class="result-item">
+                        <label>Total Elongation (in)</label>
+                        <div class="result-value">@SS_TotalElongation.ToString("F3")</div>
+                    </div>
+                    <div class="result-item">
+                        <label>Seating Loss (in)</label>
+                        <div class="result-value">@SS_SeatingLoss.ToString("F3")</div>
+                    </div>
+                    <div class="result-item highlight">
+                        <label>Desired Elongation (in)</label>
+                        <div class="result-value">@SS_DesiredElongationRounded.ToString("F3")</div>
+                    </div>
+                    <div class="result-item highlight">
+                        <label>Calculated Pull (lbs)</label>
+                        <div class="result-value">@SS_CalculatedPullRounded.ToString("F0")</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -182,95 +192,95 @@
                 <span class="calculator-icon">🔧</span>
                 Non-Self-Stressing Bed Calculator
             </h3>
-            
+
             <div class="calculator-inputs">
                 <div class="input-group">
                     <label>Initial Pull (lbs/strand)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_InitialPull" 
-                        Placeholder="0" Format="n0" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_InitialPull"
+                                      Placeholder="0" Format="n0" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>MOE (psi)</label>
-                    <SfDropDownList TValue="double?" @bind-Value="@NSS_MOE" DataSource="@MOEValues" 
-                        Placeholder="Select MOE" @onchange="CalculateAll">
+                    <SfDropDownList TValue="double?" TItem="object" @bind-Value="@NSS_MOE" DataSource="@MOEValues"
+                                    Placeholder="Select MOE" @onchange="CalculateAll">
                         <DropDownListFieldSettings Text="Text" Value="Value" />
                     </SfDropDownList>
                 </div>
                 <div class="input-group">
                     <label>Block Length (ft)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_BlockLength" 
-                        Placeholder="0" Format="n1" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_BlockLength"
+                                      Placeholder="0" Format="n1" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Strand Size</label>
-                    <SfDropDownList TValue="string" @bind-Value="@NSS_StrandSize" DataSource="@StrandSizes" 
-                        Placeholder="Select size" @onchange="OnStrandSizeChangeNSS">
+                    <SfDropDownList TValue="string" TItem="StrandSize" @bind-Value="@NSS_StrandSize" DataSource="@StrandSizes"
+                                    Placeholder="Select size" @onchange="OnStrandSizeChangeNSS">
                         <DropDownListFieldSettings Text="Name" Value="Name" />
                     </SfDropDownList>
                 </div>
                 <div class="input-group">
                     <label>Strand Area (in²)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_StrandArea" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_StrandArea"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Temp at Stressing (°F)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_TempAtStressing" 
-                        Placeholder="0" Format="n0" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_TempAtStressing"
+                                      Placeholder="0" Format="n0" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Temp at Release (°F)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_TempAtRelease" 
-                        Placeholder="0" Format="n0" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_TempAtRelease"
+                                      Placeholder="0" Format="n0" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Dead End Seat (in)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_DeadEndSeating" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_DeadEndSeating"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
                 <div class="input-group">
                     <label>Live End Seat (in)</label>
-                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_LiveEndSeating" 
-                        Placeholder="0" Format="n3" @onchange="CalculateAll" />
+                    <SfNumericTextBox TValue="double?" @bind-Value="@NSS_LiveEndSeating"
+                                      Placeholder="0" Format="n3" @onchange="CalculateAll" />
                 </div>
             </div>
 
+            <!-- Non-Self-Stressing Results -->
             <div class="calculator-results">
-                <h4>Results</h4>
-                <div class="result-item">
-                    <span>Basic Elongation:</span>
-                    <span class="result-value">@NSS_BasicElongation.ToString("F3") in</span>
-                </div>
-                <div class="result-item">
-                    <span>Seating Loss:</span>
-                    <span class="result-value">@NSS_SeatingLoss.ToString("F3") in</span>
-                </div>
-                <div class="result-item">
-                    <span>Temp Elongation:</span>
-                    <span class="result-value">@NSS_TempElongation.ToString("F3") in</span>
-                </div>
-                <div class="result-item">
-                    <span>Temp Correction:</span>
-                    <span class="result-value">@NSS_TempCorrection.ToString("F3")</span>
-                </div>
-                <div class="result-item critical">
-                    <span>Desired Elongation (Rounded):</span>
-                    <span class="result-value">@NSS_DesiredElongationRounded.ToString("F3") in</span>
-                </div>
-                <div class="result-item critical">
-                    <span>Calculated Pull (Rounded):</span>
-                    <span class="result-value">@NSS_CalculatedPullRounded.ToString("N0") lbs</span>
+                <h4>Calculated Results</h4>
+                <div class="results-grid">
+                    <div class="result-item">
+                        <label>Basic Elongation (in)</label>
+                        <div class="result-value">@NSS_BasicElongation.ToString("F3")</div>
+                    </div>
+                    <div class="result-item">
+                        <label>Seating Loss (in)</label>
+                        <div class="result-value">@NSS_SeatingLoss.ToString("F3")</div>
+                    </div>
+                    <div class="result-item">
+                        <label>Temp Elongation (in)</label>
+                        <div class="result-value">@NSS_TempElongation.ToString("F3")</div>
+                    </div>
+                    <div class="result-item">
+                        <label>Temp Correction (in)</label>
+                        <div class="result-value">@NSS_TempCorrection.ToString("F3")</div>
+                    </div>
+                    <div class="result-item highlight">
+                        <label>Desired Elongation (in)</label>
+                        <div class="result-value">@NSS_DesiredElongationRounded.ToString("F3")</div>
+                    </div>
+                    <div class="result-item highlight">
+                        <label>Calculated Pull (lbs)</label>
+                        <div class="result-value">@NSS_CalculatedPullRounded.ToString("F0")</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Toast Notifications -->
-<SfToast @ref="ToastObj" Title="Notification" Width="400px">
-    <ToastPosition X="Right" Y="Top" />
-</SfToast>
-
+<!-- Toast notification -->
+<SfToast @ref="ToastObj" Width="400" Height="150" />
 
 @code {
     [Parameter] public string BedId { get; set; } = "";
@@ -331,8 +341,8 @@
     private double NSS_CalculatedPullRounded;
 
     // UI State
-    private bool CanSave => !string.IsNullOrEmpty(SelectedProjectId) && 
-                           ReportDate.HasValue && 
+    private bool CanSave => !string.IsNullOrEmpty(SelectedProjectId) &&
+                           ReportDate.HasValue &&
                            !string.IsNullOrEmpty(CalculatedBy);
     private bool HasData => SS_InitialPull.HasValue || NSS_InitialPull.HasValue;
 
@@ -357,256 +367,230 @@
     protected override async Task OnInitializedAsync()
     {
         // Generate Report ID
-        ReportId = $"BR-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
+        ReportId = $"BQC-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
 
         // Load bed information
         BedInfo = BedDatabase.GetBedById(BedId);
-        if (BedInfo == null)
-        {
-            Navigation.NavigateTo("/quality");
-            return;
-        }
 
-        // Load ACC data
-        await LoadACCData();
-    }
-
-    private async Task LoadACCData()
-    {
+        // Load projects and team members
         try
         {
             Projects = await ACCService.GetProjectsAsync();
-            
             var currentProject = await ACCService.GetCurrentProjectAsync();
             if (currentProject != null)
             {
                 SelectedProjectId = currentProject.Id;
-                await OnProjectChange(new Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> 
-                { 
-                    Value = currentProject.Id 
-                });
+                ProjectNumber = currentProject.Name; // Or get project number from metadata
+                ProjectMembers = await ACCService.GetProjectMembersAsync(currentProject.Id);
             }
         }
         catch (Exception ex)
         {
-            await ShowNotification($"Error loading ACC data: {ex.Message}", "error");
+            await ShowToast($"Error loading project data: {ex.Message}", "error");
         }
     }
 
-    private async Task OnProjectChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> args)
+    private async Task OnProjectChange(ChangeEventArgs<string, ACCProject> args)
     {
-        if (!string.IsNullOrEmpty(args.Value))
+        if (args.ItemData != null)
         {
-            var project = Projects.FirstOrDefault(p => p.Id == args.Value);
-            if (project != null)
+            SelectedProjectId = args.Value;
+            ProjectNumber = args.ItemData.Name;
+            try
             {
-                ProjectNumber = project.Number;
-                Location = project.Location;
-                
-                // Load project members
-                ProjectMembers = await ACCService.GetProjectMembersAsync(project.Id);
-                StateHasChanged();
+                ProjectMembers = await ACCService.GetProjectMembersAsync(args.Value);
+            }
+            catch (Exception ex)
+            {
+                await ShowToast($"Error loading project members: {ex.Message}", "error");
             }
         }
     }
 
-    private void OnStrandSizeChange(Microsoft.AspNetCore.Components.ChangeEventArgs e)
+    private async Task OnStrandSizeChange(ChangeEventArgs<string> args)
     {
-        var size = StrandSizes.FirstOrDefault(s => s.Name == e.Value?.ToString());
-        if (size != null)
+        var selectedStrand = StrandSizes.FirstOrDefault(s => s.Name == args.Value);
+        if (selectedStrand != null)
         {
-            SS_StrandArea = size.Area;
-            CalculateAll();
+            SS_StrandArea = selectedStrand.Area;
+            await CalculateAll();
         }
     }
 
-    private void OnStrandSizeChangeNSS(Microsoft.AspNetCore.Components.ChangeEventArgs e)
+    private async Task OnStrandSizeChangeNSS(ChangeEventArgs<string> args)
     {
-        var size = StrandSizes.FirstOrDefault(s => s.Name == e.Value?.ToString());
-        if (size != null)
+        var selectedStrand = StrandSizes.FirstOrDefault(s => s.Name == args.Value);
+        if (selectedStrand != null)
         {
-            NSS_StrandArea = size.Area;
-            CalculateAll();
+            NSS_StrandArea = selectedStrand.Area;
+            await CalculateAll();
         }
     }
 
-    private void CalculateAll()
+    private async Task CalculateAll()
     {
         CalculateSelfStressing();
         CalculateNonSelfStressing();
+        await Task.CompletedTask;
     }
 
     private void CalculateSelfStressing()
     {
-        if (!SS_InitialPull.HasValue || !SS_RequiredForce.HasValue || !SS_MOE.HasValue || 
-            !SS_NumberOfStrands.HasValue || !SS_BlockLength.HasValue || !SS_StrandArea.HasValue)
-        {
+        if (!SS_InitialPull.HasValue || !SS_MOE.HasValue || !SS_BlockLength.HasValue || !SS_StrandArea.HasValue)
             return;
-        }
-
-        // Convert block length to inches
-        double blockLengthInches = (SS_BlockLength ?? 0) * 12;
-
-        // Basic Elongation
-        SS_BasicElongation = (SS_InitialPull.Value * blockLengthInches) / 
-                            (SS_StrandArea.Value * SS_MOE.Value);
-
-        // Bed Shortening
-        if (SS_NumberOfStrands > 0)
-        {
-            SS_BedShortening = ((SS_RequiredForce.Value / SS_NumberOfStrands.Value) - SS_InitialPull.Value) * 
-                              blockLengthInches / (SS_StrandArea.Value * SS_MOE.Value);
-        }
-
-        // Total Elongation
-        SS_TotalElongation = SS_BasicElongation + SS_BedShortening + (SS_AdjBedShortening ?? 0);
-
-        // Seating Loss
-        SS_SeatingLoss = (SS_DeadEndSeating ?? 0) + (SS_LiveEndSeating ?? 0);
-
-        // Desired Elongation Rounded
-        double desiredElongation = SS_TotalElongation + SS_SeatingLoss;
-        SS_DesiredElongationRounded = Math.Ceiling(desiredElongation * 8) / 8; // Round up to nearest 1/8"
-
-        // Calculated Pull Rounded
-        double calculatedPull = (SS_DesiredElongationRounded - SS_SeatingLoss - SS_BedShortening - 
-                               (SS_AdjBedShortening ?? 0)) * SS_StrandArea.Value * SS_MOE.Value / blockLengthInches;
-        SS_CalculatedPullRounded = Math.Round(calculatedPull / 10) * 10; // Round to nearest 10
-    }
-
-    private void CalculateNonSelfStressing()
-    {
-        if (!NSS_InitialPull.HasValue || !NSS_MOE.HasValue || !NSS_BlockLength.HasValue || 
-            !NSS_StrandArea.HasValue)
-        {
-            return;
-        }
-
-        // Convert block length to inches
-        double blockLengthInches = (NSS_BlockLength ?? 0) * 12;
-
-        // Basic Elongation
-        NSS_BasicElongation = (NSS_InitialPull.Value * blockLengthInches) / 
-                             (NSS_StrandArea.Value * NSS_MOE.Value);
-
-        // Seating Loss
-        NSS_SeatingLoss = (NSS_DeadEndSeating ?? 0) + (NSS_LiveEndSeating ?? 0);
-
-        // Temperature calculations
-        double tempDiff = (NSS_TempAtRelease ?? 70) - (NSS_TempAtStressing ?? 70);
-        NSS_TempElongation = tempDiff * 0.0000065 * blockLengthInches;
-        NSS_TempCorrection = NSS_TempElongation > 0 ? 
-            1 + (NSS_TempElongation / NSS_BasicElongation) : 
-            1 / (1 - (NSS_TempElongation / NSS_BasicElongation));
-
-        // Desired Elongation Rounded
-        double desiredElongation = NSS_BasicElongation * NSS_TempCorrection + NSS_SeatingLoss;
-        NSS_DesiredElongationRounded = Math.Ceiling(desiredElongation * 8) / 8; // Round up to nearest 1/8"
-
-        // Calculated Pull Rounded
-        double calculatedPull = (NSS_DesiredElongationRounded - NSS_SeatingLoss) * 
-                               NSS_StrandArea.Value * NSS_MOE.Value / 
-                               (blockLengthInches * NSS_TempCorrection);
-        NSS_CalculatedPullRounded = Math.Round(calculatedPull / 10) * 10; // Round to nearest 10
-    }
-
-    private async Task SaveReport()
-    {
-        if (!CanSave)
-        {
-            await ShowNotification("Please fill in all required fields", "warning");
-            return;
-        }
 
         try
         {
-            var reportData = new QCReport
-            {
-                ReportId = ReportId,
-                BedId = BedId,
-                BedName = BedInfo?.Name ?? "",
-                ProjectId = SelectedProjectId!,
-                ProjectName = Projects.FirstOrDefault(p => p.Id == SelectedProjectId)?.Name ?? "",
-                ProjectNumber = ProjectNumber,
-                ReportDate = ReportDate!.Value,
-                CalculatedBy = CalculatedBy!,
-                ReviewedBy = ReviewedBy,
-                Location = Location,
-                Notes = Notes,
-                CreatedDate = DateTime.Now,
-                Status = "Completed",
-                SelfStressing = new SelfStressingData
-                {
-                    Inputs = new SelfStressingInputs
-                    {
-                        InitialPull = SS_InitialPull ?? 0,
-                        RequiredForce = SS_RequiredForce ?? 0,
-                        MOE = SS_MOE ?? 0,
-                        NumberOfStrands = SS_NumberOfStrands ?? 0,
-                        AdjBedShortening = SS_AdjBedShortening ?? 0,
-                        BlockLength = SS_BlockLength ?? 0,
-                        StrandSize = SS_StrandSize ?? "",
-                        StrandArea = SS_StrandArea ?? 0,
-                        DeadEndSeating = SS_DeadEndSeating ?? 0,
-                        LiveEndSeating = SS_LiveEndSeating ?? 0
-                    },
-                    Results = new SelfStressingResults
-                    {
-                        BasicElongation = SS_BasicElongation,
-                        BedShortening = SS_BedShortening,
-                        TotalElongation = SS_TotalElongation,
-                        SeatingLoss = SS_SeatingLoss,
-                        DesiredElongationRounded = SS_DesiredElongationRounded,
-                        CalculatedPullRounded = SS_CalculatedPullRounded
-                    }
-                },
-                NonSelfStressing = new NonSelfStressingData
-                {
-                    Inputs = new NonSelfStressingInputs
-                    {
-                        InitialPull = NSS_InitialPull ?? 0,
-                        MOE = NSS_MOE ?? 0,
-                        BlockLength = NSS_BlockLength ?? 0,
-                        StrandSize = NSS_StrandSize ?? "",
-                        StrandArea = NSS_StrandArea ?? 0,
-                        TempAtStressing = NSS_TempAtStressing ?? 70,
-                        TempAtRelease = NSS_TempAtRelease ?? 70,
-                        DeadEndSeating = NSS_DeadEndSeating ?? 0,
-                        LiveEndSeating = NSS_LiveEndSeating ?? 0
-                    },
-                    Results = new NonSelfStressingResults
-                    {
-                        BasicElongation = NSS_BasicElongation,
-                        SeatingLoss = NSS_SeatingLoss,
-                        TempElongation = NSS_TempElongation,
-                        TempCorrection = NSS_TempCorrection,
-                        DesiredElongationRounded = NSS_DesiredElongationRounded,
-                        CalculatedPullRounded = NSS_CalculatedPullRounded
-                    }
-                }
-            };
+            double blockLengthInches = SS_BlockLength.Value * 12; // Convert ft to inches
 
-            var result = await StorageService.SaveReportAsync(reportData);
-            if (result.Success)
+            // Basic Elongation = (Initial Pull * Block Length) / (MOE * Strand Area)
+            SS_BasicElongation = (SS_InitialPull.Value * blockLengthInches) / (SS_MOE.Value * SS_StrandArea.Value);
+
+            // Bed Shortening calculation (if applicable)
+            SS_BedShortening = SS_AdjBedShortening ?? 0;
+
+            // Total Elongation
+            SS_TotalElongation = SS_BasicElongation + SS_BedShortening;
+
+            // Seating Loss calculation
+            double deadEndLoss = SS_DeadEndSeating ?? 0;
+            double liveEndLoss = SS_LiveEndSeating ?? 0;
+            SS_SeatingLoss = deadEndLoss + liveEndLoss;
+
+            // Desired Elongation (rounded to 1/8")
+            double desiredElongation = SS_TotalElongation + SS_SeatingLoss;
+            SS_DesiredElongationRounded = Math.Round(desiredElongation * 8) / 8;
+
+            // Back-calculate the required pull for the rounded elongation
+            if (SS_NumberOfStrands.HasValue && SS_NumberOfStrands > 0)
             {
-                await ShowNotification("Report saved successfully to ACC", "success");
-                Navigation.NavigateTo("/quality/reports");
-            }
-            else
-            {
-                await ShowNotification($"Failed to save report: {result.Message}", "error");
+                double requiredElongationForPull = SS_DesiredElongationRounded - SS_BedShortening - SS_SeatingLoss;
+                SS_CalculatedPullRounded = Math.Round((requiredElongationForPull * SS_MOE.Value * SS_StrandArea.Value) / blockLengthInches);
             }
         }
         catch (Exception ex)
         {
-            await ShowNotification($"Error saving report: {ex.Message}", "error");
+            Console.WriteLine($"Error in self-stressing calculation: {ex.Message}");
+        }
+    }
+
+    private void CalculateNonSelfStressing()
+    {
+        if (!NSS_InitialPull.HasValue || !NSS_MOE.HasValue || !NSS_BlockLength.HasValue || !NSS_StrandArea.HasValue)
+            return;
+
+        try
+        {
+            double blockLengthInches = NSS_BlockLength.Value * 12; // Convert ft to inches
+
+            // Basic Elongation = (Initial Pull * Block Length) / (MOE * Strand Area)
+            NSS_BasicElongation = (NSS_InitialPull.Value * blockLengthInches) / (NSS_MOE.Value * NSS_StrandArea.Value);
+
+            // Seating Loss calculation
+            double deadEndLoss = NSS_DeadEndSeating ?? 0;
+            double liveEndLoss = NSS_LiveEndSeating ?? 0;
+            NSS_SeatingLoss = deadEndLoss + liveEndLoss;
+
+            // Temperature elongation calculation
+            if (NSS_TempAtStressing.HasValue && NSS_TempAtRelease.HasValue)
+            {
+                double tempDifference = NSS_TempAtRelease.Value - NSS_TempAtStressing.Value;
+                double coefficientOfExpansion = 6.5e-6; // per °F for steel
+                NSS_TempElongation = coefficientOfExpansion * tempDifference * blockLengthInches;
+                NSS_TempCorrection = NSS_TempElongation;
+            }
+
+            // Desired Elongation (rounded to 1/8")
+            double desiredElongation = NSS_BasicElongation + NSS_SeatingLoss + NSS_TempCorrection;
+            NSS_DesiredElongationRounded = Math.Round(desiredElongation * 8) / 8;
+
+            // Back-calculate the required pull for the rounded elongation
+            double requiredElongationForPull = NSS_DesiredElongationRounded - NSS_SeatingLoss - NSS_TempCorrection;
+            NSS_CalculatedPullRounded = Math.Round((requiredElongationForPull * NSS_MOE.Value * NSS_StrandArea.Value) / blockLengthInches);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in non-self-stressing calculation: {ex.Message}");
+        }
+    }
+
+    private async Task SaveReport()
+    {
+        if (!CanSave) return;
+
+        try
+        {
+            // Create report data object
+            var reportData = new
+            {
+                ReportId,
+                BedId,
+                SelectedProjectId,
+                ProjectNumber,
+                ReportDate,
+                CalculatedBy,
+                ReviewedBy,
+                Location,
+                Notes,
+                SelfStressingData = new
+                {
+                    SS_InitialPull,
+                    SS_RequiredForce,
+                    SS_MOE,
+                    SS_NumberOfStrands,
+                    SS_AdjBedShortening,
+                    SS_BlockLength,
+                    SS_StrandSize,
+                    SS_StrandArea,
+                    SS_DeadEndSeating,
+                    SS_LiveEndSeating,
+                    SS_BasicElongation,
+                    SS_BedShortening,
+                    SS_TotalElongation,
+                    SS_SeatingLoss,
+                    SS_DesiredElongationRounded,
+                    SS_CalculatedPullRounded
+                },
+                NonSelfStressingData = new
+                {
+                    NSS_InitialPull,
+                    NSS_MOE,
+                    NSS_BlockLength,
+                    NSS_StrandSize,
+                    NSS_StrandArea,
+                    NSS_TempAtStressing,
+                    NSS_TempAtRelease,
+                    NSS_DeadEndSeating,
+                    NSS_LiveEndSeating,
+                    NSS_BasicElongation,
+                    NSS_SeatingLoss,
+                    NSS_TempElongation,
+                    NSS_TempCorrection,
+                    NSS_DesiredElongationRounded,
+                    NSS_CalculatedPullRounded
+                }
+            };
+
+            // Save to ACC/OSS storage
+            await StorageService.SaveQCReportAsync(SelectedProjectId!, ReportId, reportData);
+            await ShowToast("Report saved successfully to ACC!", "success");
+        }
+        catch (Exception ex)
+        {
+            await ShowToast($"Error saving report: {ex.Message}", "error");
         }
     }
 
     private async Task ExportPDF()
     {
-        // This would integrate with Syncfusion PDF export
-        await ShowNotification("PDF export functionality coming soon", "info");
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex)
+        {
+            await ShowToast($"Error exporting PDF: {ex.Message}", "error");
+        }
     }
 
     private void CloseReport()
@@ -614,13 +598,9 @@
         Navigation.NavigateTo("/quality");
     }
 
-    private async Task ShowNotification(string message, string type = "info")
+    private async Task ShowToast(string message, string type = "info")
     {
-        if (Layout != null)
-        {
-            await Layout.ShowNotification(message, type);
-        }
-        else if (ToastObj != null)
+        if (ToastObj != null)
         {
             var cssClass = type switch
             {
@@ -630,11 +610,11 @@
                 _ => "e-toast-info"
             };
 
-            await ToastObj.ShowAsync(new ToastModel 
-            { 
-                Content = message, 
+            await ToastObj.ShowAsync(new ToastModel
+            {
+                Content = message,
                 CssClass = cssClass,
-                Timeout = 3000 
+                Timeout = 3000
             });
         }
     }

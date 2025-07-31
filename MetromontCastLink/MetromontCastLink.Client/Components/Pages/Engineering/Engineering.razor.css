@@ -1,30 +1,65 @@
-﻿/* Engineering Page Styles */
-.engineering-page {
-    padding: 1.5rem;
-    background: #f5f7fa;
-    min-height: calc(100vh - 64px);
+﻿.engineering-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
 }
 
 .page-header {
     margin-bottom: 2rem;
 }
 
-    .page-header h1 {
-        margin: 0 0 0.5rem 0;
-        font-size: 2rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.06);
+}
 
-    .page-header p {
-        margin: 0;
-        font-size: 1.125rem;
-        color: #64748b;
-    }
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 
-/* Tools Section */
+.page-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.header-left h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.header-left p {
+    margin: 0.25rem 0 0 0;
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.tools-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
 .tools-section {
-    margin-bottom: 2rem;
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.06);
 }
 
 .section-title {
@@ -32,49 +67,68 @@
     font-size: 1.5rem;
     font-weight: 600;
     color: #1e293b;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.5rem;
 }
 
 .tools-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
 }
 
 .tool-card {
-    background: white;
-    border-radius: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
     padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     cursor: pointer;
     transition: all 0.2s ease;
+    border: 2px solid transparent;
+    position: relative;
 }
 
     .tool-card:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border-color: #3b82f6;
+    }
+
+    .tool-card.active {
+        border-color: #10b981;
+        background: #f0fdf4;
     }
 
 .tool-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
     margin-bottom: 1rem;
 }
 
 .tool-icon {
-    width: 48px;
-    height: 48px;
-    background: #e0e7ff;
+    width: 50px;
+    height: 50px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    color: #6366f1;
+    font-size: 1.5rem;
 }
 
+    .tool-icon.calculator {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .tool-icon.viewer {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .tool-icon.summary {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
 .tool-card h3 {
-    margin: 0;
+    margin: 0 0 0.5rem 0;
     font-size: 1.25rem;
     font-weight: 600;
     color: #1e293b;
@@ -82,140 +136,195 @@
 
 .tool-card p {
     margin: 0 0 1rem 0;
-    color: #6b7280;
+    color: #64748b;
     line-height: 1.5;
 }
 
 .tool-features {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
 }
 
-    .tool-features li {
-        padding: 0.5rem 0;
-        color: #6b7280;
-        font-size: 0.875rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
+.feature-tag {
+    background: white;
+    color: #6b7280;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+}
 
-        .tool-features li::before {
-            content: "✓";
-            color: #10b981;
-            font-weight: 600;
-        }
+.tool-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
 
-/* Resource Section */
+.action-text {
+    font-weight: 500;
+    color: #3b82f6;
+}
+
+.status-active .e-chip {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-beta .e-chip {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-upcoming .e-chip {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
 .resource-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
 .resource-card {
-    background: white;
-    border-radius: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
     padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    display: flex;
-    gap: 1rem;
-    align-items: start;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
 }
+
+    .resource-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-color: #cbd5e1;
+    }
 
 .resource-icon {
     width: 40px;
     height: 40px;
-    background: #f3f4f6;
+    background: #3b82f6;
+    color: white;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    color: #6b7280;
-    flex-shrink: 0;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
 }
 
 .resource-content h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.resource-content p {
+    margin: 0 0 1rem 0;
+    color: #64748b;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.resource-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.activity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.activity-card {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    border-left: 4px solid #e2e8f0;
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.activity-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+}
+
+    .activity-type.calculation {
+        background: #ddd6fe;
+        color: #5b21b6;
+    }
+
+    .activity-type.model {
+        background: #fce7f3;
+        color: #be185d;
+    }
+
+    .activity-type.summary {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+.activity-date {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.activity-card h4 {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     font-weight: 600;
     color: #1e293b;
 }
 
-.resource-content p {
-    margin: 0;
+.activity-card p {
+    margin: 0 0 1rem 0;
+    color: #64748b;
     font-size: 0.875rem;
-    color: #6b7280;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
-/* Recent Calculations */
-.recent-section {
-    margin-top: 3rem;
-}
-
-.calculations-list {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-}
-
-.no-calculations {
-    text-align: center;
-    color: #9ca3af;
-    padding: 3rem 0;
-}
-
-    .no-calculations p {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.125rem;
-    }
-
-    .no-calculations span {
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-    .tools-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }
+.activity-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 @media (max-width: 768px) {
     .engineering-page {
-        padding: 1rem;
+        padding: 0.5rem;
     }
 
-    .page-header h1 {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .tools-grid,
+    .resource-grid,
+    .activity-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-left h1 {
         font-size: 1.5rem;
-    }
-
-    .page-header p {
-        font-size: 1rem;
-    }
-
-    .tools-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .resource-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
-    .tool-header {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .resource-card {
-        flex-direction: column;
-        text-align: center;
     }
 }

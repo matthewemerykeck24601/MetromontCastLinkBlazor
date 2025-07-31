@@ -2,6 +2,9 @@
 @page "/engineering/index"
 @using MetromontCastLink.Shared.Models
 @using MetromontCastLink.Client.Services
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
 @inject NavigationManager Navigation
 @inject IACCService ACCService
 
@@ -72,6 +75,7 @@
                     <div class="tool-features">
                         <span class="feature-tag">Forge Viewer</span>
                         <span class="feature-tag">Element Data</span>
+                        <span class="feature-tag">ACC Integration</span>
                     </div>
                     <div class="tool-action">
                         <span class="action-text">Open Viewer</span>
@@ -95,6 +99,7 @@
                     <div class="tool-features">
                         <span class="feature-tag">Auto-Generate</span>
                         <span class="feature-tag">PDF Export</span>
+                        <span class="feature-tag">ACC Storage</span>
                     </div>
                     <div class="tool-action">
                         <span class="action-text">Coming Soon</span>
@@ -114,6 +119,9 @@
                     <div class="resource-content">
                         <h4>PCI Design Manual</h4>
                         <p>Reference guide for precast concrete design standards and specifications.</p>
+                        <div class="resource-actions">
+                            <SfButton CssClass="e-outline e-small">View Online</SfButton>
+                        </div>
                     </div>
                 </div>
 
@@ -124,6 +132,9 @@
                     <div class="resource-content">
                         <h4>Standard Details</h4>
                         <p>Library of standard connection details and typical sections.</p>
+                        <div class="resource-actions">
+                            <SfButton CssClass="e-outline e-small">Browse Library</SfButton>
+                        </div>
                     </div>
                 </div>
 
@@ -134,6 +145,73 @@
                     <div class="resource-content">
                         <h4>Load Tables</h4>
                         <p>Prestressed concrete member capacity tables and design aids.</p>
+                        <div class="resource-actions">
+                            <SfButton CssClass="e-outline e-small">View Tables</SfButton>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-icon">
+                        <span class="e-icons e-code"></span>
+                    </div>
+                    <div class="resource-content">
+                        <h4>Design Codes</h4>
+                        <p>ACI 318, PCI Design Handbook references and code compliance tools.</p>
+                        <div class="resource-actions">
+                            <SfButton CssClass="e-outline e-small">Access Codes</SfButton>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Recent Activity -->
+        <div class="tools-section">
+            <h2 class="section-title">Recent Activity</h2>
+            <div class="activity-grid">
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <span class="activity-type calculation">
+                            <span class="e-icons e-calculator"></span>
+                            Calculation
+                        </span>
+                        <span class="activity-date">2 hours ago</span>
+                    </div>
+                    <h4>Beam Design - Building A Level 2</h4>
+                    <p>Prestressed beam calculation completed with utilization ratio of 0.82</p>
+                    <div class="activity-actions">
+                        <SfButton CssClass="e-link e-small">View Results</SfButton>
+                    </div>
+                </div>
+
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <span class="activity-type model">
+                            <span class="e-icons e-3d-model"></span>
+                            Model Review
+                        </span>
+                        <span class="activity-date">1 day ago</span>
+                    </div>
+                    <h4>Column Connection Review</h4>
+                    <p>3D model analysis for column-to-beam connections in Zone B</p>
+                    <div class="activity-actions">
+                        <SfButton CssClass="e-link e-small">Open Model</SfButton>
+                    </div>
+                </div>
+
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <span class="activity-type summary">
+                            <span class="e-icons e-document"></span>
+                            Report
+                        </span>
+                        <span class="activity-date">3 days ago</span>
+                    </div>
+                    <h4>Design Summary Generated</h4>
+                    <p>Comprehensive design documentation for Project XYZ Phase 1</p>
+                    <div class="activity-actions">
+                        <SfButton CssClass="e-link e-small">Download PDF</SfButton>
                     </div>
                 </div>
             </div>
@@ -141,19 +219,119 @@
     </div>
 </div>
 
-@code {
-    private string? CurrentProjectId;
+@code
+ 
+{
 
-    protected override async Task OnInitializedAsync()
-    {
-        var project = await ACCService.GetCurrentProjectAsync();
-        CurrentProjectId = project?.Id;
-    }
+    
+private
+ 
+string
+?
+ CurrentProjectId
+;
 
-    private void NavigateToTool(string url)
-    {
-        Navigation.NavigateTo(url);
-    }
+
+    
+protected
+ 
+override
+ 
+async
+ 
+Task
+ 
+OnInitializedAsync
+(
+)
+
+    
+{
+
+        
+try
+
+        
+{
+
+            
+var
+ project 
+=
+ 
+await
+ ACCService
+.
+GetCurrentProjectAsync
+(
+)
+;
+
+            CurrentProjectId 
+=
+ project
+?.
+Id
+;
+
+        
 }
 
-@* Note: Move all CSS to Engineering.razor.css file *@
+        
+catch
+ 
+(
+Exception
+ ex
+)
+
+        
+{
+
+            Console
+.
+WriteLine
+(
+$"Error loading current project: 
+{
+ex
+.
+Message
+}
+"
+)
+;
+
+        
+}
+
+    
+}
+
+
+    
+private
+ 
+void
+ 
+NavigateToTool
+(
+string
+ url
+)
+
+    
+{
+
+        Navigation
+.
+NavigateTo
+(
+url
+)
+;
+
+    
+}
+
+}
