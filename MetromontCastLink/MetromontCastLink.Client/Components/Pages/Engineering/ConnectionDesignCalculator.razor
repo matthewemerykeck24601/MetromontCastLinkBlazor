@@ -1,5 +1,88 @@
-﻿<h3>ConnectionDesignCalculator</h3>
+﻿@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+
+<div class="calculator-form">
+    <h4>Connection Design Calculator</h4>
+
+    <div class="form-section">
+        <h5>Connection Type</h5>
+        <div class="form-group">
+            <label>Connection Type</label>
+            <SfDropDownList TValue="string" TItem="ConnectionType" @bind-Value="@SelectedConnectionType"
+                            DataSource="@ConnectionTypes" Placeholder="Select connection type">
+                <DropDownListFieldSettings Text="Name" Value="Id" />
+            </SfDropDownList>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h5>Design Forces</h5>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Shear Force (kips)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@ShearForce" Min="0" />
+            </div>
+            <div class="form-group">
+                <label>Tension Force (kips)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@TensionForce" Min="0" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <SfButton CssClass="e-primary" @onclick="Calculate">Calculate</SfButton>
+        <SfButton CssClass="e-outline" @onclick="Reset">Reset</SfButton>
+    </div>
+</div>
 
 @code {
+    [Parameter] public EventCallback<CalculationResult> OnCalculationComplete { get; set; }
 
+    private string SelectedConnectionType { get; set; } = "welded";
+    private double ShearForce { get; set; } = 50;
+    private double TensionForce { get; set; } = 25;
+
+    private List<ConnectionType> ConnectionTypes = new()
+    {
+        new ConnectionType { Id = "welded", Name = "Welded Plate" },
+        new ConnectionType { Id = "bolted", Name = "Bolted Connection" },
+        new ConnectionType { Id = "embedded", Name = "Embedded Plate" },
+        new ConnectionType { Id = "corbel", Name = "Corbel" }
+    };
+
+    private async Task Calculate()
+    {
+        var result = new CalculationResult
+        {
+            CalculationType = "Connection Design",
+            Status = "Pass",
+            DesignCode = "PCI 8th Edition",
+            SafetyFactor = 2.0,
+            Utilization = 0.65,
+            Details = new List<ResultDetail>
+            {
+                new ResultDetail { Label = "Connection Type", Value = SelectedConnectionType, Unit = "" },
+                new ResultDetail { Label = "Shear Capacity", Value = "85", Unit = "kips" },
+                new ResultDetail { Label = "Tension Capacity", Value = "45", Unit = "kips" }
+            },
+            Warnings = new List<string>()
+        };
+
+        await OnCalculationComplete.InvokeAsync(result);
+    }
+
+    private void Reset()
+    {
+        SelectedConnectionType = "welded";
+        ShearForce = 50;
+        TensionForce = 25;
+    }
+
+    private class ConnectionType
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+    }
 }

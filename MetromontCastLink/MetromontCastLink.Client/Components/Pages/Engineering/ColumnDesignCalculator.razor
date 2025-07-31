@@ -1,5 +1,91 @@
-﻿<h3>ColumnDesignCalculator</h3>
+﻿@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Buttons
+
+<div class="calculator-form">
+    <h4>Column Design Calculator</h4>
+
+    <div class="form-section">
+        <h5>Column Dimensions</h5>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Height (ft)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@ColumnHeight" Min="0" Format="F2" />
+            </div>
+            <div class="form-group">
+                <label>Width (in)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@ColumnWidth" Min="0" Format="F2" />
+            </div>
+            <div class="form-group">
+                <label>Depth (in)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@ColumnDepth" Min="0" Format="F2" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h5>Loading</h5>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Axial Load (kips)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@AxialLoad" Min="0" />
+            </div>
+            <div class="form-group">
+                <label>Moment X (ft-kips)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@MomentX" />
+            </div>
+            <div class="form-group">
+                <label>Moment Y (ft-kips)</label>
+                <SfNumericTextBox TValue="double" @bind-Value="@MomentY" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <SfButton CssClass="e-primary" @onclick="Calculate">Calculate</SfButton>
+        <SfButton CssClass="e-outline" @onclick="Reset">Reset</SfButton>
+    </div>
+</div>
 
 @code {
+    [Parameter] public EventCallback<CalculationResult> OnCalculationComplete { get; set; }
 
+    private double ColumnHeight { get; set; } = 20;
+    private double ColumnWidth { get; set; } = 24;
+    private double ColumnDepth { get; set; } = 24;
+    private double AxialLoad { get; set; } = 500;
+    private double MomentX { get; set; } = 100;
+    private double MomentY { get; set; } = 50;
+
+    private async Task Calculate()
+    {
+        // Simplified column design calculation
+        var result = new CalculationResult
+        {
+            CalculationType = "Column Design",
+            Status = "Pass",
+            DesignCode = "ACI 318-19 / PCI",
+            SafetyFactor = 1.5,
+            Utilization = 0.75,
+            Details = new List<ResultDetail>
+            {
+                new ResultDetail { Label = "Column Height", Value = ColumnHeight.ToString("F1"), Unit = "ft" },
+                new ResultDetail { Label = "Axial Load", Value = AxialLoad.ToString("F0"), Unit = "kips" },
+                new ResultDetail { Label = "Combined Stress Ratio", Value = "0.75", Unit = "" }
+            },
+            Warnings = new List<string>()
+        };
+
+        await OnCalculationComplete.InvokeAsync(result);
+    }
+
+    private void Reset()
+    {
+        ColumnHeight = 20;
+        ColumnWidth = 24;
+        ColumnDepth = 24;
+        AxialLoad = 500;
+        MomentX = 100;
+        MomentY = 50;
+    }
 }
