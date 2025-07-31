@@ -1,0 +1,332 @@
+﻿/* Production Page Styles */
+.production-page {
+    padding: 1.5rem;
+    background: #f5f7fa;
+    min-height: calc(100vh - 64px);
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+    .page-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .page-header p {
+        margin: 0;
+        font-size: 1.125rem;
+        color: #64748b;
+    }
+
+/* Production Modules Grid */
+.production-modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.production-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .production-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.card-icon {
+    width: 56px;
+    height: 56px;
+    background: #fee2e2;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #ef4444;
+}
+
+    .card-icon.scheduling {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .card-icon.bed-management {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .card-icon.capacity {
+        background: #e0e7ff;
+        color: #6366f1;
+    }
+
+    .card-icon.tracking {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+.card-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.card-content p {
+    margin: 0 0 1rem 0;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.card-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+    .card-status .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+        .card-status .status-indicator.warning {
+            background: #f59e0b;
+        }
+
+        .card-status .status-indicator.alert {
+            background: #ef4444;
+        }
+
+/* Production Overview Section */
+.production-overview {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    margin-bottom: 2rem;
+}
+
+    .production-overview h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.overview-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+    .overview-item .metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .overview-item .label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .overview-item .sublabel {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+    }
+
+/* Active Production Section */
+.active-production {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+
+    .active-production h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+.production-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.production-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.bed-indicator {
+    width: 48px;
+    height: 48px;
+    background: #e0e7ff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #6366f1;
+}
+
+.item-details h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.item-details p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.item-progress {
+    text-align: right;
+}
+
+    .item-progress .percentage {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .item-progress .time-remaining {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.quick-action-btn {
+    flex: 1;
+    padding: 1rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .quick-action-btn:hover {
+        border-color: #6366f1;
+        background: #f0f9ff;
+    }
+
+    .quick-action-btn .icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #6366f1;
+    }
+
+    .quick-action-btn .label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .production-page {
+        padding: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .page-header p {
+        font-size: 1rem;
+    }
+
+    .production-modules {
+        grid-template-columns: 1fr;
+    }
+
+    .overview-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .quick-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .production-item {
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+    }
+
+    .item-progress {
+        text-align: left;
+        width: 100%;
+    }
+
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,258 @@
+﻿@page "/production"
+@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Charts
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Navigations
+@inject NavigationManager Navigation
+@inject IACCService ACCService
+@inject IStorageService StorageService
+
+<PageTitle>Production - Metromont CastLink</PageTitle>
+
+<div class="production-page">
+    <div class="page-header">
+        <h1>Production Management</h1>
+        <p>Real-time production tracking and scheduling for precast concrete manufacturing</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" @onclick="() => NavigateTo('/production/scheduling')">
+            <div class="icon">📅</div>
+            <div class="label">View Schedule</div>
+        </button>
+        <button class="quick-action-btn" @onclick="() => NavigateTo('/production/scheduling')">
+            <div class="icon">➕</div>
+            <div class="label">New Production Run</div>
+        </button>
+        <button class="quick-action-btn" @onclick="RefreshProductionData">
+            <div class="icon">🔄</div>
+            <div class="label">Refresh Status</div>
+        </button>
+    </div>
+
+    <!-- Production Overview -->
+    <div class="production-overview">
+        <h2>Today's Production Overview</h2>
+        <div class="overview-grid">
+            <div class="overview-item">
+                <div class="metric">@ActiveBeds</div>
+                <div class="label">Active Beds</div>
+                <div class="sublabel">of @TotalBeds total</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@TodaysPieces</div>
+                <div class="label">Pieces Today</div>
+                <div class="sublabel">@TodaysVolume cu. yd.</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@CompletionRate%</div>
+                <div class="label">Completion Rate</div>
+                <div class="sublabel">vs. scheduled</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@UpcomingPours</div>
+                <div class="label">Upcoming Pours</div>
+                <div class="sublabel">next 24 hours</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Modules -->
+    <div class="production-modules">
+        <div class="production-card" @onclick="() => NavigateTo('/production/scheduling')">
+            <div class="card-header">
+                <div class="card-icon scheduling">
+                    <span class="e-icons e-schedule"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Production Scheduling</h3>
+                <p>Manage pour schedules, bed allocation, and production timelines with ACC integration.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator"></span>
+                    <span>@ScheduledPours scheduled this week</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Open →</SfButton>
+            </div>
+        </div>
+
+        <div class="production-card" @onclick="() => NavigateTo('/production/beds')">
+            <div class="card-header">
+                <div class="card-icon bed-management">
+                    <span class="e-icons e-settings"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Bed Management</h3>
+                <p>Configure bed specifications, maintenance schedules, and production capabilities.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator @(MaintenanceNeeded > 0 ? "warning" : "")"></span>
+                    <span>@(MaintenanceNeeded > 0 ? $"{MaintenanceNeeded} beds need maintenance" : "All beds operational")</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Manage →</SfButton>
+            </div>
+        </div>
+
+        <div class="production-card" @onclick="() => NavigateTo('/production/capacity')">
+            <div class="card-header">
+                <div class="card-icon capacity">
+                    <span class="e-icons e-graph"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Capacity Planning</h3>
+                <p>Analyze production capacity, bottlenecks, and optimize resource utilization.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator"></span>
+                    <span>@CapacityUtilization% capacity utilization</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Analyze →</SfButton>
+            </div>
+        </div>
+
+        <div class="production-card" @onclick="() => NavigateTo('/production/tracking')">
+            <div class="card-header">
+                <div class="card-icon tracking">
+                    <span class="e-icons e-location"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Production Tracking</h3>
+                <p>Real-time tracking of piece status from pour to delivery with RFID integration.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator"></span>
+                    <span>@InProductionPieces pieces in production</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Track →</SfButton>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Production -->
+    <div class="active-production">
+        <h2>Active Production</h2>
+        @if (ActiveProduction.Any())
+        {
+            <div class="production-list">
+                @foreach (var production in ActiveProduction)
+                {
+                    <div class="production-item">
+                        <div class="item-info">
+                            <div class="bed-indicator">@production.BedName</div>
+                            <div class="item-details">
+                                <h4>@production.ProductName</h4>
+                                <p>@production.Quantity pieces • @production.ProjectName</p>
+                            </div>
+                        </div>
+                        <div class="item-progress">
+                            <div class="percentage">@production.CompletionPercentage%</div>
+                            <div class="time-remaining">@production.TimeRemaining remaining</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-activity">
+                <p>No active production at this time</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // Production metrics
+    private int ActiveBeds = 3;
+    private int TotalBeds = 6;
+    private int TodaysPieces = 24;
+    private double TodaysVolume = 185.5;
+    private int CompletionRate = 92;
+    private int UpcomingPours = 5;
+
+    // Module metrics
+    private int ScheduledPours = 12;
+    private int MaintenanceNeeded = 1;
+    private int CapacityUtilization = 78;
+    private int InProductionPieces = 36;
+
+    // Active production data
+    private List<ProductionStatus> ActiveProduction = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductionData();
+    }
+
+    private async Task LoadProductionData()
+    {
+        // Load from ACC/storage service
+        ActiveProduction = new List<ProductionStatus>
+        {
+            new ProductionStatus
+            {
+                BedName = "B1",
+                ProductName = "Prestressed Beam PB-240",
+                Quantity = 4,
+                ProjectName = "Tower A - Level 15",
+                CompletionPercentage = 65,
+                TimeRemaining = "2h 30m"
+            },
+            new ProductionStatus
+            {
+                BedName = "D1",
+                ProductName = "Double Tee DT-32",
+                Quantity = 2,
+                ProjectName = "Parking Structure B",
+                CompletionPercentage = 30,
+                TimeRemaining = "5h 15m"
+            },
+            new ProductionStatus
+            {
+                BedName = "F3",
+                ProductName = "Wall Panel WP-18x24",
+                Quantity = 6,
+                ProjectName = "Office Building C",
+                CompletionPercentage = 90,
+                TimeRemaining = "45m"
+            }
+        };
+
+        // In production, this would pull real data from:
+        // - ACC Assets API for piece information
+        // - Production scheduling system
+        // - RFID/sensor data for real-time status
+        // - Bed monitoring systems
+    }
+
+    private async Task RefreshProductionData()
+    {
+        await LoadProductionData();
+        StateHasChanged();
+    }
+
+    private void NavigateTo(string url)
+    {
+        Navigation.NavigateTo(url);
+    }
+
+    // Helper class for active production display
+    private class ProductionStatus
+    {
+        public string BedName { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public int Quantity { get; set; }
+        public string ProjectName { get; set; } = "";
+        public int CompletionPercentage { get; set; }
+        public string TimeRemaining { get; set; } = "";
+    }
+}
