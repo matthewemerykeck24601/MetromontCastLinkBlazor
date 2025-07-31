@@ -1,154 +1,224 @@
 ﻿@page "/signin-acc"
-@using Microsoft.AspNetCore.WebUtilities
+@using System.Web
+@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject IACCService ACCService
-@inject IJSRuntime JSRuntime
 
-<PageTitle>Signing in to ACC...</PageTitle>
+<PageTitle>Sign in to Autodesk Construction Cloud</PageTitle>
 
-<div class="signin-container">
-    <div class="signin-card">
-        @if (IsProcessing)
-        {
-            <div class="processing">
-                <SfSpinner Size="50" Label="Authenticating with Autodesk Construction Cloud..." />
+<div class="signin-page">
+    <div class="signin-container">
+        <div class="signin-content">
+            <div class="signin-header">
+                <img src="/images/metromont-logo.png" alt="Metromont" class="company-logo" />
+                <h2>Connect to Autodesk Construction Cloud</h2>
+                <p>Sign in to access your ACC projects and data</p>
             </div>
-        }
-        else if (IsSuccess)
-        {
-            <div class="success">
-                <div class="success-icon">✓</div>
-                <h2>Authentication Successful!</h2>
-                <p>Redirecting to the application...</p>
-            </div>
-        }
-        else if (HasError)
-        {
-            <div class="error">
-                <div class="error-icon">⚠️</div>
-                <h2>Authentication Failed</h2>
-                <p>@ErrorMessage</p>
-                <SfButton CssClass="e-primary" @onclick="RetryAuth">Try Again</SfButton>
-            </div>
-        }
+
+            @if (IsLoading)
+            {
+                <div class="signin-loading">
+                    <SfSpinner Size="40" Label="Connecting to ACC..." />
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="signin-error">
+                    <div class="error-icon">⚠️</div>
+                    <h3>Connection Error</h3>
+                    <p>@ErrorMessage</p>
+                    <SfButton CssClass="e-primary" @onclick="RetrySignIn">Try Again</SfButton>
+                </div>
+            }
+            else
+            {
+                <div class="signin-actions">
+                    <SfButton CssClass="e-primary e-large" IconCss="e-icons e-login"
+                              @onclick="SignInToACC">
+                        Sign in with Autodesk ID
+                    </SfButton>
+                    <p class="signin-note">
+                        You'll be redirected to Autodesk's secure sign-in page
+                    </p>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
 <style>
-    .signin-container {
+    .signin-page {
         min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .signin-card {
-        background: white;
-        border-radius: 12px;
-        padding: 3rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        text-align: center;
-        min-width: 400px;
-    }
-
-    .processing {
         padding: 2rem;
     }
 
-    .success-icon, .error-icon {
-        font-size: 4rem;
+    .signin-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 480px;
+        width: 100%;
+    }
+
+    .signin-content {
+        padding: 3rem 2rem;
+        text-align: center;
+    }
+
+    .signin-header {
+        margin-bottom: 2rem;
+    }
+
+    .company-logo {
+        height: 60px;
         margin-bottom: 1rem;
     }
 
-    .success-icon {
-        color: #10b981;
+    .signin-header h2 {
+        color: #1e293b;
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .signin-header p {
+        color: #64748b;
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .signin-loading {
+        padding: 2rem 0;
+    }
+
+    .signin-error {
+        text-align: center;
+        padding: 1rem;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        margin-bottom: 1rem;
     }
 
     .error-icon {
-        color: #ef4444;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
     }
 
-    .success h2, .error h2 {
-        margin: 0 0 1rem 0;
-        font-size: 1.5rem;
+    .signin-error h3 {
+        color: #dc2626;
+        font-size: 1.125rem;
         font-weight: 600;
+        margin: 0 0 0.5rem 0;
     }
 
-    .success {
-        color: #10b981;
+    .signin-error p {
+        color: #7f1d1d;
+        margin: 0 0 1rem 0;
     }
 
-    .error {
-        color: #374151;
+    .signin-actions {
+        margin-top: 1rem;
     }
 
-    .error p {
-        color: #6b7280;
-        margin-bottom: 2rem;
+    .signin-note {
+        color: #64748b;
+        font-size: 0.875rem;
+        margin-top: 1rem;
+        margin-bottom: 0;
+    }
+
+    .e-btn.e-large {
+        padding: 12px 24px;
+        font-size: 1rem;
+        min-width: 200px;
     }
 </style>
 
 @code {
-    private bool IsProcessing = true;
-    private bool IsSuccess = false;
-    private bool HasError = false;
-    private string ErrorMessage = "";
+    private bool IsLoading;
+    private string? ErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        await ProcessCallback();
+        // Check if already authenticated
+        var isAuthenticated = await ACCService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        // Check for callback parameters
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+
+        if (query["code"] != null)
+        {
+            await HandleAuthCallback();
+        }
+        else if (query["error"] != null)
+        {
+            ErrorMessage = $"Authentication failed: {query["error_description"] ?? query["error"]}";
+        }
     }
 
-    private async Task ProcessCallback()
+    private async Task SignInToACC()
     {
         try
         {
-            var uri = new Uri(Navigation.Uri);
-            var query = QueryHelpers.ParseQuery(uri.Query);
+            IsLoading = true;
+            ErrorMessage = null;
+            StateHasChanged();
 
-            if (query.TryGetValue("code", out var code))
+            await ACCService.InitiateAuthenticationAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to initiate sign-in: {ex.Message}";
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleAuthCallback()
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            // The ACCService should handle the callback processing
+            var isAuthenticated = await ACCService.IsAuthenticatedAsync();
+
+            if (isAuthenticated)
             {
-                // We have an authorization code, exchange it for a token
-                await ACCService.HandleCallbackAsync(code);
-                
-                IsProcessing = false;
-                IsSuccess = true;
-                
-                // Redirect after a short delay
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/", forceLoad: true);
-            }
-            else if (query.TryGetValue("error", out var error))
-            {
-                // Handle OAuth error
-                IsProcessing = false;
-                HasError = true;
-                ErrorMessage = $"Authentication error: {error}";
-                
-                if (query.TryGetValue("error_description", out var errorDescription))
-                {
-                    ErrorMessage += $" - {errorDescription}";
-                }
+                Navigation.NavigateTo("/");
             }
             else
             {
-                // No code or error, something went wrong
-                IsProcessing = false;
-                HasError = true;
-                ErrorMessage = "Invalid callback - no authorization code received";
+                ErrorMessage = "Authentication callback failed. Please try again.";
             }
         }
         catch (Exception ex)
         {
-            IsProcessing = false;
-            HasError = true;
-            ErrorMessage = $"Error processing authentication: {ex.Message}";
+            ErrorMessage = $"Authentication failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
         }
     }
 
-    private async Task RetryAuth()
+    private async Task RetrySignIn()
     {
-        await ACCService.InitiateAuthenticationAsync();
+        ErrorMessage = null;
+        await SignInToACC();
     }
 }
