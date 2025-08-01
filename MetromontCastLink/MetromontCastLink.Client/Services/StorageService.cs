@@ -36,7 +36,7 @@ namespace MetromontCastLink.Client.Services
 
                 // Save to local storage first as backup
                 var json = JsonSerializer.Serialize(report);
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"qc_report_{report.Id}", json);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"qc_report_{report.ReportId}", json);
 
                 // Create request for OSS storage
                 var request = new

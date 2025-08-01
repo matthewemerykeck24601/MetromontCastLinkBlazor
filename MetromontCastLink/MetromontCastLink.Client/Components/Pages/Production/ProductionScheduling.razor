@@ -40,12 +40,12 @@
         gap: 1rem;
     }
 
-    .header-left h2 {
-        margin: 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
+        .header-left h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
 
     .header-right {
         display: flex;
@@ -71,24 +71,24 @@
         margin-bottom: 2rem;
     }
 
-    .control-section h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
+        .control-section h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
 
     .filter-group {
         margin-bottom: 1rem;
     }
 
-    .filter-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #475569;
-    }
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569;
+        }
 
     .schedule-container {
         flex: 1;
@@ -115,15 +115,15 @@
         border: 1px solid #e2e8f0;
     }
 
-    .resource-item.available {
-        border-color: #10b981;
-        background: #f0fdf4;
-    }
+        .resource-item.available {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
 
-    .resource-item.occupied {
-        border-color: #f59e0b;
-        background: #fffbeb;
-    }
+        .resource-item.occupied {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
 
     .resource-name {
         font-weight: 500;
@@ -266,11 +266,11 @@
         <div class="control-panel">
             <div class="control-section">
                 <h3>Filters</h3>
-                
+
                 <div class="filter-group">
                     <label>Project</label>
                     <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@CurrentProjectId"
-                        DataSource="@Projects" Placeholder="Select project">
+                                    DataSource="@Projects" Placeholder="Select project">
                         <DropDownListFieldSettings Text="Name" Value="Id" />
                         <DropDownListEvents TValue="string" TItem="ACCProject" ValueChange="@OnProjectSelected" />
                     </SfDropDownList>
@@ -279,7 +279,7 @@
                 <div class="filter-group">
                     <label>Date Range</label>
                     <SfDateRangePicker TValue="DateTime?" @bind-StartDate="@StartDate" @bind-EndDate="@EndDate"
-                        Placeholder="Select date range" Format="MM/dd/yyyy">
+                                       Placeholder="Select date range" Format="MM/dd/yyyy">
                         <DateRangePickerEvents TValue="DateTime?" ValueChange="OnDateRangeChange" />
                     </SfDateRangePicker>
                 </div>
@@ -287,7 +287,7 @@
                 <div class="filter-group">
                     <label>Bed Types</label>
                     <SfMultiSelect TValue="string[]" TItem="BedType" @bind-Value="@SelectedBedTypes"
-                        DataSource="@BedTypes" Placeholder="All bed types">
+                                   DataSource="@BedTypes" Placeholder="All bed types">
                         <MultiSelectFieldSettings Text="Name" Value="Id" />
                         <MultiSelectEvents TValue="string[]" TItem="BedType" ValueChange="OnBedTypeChange" />
                     </SfMultiSelect>
@@ -296,7 +296,7 @@
                 <div class="filter-group">
                     <label>Product Types</label>
                     <SfMultiSelect TValue="string[]" TItem="ProductType" @bind-Value="@SelectedProductTypes"
-                        DataSource="@ProductTypes" Placeholder="All product types">
+                                   DataSource="@ProductTypes" Placeholder="All product types">
                         <MultiSelectFieldSettings Text="Name" Value="Id" />
                         <MultiSelectEvents TValue="string[]" TItem="ProductType" ValueChange="OnProductTypeChange" />
                     </SfMultiSelect>
@@ -337,9 +337,9 @@
 
         <!-- Main Schedule View -->
         <div class="schedule-container">
-            <SfSchedule @ref="ScheduleRef" TValue="ProductionEvent" Height="100%" 
-                StartHour="06:00" EndHour="18:00" WorkHours="@WorkHours"
-                CurrentView="View.TimelineWeek">
+            <SfSchedule @ref="ScheduleRef" TValue="ProductionEvent" Height="100%"
+                        StartHour="06:00" EndHour="18:00"
+                        CurrentView="View.TimelineWeek">
                 <ScheduleViews>
                     <ScheduleView Option="View.TimelineDay" />
                     <ScheduleView Option="View.TimelineWeek" />
@@ -347,34 +347,32 @@
                     <ScheduleView Option="View.Agenda" />
                 </ScheduleViews>
                 <ScheduleResources>
-                    <ScheduleResource TItem="BedResource" TValue="string" 
-                        DataSource="@BedResources" Field="BedId" 
-                        Title="Production Bed" Name="Beds"
-                        TextField="Name" IdField="Id" ColorField="Color" />
+                    <ScheduleResource TItem="BedResource" TValue="string"
+                                      DataSource="@BedResources" Field="BedId"
+                                      Title="Production Bed" Name="Beds"
+                                      TextField="Name" IdField="Id" ColorField="Color" />
                 </ScheduleResources>
-                <ScheduleEventSettings DataSource="@ProductionEvents">
-                    <ScheduleEventSettingsTemplate>
-                        <Template Context="eventContext">
-                            @{
-                                var evt = eventContext as ProductionEvent;
-                            }
-                            <div class="event-template @GetStatusClass(evt?.Status)">
-                                <div class="event-header">
-                                    <span class="event-title">@evt?.ProductName</span>
-                                    <span class="event-status">@evt?.Status</span>
-                                </div>
-                                <div class="event-details">
-                                    <span>@evt?.Quantity pcs</span>
-                                    <span>@evt?.ProjectName</span>
-                                </div>
+                <ScheduleEventSettings DataSource="@ProductionEvents" TValue="ProductionEvent">
+                    <Template>
+                        @{
+                            var evt = (context as ProductionEvent);
+                        }
+                        <div class="event-template @GetStatusClass(evt?.Status)">
+                            <div class="event-header">
+                                <span class="event-title">@evt?.ProductName</span>
+                                <span class="event-status">@evt?.Status</span>
                             </div>
-                        </Template>
-                    </ScheduleEventSettingsTemplate>
+                            <div class="event-details">
+                                <span>@evt?.Quantity pcs</span>
+                                <span>@evt?.ProjectName</span>
+                            </div>
+                        </div>
+                    </Template>
                 </ScheduleEventSettings>
-                <ScheduleEvents TValue="ProductionEvent" 
-                    EventRendered="OnEventRendered"
-                    ActionBegin="OnActionBegin"
-                    ActionComplete="OnActionComplete" />
+                <ScheduleEvents TValue="ProductionEvent"
+                                EventRendered="OnEventRendered"
+                                ActionBegin="OnActionBegin"
+                                ActionComplete="OnActionComplete" />
             </SfSchedule>
         </div>
     </div>
@@ -389,41 +387,27 @@
     // Component References
     private SfSchedule<ProductionEvent>? ScheduleRef;
     private SfToast? ToastObj;
-    
+
     // Properties for filters and data
     private string? CurrentProjectId { get; set; }
     private DateTime? StartDate { get; set; } = DateTime.Today;
     private DateTime? EndDate { get; set; } = DateTime.Today.AddDays(7);
     private string[]? SelectedBedTypes { get; set; }
     private string[]? SelectedProductTypes { get; set; }
-    
+
     // Data collections
     private List<ACCProject> Projects { get; set; } = new();
     private List<BedResource> BedResources { get; set; } = new();
     private List<ProductionEvent> ProductionEvents { get; set; } = new();
     private List<BedType> BedTypes { get; set; } = new();
     private List<ProductType> ProductTypes { get; set; } = new();
-    
-    // Work hours configuration
-    private List<ScheduleWorkHours> WorkHours { get; set; } = new();
-    
+
     // Loading states
     private bool IsLoading { get; set; } = false;
     private bool IsScheduleLoading { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // Initialize work hours
-        WorkHours = new List<ScheduleWorkHours>
-        {
-            new ScheduleWorkHours { DayOfWeek = 0, StartHour = "06:00", EndHour = "18:00" },
-            new ScheduleWorkHours { DayOfWeek = 1, StartHour = "06:00", EndHour = "18:00" },
-            new ScheduleWorkHours { DayOfWeek = 2, StartHour = "06:00", EndHour = "18:00" },
-            new ScheduleWorkHours { DayOfWeek = 3, StartHour = "06:00", EndHour = "18:00" },
-            new ScheduleWorkHours { DayOfWeek = 4, StartHour = "06:00", EndHour = "18:00" },
-            new ScheduleWorkHours { DayOfWeek = 5, StartHour = "06:00", EndHour = "14:00" }
-        };
-
         // Initialize bed types
         BedTypes = new List<BedType>
         {
@@ -460,7 +444,7 @@
 
             // Load projects
             Projects = await ACCService.GetProjectsAsync();
-            
+
             // Get current project
             var currentProject = await ACCService.GetCurrentProjectAsync();
             if (currentProject != null)
@@ -598,7 +582,7 @@
         // Custom rendering logic if needed
     }
 
-    private async Task OnActionBegin(ActionEventArgs<ProductionEvent> args)
+    private async Task OnActionBegin(Syncfusion.Blazor.Schedule.ActionEventArgs<ProductionEvent> args)
     {
         if (args.ActionType == ActionType.EventCreate || args.ActionType == ActionType.EventChange)
         {
@@ -614,7 +598,7 @@
         }
     }
 
-    private async Task OnActionComplete(ActionEventArgs<ProductionEvent> args)
+    private async Task OnActionComplete(Syncfusion.Blazor.Schedule.ActionEventArgs<ProductionEvent> args)
     {
         if (args.ActionType == ActionType.EventCreate)
         {

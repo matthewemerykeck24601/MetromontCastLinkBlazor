@@ -36,3 +36,4 @@ namespace MetromontCastLink.Services
         public long Size { get; set; }
         public DateTime LastModified { get; set; }
     }
+}

@@ -1,5 +1,4 @@
 ﻿// MetromontCastLink/MetromontCastLink/Controllers/AuthController.cs
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
