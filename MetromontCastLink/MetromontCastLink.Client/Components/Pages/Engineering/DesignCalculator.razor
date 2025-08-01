@@ -197,7 +197,10 @@
     <div class="calculator-container">
         <SfTab>
             <TabItems>
-                <TabItem Header="@(new TabHeader { Text = "Bed Selection" })">
+                <TabItem>
+                    <HeaderTemplate>
+                        <span>Bed Selection</span>
+                    </HeaderTemplate>
                     <ContentTemplate>
                         <div class="tab-content">
                             <div class="bed-selection-section">
@@ -257,7 +260,10 @@
                     </ContentTemplate>
                 </TabItem>
 
-                <TabItem Header="@(new TabHeader { Text = "Beam Design" })">
+                <TabItem>
+                    <HeaderTemplate>
+                        <span>Beam Design</span>
+                    </HeaderTemplate>
                     <ContentTemplate>
                         <div class="tab-content">
                             <BeamDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
@@ -265,7 +271,10 @@
                     </ContentTemplate>
                 </TabItem>
 
-                <TabItem Header="@(new TabHeader { Text = "Double Tee Design" })">
+                <TabItem>
+                    <HeaderTemplate>
+                        <span>Double Tee Design</span>
+                    </HeaderTemplate>
                     <ContentTemplate>
                         <div class="tab-content">
                             <DoubleTeeDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
@@ -273,7 +282,10 @@
                     </ContentTemplate>
                 </TabItem>
 
-                <TabItem Header="@(new TabHeader { Text = "Column Design" })">
+                <TabItem>
+                    <HeaderTemplate>
+                        <span>Column Design</span>
+                    </HeaderTemplate>
                     <ContentTemplate>
                         <div class="tab-content">
                             <ColumnDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
@@ -281,7 +293,10 @@
                     </ContentTemplate>
                 </TabItem>
 
-                <TabItem Header="@(new TabHeader { Text = "Connection Design" })">
+                <TabItem>
+                    <HeaderTemplate>
+                        <span>Connection Design</span>
+                    </HeaderTemplate>
                     <ContentTemplate>
                         <div class="tab-content">
                             <ConnectionDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
@@ -381,8 +396,4 @@
         }
     }
 
-    public class TabHeader
-    {
-        public string Text { get; set; } = "";
-    }
 }
