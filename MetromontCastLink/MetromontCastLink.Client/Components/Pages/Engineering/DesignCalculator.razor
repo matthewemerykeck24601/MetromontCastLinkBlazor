@@ -1,356 +1,342 @@
-﻿@page "/quality/bed-report-selection"
+﻿@page "/engineering/calculator"
 @using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
 @inject NavigationManager Navigation
-@inject IACCService ACCService
+@inject IJSRuntime JSRuntime
+@inject IStorageService StorageService
 
-<PageTitle>Select Production Bed - Quality Control</PageTitle>
-
-<div class="bed-selection-page">
-    <div class="page-header">
-        <div class="header-content">
-            <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="GoBack">Back</SfButton>
-            <h2>Create New Bed QC Report</h2>
-        </div>
-    </div>
-
-    <div class="selection-container">
-        <div class="selection-card">
-            <h3>Select Production Bed</h3>
-            <p>Choose the production bed for this quality control report.</p>
-
-            <div class="bed-grid">
-                @foreach (var bed in AvailableBeds)
-                {
-                    <div class="bed-card @(bed.Id == SelectedBedId ? "selected" : "")"
-                         @onclick="() => SelectBed(bed.Id)">
-                        <div class="bed-icon">
-                            @if (bed.Type == "Beam Bed")
-                            {
-                                <span>🏗️</span>
-                            }
-                            else if (bed.Type == "Deck Bed")
-                            {
-                                <span>🏢</span>
-                            }
-                            else if (bed.Type == "Column Bed")
-                            {
-                                <span>🏛️</span>
-                            }
-                            else
-                            {
-                                <span>📐</span>
-                            }
-                        </div>
-                        <div class="bed-info">
-                            <h4>@bed.Name</h4>
-                            <div class="bed-details">
-                                <span class="bed-type">@bed.Type</span>
-                                <span class="bed-location">@bed.Location</span>
-                            </div>
-                            <div class="bed-specs">
-                                <div class="spec-item">
-                                    <span class="spec-label">Length:</span>
-                                    <span class="spec-value">@bed.Length ft</span>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="spec-label">Width:</span>
-                                    <span class="spec-value">@bed.Width ft</span>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="spec-label">Capacity:</span>
-                                    <span class="spec-value">@bed.Capacity pcs</span>
-                                </div>
-                            </div>
-                            <div class="allowed-products">
-                                <span class="products-label">Allowed:</span>
-                                @foreach (var product in bed.AllowedProducts.Take(3))
-                                {
-                                    <SfChip CssClass="product-chip">@product</SfChip>
-                                }
-                                @if (bed.AllowedProducts.Count > 3)
-                                {
-                                    <span class="more-products">+@(bed.AllowedProducts.Count - 3) more</span>
-                                }
-                            </div>
-                        </div>
-                        @if (bed.Id == SelectedBedId)
-                        {
-                            <div class="selected-indicator">
-                                <span class="e-icons e-check"></span>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-
-            <div class="additional-info">
-                <h4>Additional Information</h4>
-                <div class="form-group">
-                    <label>Inspector Name</label>
-                    <SfTextBox @bind-Value="@InspectorName" Placeholder="Enter inspector name" />
-                </div>
-                <div class="form-group">
-                    <label>Notes</label>
-                    <SfTextBox @bind-Value="@Notes" Multiline="true" Placeholder="Any additional notes" />
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <SfButton CssClass="e-flat" @onclick="GoBack">Cancel</SfButton>
-                <SfButton CssClass="e-primary" @onclick="StartReport"
-                          Disabled="@(string.IsNullOrEmpty(SelectedBedId))">
-                    Start Report
-                </SfButton>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Alternative: Using SfDialog for modal approach -->
-<SfDialog @ref="BedSelectionDialog" Width="800px" Height="600px" ShowCloseIcon="true"
-          IsModal="true" Visible="@ShowAsDialog" Header="Select Production Bed">
-    <DialogTemplates>
-        <Content>
-            <!-- Same bed grid content as above -->
-        </Content>
-        <FooterTemplate>
-            <SfButton CssClass="e-flat" @onclick="CloseDialog">Cancel</SfButton>
-            <SfButton CssClass="e-primary" @onclick="StartReportFromDialog"
-                      Disabled="@(string.IsNullOrEmpty(SelectedBedId))">
-                Start Report
-            </SfButton>
-        </FooterTemplate>
-    </DialogTemplates>
-</SfDialog>
+<PageTitle>Design Calculator - Metromont CastLink</PageTitle>
 
 <style>
-    .bed-selection-page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 1rem;
+    .calculator-page {
+        padding: 2rem;
+        background: #f5f6fa;
+        min-height: calc(100vh - 60px);
     }
 
     .page-header {
         margin-bottom: 2rem;
     }
 
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+    .page-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 600;
+        color: #1e293b;
     }
 
-        .header-content h2 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-    .selection-container {
-        display: flex;
-        justify-content: center;
+    .page-header p {
+        margin: 0;
+        color: #64748b;
+        font-size: 1.125rem;
     }
 
-    .selection-card {
+    .calculator-container {
         background: white;
         border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.06);
-        width: 100%;
-        max-width: 1000px;
-    }
-
-        .selection-card h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .selection-card > p {
-            margin: 0 0 2rem 0;
-            color: #64748b;
-        }
-
-    .bed-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .bed-card {
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1.25rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        position: relative;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         overflow: hidden;
     }
 
-        .bed-card:hover {
-            border-color: #cbd5e1;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .bed-card.selected {
-            border-color: #10b981;
-            background: #f0fdf4;
-        }
-
-    .bed-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.75rem;
+    .tab-content {
+        padding: 2rem;
     }
 
-    .bed-info h4 {
-        margin: 0 0 0.5rem 0;
+    .calculation-section {
+        margin-bottom: 2rem;
+    }
+
+    .calculation-section h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .results-panel {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .results-panel h4 {
+        margin: 0 0 1rem 0;
         font-size: 1.125rem;
         font-weight: 600;
         color: #1e293b;
     }
 
-    .bed-details {
+    .result-item {
         display: flex;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .bed-type {
-        background: #e0f2fe;
-        color: #0369a1;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.375rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-
-    .bed-location {
-        color: #64748b;
-        font-size: 0.875rem;
-    }
-
-    .bed-specs {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
+        justify-content: space-between;
+        align-items: center;
         padding: 0.75rem 0;
-        border-top: 1px solid #e2e8f0;
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e5e7eb;
     }
 
-    .spec-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
+    .result-item:last-child {
+        border-bottom: none;
     }
 
-    .spec-label {
-        font-size: 0.75rem;
-        color: #6b7280;
-    }
-
-    .spec-value {
-        font-size: 0.875rem;
+    .result-label {
         font-weight: 500;
+        color: #64748b;
+    }
+
+    .result-value {
+        font-weight: 600;
         color: #1e293b;
+        font-size: 1.125rem;
     }
 
-    .allowed-products {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
+    .result-value.success {
+        color: #10b981;
     }
 
-    .products-label {
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin-right: 0.25rem;
+    .result-value.warning {
+        color: #f59e0b;
     }
 
-    .product-chip .e-chip {
-        background: #f3f4f6;
-        color: #374151;
-        font-size: 0.75rem;
-        padding: 0.125rem 0.5rem;
+    .result-value.error {
+        color: #ef4444;
     }
-
-    .selected-indicator {
-        position: absolute;
-        top: 0.75rem;
-        right: 0.75rem;
-        width: 32px;
-        height: 32px;
-        background: #10b981;
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .additional-info {
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-        .additional-info h4 {
-            margin: 0 0 1rem 0;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #374151;
-        }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-        .form-group label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-        }
 
     .action-buttons {
         display: flex;
-        justify-content: flex-end;
         gap: 1rem;
-        padding-top: 1.5rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
         border-top: 1px solid #e5e7eb;
     }
 
-    @media (max-width: 768px) {
-        .bed-grid
-
-    {
-        grid-template-columns: 1fr;
+    .bed-selection-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 8px;
     }
 
-    .bed-specs {
-        grid-template-columns: 1fr;
+    .bed-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
     }
 
+    .bed-card {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .bed-card:hover {
+        border-color: #6366f1;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .bed-card.selected {
+        border-color: #6366f1;
+        background: #f0f9ff;
+    }
+
+    .bed-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .bed-info {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .allowed-products {
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        color: #6366f1;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .calculator-page {
+            padding: 1rem;
+        }
+
+        .tab-content {
+            padding: 1rem;
+        }
+
+        .bed-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .action-buttons .e-btn {
+            width: 100%;
+        }
     }
 </style>
 
-@code {
-    [Parameter] public bool ShowAsDialog { get; set; } = false;
+<div class="calculator-page">
+    <div class="page-header">
+        <h1>Design Calculator</h1>
+        <p>Advanced precast concrete design calculations with PCI compliance</p>
+    </div>
 
-    private SfDialog? BedSelectionDialog;
+    <div class="calculator-container">
+        <SfTab>
+            <TabItems>
+                <TabItem Header="@(new TabHeader { Text = "Bed Selection" })">
+                    <ContentTemplate>
+                        <div class="tab-content">
+                            <div class="bed-selection-section">
+                                <h3>Select Bed for Design</h3>
+                                <p>Choose the bed type and specific bed for your design calculations</p>
+                                
+                                <div class="bed-grid">
+                                    @foreach (var bed in AvailableBeds)
+                                    {
+                                        <div class="bed-card @(bed.Id == SelectedBedId ? "selected" : "")" 
+                                             @onclick="@(() => SelectBed(bed.Id))">
+                                            <div class="bed-name">@bed.Name</div>
+                                            <div class="bed-info">
+                                                Type: @bed.Type | Length: @bed.Length ft
+                                            </div>
+                                            <div class="allowed-products">
+                                                Supports: @string.Join(", ", bed.AllowedProductTypes.Take(3))
+                                                @if (bed.AllowedProductTypes.Count > 3)
+                                                {
+                                                    <span>...</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(SelectedBedId))
+                            {
+                                <div class="results-panel">
+                                    <h4>Selected Bed Specifications</h4>
+                                    @{
+                                        var selectedBed = AvailableBeds.FirstOrDefault(b => b.Id == SelectedBedId);
+                                        if (selectedBed != null)
+                                        {
+                                            <div class="result-item">
+                                                <span class="result-label">Bed Name</span>
+                                                <span class="result-value">@selectedBed.Name</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Maximum Length</span>
+                                                <span class="result-value">@selectedBed.Length ft</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Maximum Width</span>
+                                                <span class="result-value">@selectedBed.Width ft</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Capacity</span>
+                                                <span class="result-value">@selectedBed.Capacity lbs</span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </ContentTemplate>
+                </TabItem>
+
+                <TabItem Header="@(new TabHeader { Text = "Beam Design" })">
+                    <ContentTemplate>
+                        <div class="tab-content">
+                            <BeamDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
+                        </div>
+                    </ContentTemplate>
+                </TabItem>
+
+                <TabItem Header="@(new TabHeader { Text = "Double Tee Design" })">
+                    <ContentTemplate>
+                        <div class="tab-content">
+                            <DoubleTeeDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
+                        </div>
+                    </ContentTemplate>
+                </TabItem>
+
+                <TabItem Header="@(new TabHeader { Text = "Column Design" })">
+                    <ContentTemplate>
+                        <div class="tab-content">
+                            <ColumnDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
+                        </div>
+                    </ContentTemplate>
+                </TabItem>
+
+                <TabItem Header="@(new TabHeader { Text = "Connection Design" })">
+                    <ContentTemplate>
+                        <div class="tab-content">
+                            <ConnectionDesignCalculator OnCalculationComplete="@HandleCalculationComplete" />
+                        </div>
+                    </ContentTemplate>
+                </TabItem>
+            </TabItems>
+        </SfTab>
+
+        @if (CalculationResult != null)
+        {
+            <div class="results-panel" style="margin: 2rem;">
+                <h4>Calculation Results</h4>
+                <div class="result-item">
+                    <span class="result-label">Design Status</span>
+                    <span class="result-value @(CalculationResult.IsValid ? "success" : "error")">
+                        @(CalculationResult.IsValid ? "PASS" : "FAIL")
+                    </span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">PCI Compliance</span>
+                    <span class="result-value @(CalculationResult.IsPCICompliant ? "success" : "warning")">
+                        @(CalculationResult.IsPCICompliant ? "COMPLIANT" : "NON-COMPLIANT")
+                    </span>
+                </div>
+                @if (CalculationResult.Messages.Any())
+                {
+                    <div style="margin-top: 1rem;">
+                        <strong>Notes:</strong>
+                        <ul style="margin: 0.5rem 0 0 1.5rem;">
+                            @foreach (var message in CalculationResult.Messages)
+                            {
+                                <li>@message</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                
+                <div class="action-buttons">
+                    <SfButton CssClass="e-outline" @onclick="ExportResults">
+                        <span class="e-icons e-export"></span> Export Results
+                    </SfButton>
+                    <SfButton CssClass="e-primary" @onclick="SaveToACC">
+                        <span class="e-icons e-save"></span> Save to ACC
+                    </SfButton>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
     private List<BedInformation> AvailableBeds = new();
     private string? SelectedBedId;
-    private string? InspectorName;
-    private string? Notes;
+    private CalculationResult? CalculationResult;
 
     protected override async Task OnInitializedAsync()
     {
@@ -359,54 +345,7 @@
 
     private async Task LoadBedInformation()
     {
-        // In production, this would come from the API
-        AvailableBeds = new List<BedInformation>
-        {
-            new BedInformation
-            {
-                Id = "bed1",
-                Name = "Bed 1",
-                Type = "Beam Bed",
-                Location = "Building A",
-                Length = 400,
-                Width = 12,
-                Capacity = 10,
-                AllowedProducts = new List<string> { "Beams", "Girders", "Spandrels" }
-            },
-            new BedInformation
-            {
-                Id = "bed2",
-                Name = "Bed 2",
-                Type = "Deck Bed",
-                Location = "Building B",
-                Length = 300,
-                Width = 16,
-                Capacity = 20,
-                AllowedProducts = new List<string> { "Double Tees", "Hollow Core", "Solid Slabs" }
-            },
-            new BedInformation
-            {
-                Id = "bed3",
-                Name = "Bed 3",
-                Type = "Column Bed",
-                Location = "Building A",
-                Length = 200,
-                Width = 10,
-                Capacity = 15,
-                AllowedProducts = new List<string> { "Columns", "Piles", "Posts" }
-            },
-            new BedInformation
-            {
-                Id = "bed4",
-                Name = "Bed 4",
-                Type = "Wall Bed",
-                Location = "Building C",
-                Length = 350,
-                Width = 14,
-                Capacity = 8,
-                AllowedProducts = new List<string> { "Wall Panels", "Architectural Panels", "Cladding" }
-            }
-        };
+        AvailableBeds = BedDatabase.GetAllBeds();
     }
 
     private void SelectBed(string bedId)
@@ -414,29 +353,36 @@
         SelectedBedId = bedId;
     }
 
-    private void StartReport()
+    private void HandleCalculationComplete(CalculationResult result)
     {
-        if (!string.IsNullOrEmpty(SelectedBedId))
+        CalculationResult = result;
+    }
+
+    private async Task SaveToACC()
+    {
+        if (CalculationResult != null)
         {
-            Navigation.NavigateTo($"/quality/bed-qc-report/{SelectedBedId}");
+            // Save calculation results to ACC
+            var saved = await StorageService.SaveCalculationAsync(CalculationResult);
+            if (saved)
+            {
+                // Show success notification
+                await JSRuntime.InvokeVoidAsync("alert", "Calculation saved to ACC successfully!");
+            }
         }
     }
 
-    private void StartReportFromDialog()
+    private async Task ExportResults()
     {
-        StartReport();
-    }
-
-    private async Task CloseDialog()
-    {
-        if (BedSelectionDialog != null)
+        if (CalculationResult != null)
         {
-            await BedSelectionDialog.HideAsync();
+            // Export results as PDF or Excel
+            await JSRuntime.InvokeVoidAsync("alert", "Export functionality will be implemented soon!");
         }
     }
 
-    private void GoBack()
+    public class TabHeader
     {
-        Navigation.NavigateTo("/quality");
+        public string Text { get; set; } = "";
     }
 }

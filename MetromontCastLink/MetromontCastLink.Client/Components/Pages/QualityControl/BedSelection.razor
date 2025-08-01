@@ -1,264 +1,122 @@
 ﻿@page "/quality/bed-report-selection"
 @using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Popups
 @inject NavigationManager Navigation
-@inject IACCService ACCService
 
-<PageTitle>Select Production Bed - Quality Control</PageTitle>
-
-<div class="bed-selection-page">
-    <div class="page-header">
-        <div class="header-content">
-            <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="GoBack">Back</SfButton>
-            <h2>Create New Bed QC Report</h2>
-        </div>
-    </div>
-
-    <div class="selection-container">
-        <div class="selection-card">
-            <h3>Select Production Bed</h3>
-            <p>Choose the production bed for this quality control report.</p>
-
-            <div class="bed-grid">
-                @foreach (var bed in AvailableBeds)
-                {
-                    <div class="bed-card @(bed.Id == SelectedBedId ? "selected" : "")"
-                         @onclick="() => SelectBed(bed.Id)">
-                        <div class="bed-icon">
-                            @if (bed.Type == "Beam Bed")
-                            {
-                                <span>🏗️</span>
-                            }
-                            else if (bed.Type == "Deck Bed")
-                            {
-                                <span>🏢</span>
-                            }
-                            else if (bed.Type == "Column Bed")
-                            {
-                                <span>🏛️</span>
-                            }
-                            else
-                            {
-                                <span>📐</span>
-                            }
-                        </div>
-                        <div class="bed-info">
-                            <h4>@bed.Name</h4>
-                            <div class="bed-details">
-                                <span class="bed-type">@bed.Type</span>
-                                <span class="bed-location">@bed.Location</span>
-                            </div>
-                            <div class="bed-specs">
-                                <div class="spec-item">
-                                    <span class="spec-label">Length:</span>
-                                    <span class="spec-value">@bed.Length ft</span>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="spec-label">Width:</span>
-                                    <span class="spec-value">@bed.Width ft</span>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="spec-label">Capacity:</span>
-                                    <span class="spec-value">@bed.Capacity pcs</span>
-                                </div>
-                            </div>
-                            <div class="allowed-products">
-                                <span class="products-label">Allowed:</span>
-                                @foreach (var product in bed.AllowedProducts.Take(3))
-                                {
-                                    <SfChip CssClass="product-chip">@product</SfChip>
-                                }
-                                @if (bed.AllowedProducts.Count > 3)
-                                {
-                                    <span class="more-products">+@(bed.AllowedProducts.Count - 3) more</span>
-                                }
-                            </div>
-                        </div>
-                        @if (bed.Id == SelectedBedId)
-                        {
-                            <div class="selected-indicator">
-                                <span class="e-icons e-check"></span>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-
-            <div class="additional-info">
-                <h4>Additional Information</h4>
-                <div class="form-group">
-                    <label>Inspector Name</label>
-                    <SfTextBox @bind-Value="@InspectorName" Placeholder="Enter inspector name" />
-                </div>
-                <div class="form-group">
-                    <label>Notes</label>
-                    <SfTextBox @bind-Value="@Notes" Multiline="true" Placeholder="Any additional notes" />
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <SfButton CssClass="e-flat" @onclick="GoBack">Cancel</SfButton>
-                <SfButton CssClass="e-primary" @onclick="StartReport"
-                          Disabled="@(string.IsNullOrEmpty(SelectedBedId))">
-                    Start Report
-                </SfButton>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Alternative: Using SfDialog for modal approach -->
-<SfDialog @ref="BedSelectionDialog" Width="800px" Height="600px" ShowCloseIcon="true"
-          IsModal="true" Visible="@ShowAsDialog" Header="Select Production Bed">
-    <DialogTemplates>
-        <Content>
-            <!-- Same bed grid content as above -->
-        </Content>
-        <FooterTemplate>
-            <SfButton CssClass="e-flat" @onclick="CloseDialog">Cancel</SfButton>
-            <SfButton CssClass="e-primary" @onclick="StartReportFromDialog"
-                      Disabled="@(string.IsNullOrEmpty(SelectedBedId))">
-                Start Report
-            </SfButton>
-        </FooterTemplate>
-    </DialogTemplates>
-</SfDialog>
+<PageTitle>Select Bed for QC Report - Metromont CastLink</PageTitle>
 
 <style>
     .bed-selection-page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 1rem;
+        padding: 2rem;
+        background: #f5f6fa;
+        min-height: calc(100vh - 60px);
     }
 
     .page-header {
         margin-bottom: 2rem;
     }
 
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-        .header-content h2 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-    .selection-container {
-        display: flex;
-        justify-content: center;
-    }
-
-    .selection-card {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.06);
-        width: 100%;
-        max-width: 1000px;
-    }
-
-        .selection-card h3 {
+        .page-header h1 {
             margin: 0 0 0.5rem 0;
-            font-size: 1.25rem;
+            font-size: 2rem;
             font-weight: 600;
             color: #1e293b;
         }
 
-        .selection-card > p {
-            margin: 0 0 2rem 0;
+        .page-header p {
+            margin: 0;
             color: #64748b;
+            font-size: 1.125rem;
         }
 
     .bed-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
     .bed-card {
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1.25rem;
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
         position: relative;
-        overflow: hidden;
+        border: 2px solid transparent;
     }
 
         .bed-card:hover {
-            border-color: #cbd5e1;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border-color: #e0e7ff;
         }
 
         .bed-card.selected {
-            border-color: #10b981;
-            background: #f0fdf4;
+            border-color: #6366f1;
+            background: #f0f9ff;
         }
 
-    .bed-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.75rem;
+    .bed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
     }
 
-    .bed-info h4 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.125rem;
+    .bed-name {
+        font-size: 1.25rem;
         font-weight: 600;
         color: #1e293b;
-    }
-
-    .bed-details {
-        display: flex;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
+        margin: 0;
     }
 
     .bed-type {
-        background: #e0f2fe;
-        color: #0369a1;
+        background: #e0e7ff;
+        color: #4c1d95;
         padding: 0.25rem 0.75rem;
-        border-radius: 0.375rem;
-        font-size: 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
         font-weight: 500;
     }
 
+    .bed-details {
+        margin-bottom: 1rem;
+    }
+
     .bed-location {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
         color: #64748b;
-        font-size: 0.875rem;
     }
 
     .bed-specs {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-        padding: 0.75rem 0;
-        border-top: 1px solid #e2e8f0;
-        border-bottom: 1px solid #e2e8f0;
+        gap: 1rem;
+        margin-top: 1rem;
     }
 
     .spec-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
+        text-align: center;
     }
 
     .spec-label {
         font-size: 0.75rem;
-        color: #6b7280;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
     .spec-value {
-        font-size: 0.875rem;
-        font-weight: 500;
+        font-size: 1.125rem;
+        font-weight: 600;
         color: #1e293b;
+        margin-top: 0.25rem;
     }
 
     .allowed-products {
@@ -266,28 +124,37 @@
         align-items: center;
         gap: 0.5rem;
         flex-wrap: wrap;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
     }
 
     .products-label {
         font-size: 0.875rem;
-        color: #6b7280;
-        margin-right: 0.25rem;
+        color: #64748b;
+        font-weight: 500;
     }
 
-    .product-chip .e-chip {
-        background: #f3f4f6;
-        color: #374151;
+    .product-chip {
+        background: #f3f4f6 !important;
+        color: #374151 !important;
+        font-size: 0.75rem !important;
+        padding: 0.25rem 0.75rem !important;
+    }
+
+    .more-products {
         font-size: 0.75rem;
-        padding: 0.125rem 0.5rem;
+        color: #6366f1;
+        font-weight: 500;
     }
 
     .selected-indicator {
         position: absolute;
-        top: 0.75rem;
-        right: 0.75rem;
+        top: 1rem;
+        right: 1rem;
         width: 32px;
         height: 32px;
-        background: #10b981;
+        background: #6366f1;
         color: white;
         border-radius: 50%;
         display: flex;
@@ -295,57 +162,158 @@
         justify-content: center;
     }
 
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
     .additional-info {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
         margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: #f9fafb;
-        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
 
         .additional-info h4 {
-            margin: 0 0 1rem 0;
-            font-size: 1rem;
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
             font-weight: 600;
-            color: #374151;
+            color: #1e293b;
         }
 
     .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        margin-bottom: 1.5rem;
     }
 
         .form-group label {
-            font-size: 0.875rem;
+            display: block;
+            margin-bottom: 0.5rem;
             font-weight: 500;
             color: #374151;
         }
 
-    .action-buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #e5e7eb;
+    .e-icons {
+        font-size: 16px;
     }
 
-    @media (max-width: 768px) {
-        .bed-grid
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .bed-selection-page {
+            padding: 1rem;
+        }
 
-    {
-        grid-template-columns: 1fr;
-    }
+        .bed-grid {
+            grid-template-columns: 1fr;
+        }
 
-    .bed-specs {
-        grid-template-columns: 1fr;
-    }
+        .bed-specs {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
 
+        .action-buttons {
+            flex-direction: column;
+        }
+
+            .action-buttons .e-btn {
+                width: 100%;
+            }
     }
 </style>
 
-@code {
-    [Parameter] public bool ShowAsDialog { get; set; } = false;
+<div class="bed-selection-page">
+    <div class="page-header">
+        <h1>Select Bed for Quality Control Report</h1>
+        <p>Choose the bed you want to inspect and create a report for</p>
+    </div>
 
+    <div class="bed-grid">
+        @foreach (var bed in AvailableBeds)
+        {
+            <div class="bed-card @(bed.Id == SelectedBedId ? "selected" : "")" @onclick="@(() => SelectBed(bed.Id))">
+                <div class="bed-header">
+                    <h3 class="bed-name">@bed.Name</h3>
+                    <span class="bed-type">@bed.Type</span>
+                </div>
+                <div class="bed-details">
+                    <div class="bed-location">
+                        <span class="e-icons e-location"></span>
+                        <span>@bed.Location</span>
+                    </div>
+                    <div class="bed-specs">
+                        <div class="spec-item">
+                            <div class="spec-label">Length</div>
+                            <div class="spec-value">@bed.Length ft</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Width</div>
+                            <div class="spec-value">@bed.Width ft</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Capacity</div>
+                            <div class="spec-value">@bed.Capacity pcs</div>
+                        </div>
+                    </div>
+                    <div class="allowed-products">
+                        <span class="products-label">Allowed:</span>
+                        @foreach (var product in bed.AllowedProductTypes.Take(3))
+                        {
+                            <SfChip CssClass="product-chip">@product</SfChip>
+                        }
+                        @if (bed.AllowedProductTypes.Count > 3)
+                        {
+                            <span class="more-products">+@(bed.AllowedProductTypes.Count - 3) more</span>
+                        }
+                    </div>
+                </div>
+                @if (bed.Id == SelectedBedId)
+                {
+                    <div class="selected-indicator">
+                        <span class="e-icons e-check"></span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="additional-info">
+        <h4>Additional Information</h4>
+        <div class="form-group">
+            <label>Inspector Name</label>
+            <SfTextBox @bind-Value="@InspectorName" Placeholder="Enter inspector name" />
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <SfTextBox @bind-Value="@Notes" Multiline="true" Placeholder="Any additional notes" />
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <SfButton CssClass="e-flat" @onclick="GoBack">Cancel</SfButton>
+        <SfButton CssClass="e-primary" Disabled="@(string.IsNullOrEmpty(SelectedBedId))" @onclick="StartReport">
+            Start Inspection
+        </SfButton>
+    </div>
+</div>
+
+<SfDialog @ref="BedSelectionDialog" Width="400px" IsModal="true" ShowCloseIcon="true">
+    <DialogTemplates>
+        <Header>Confirm Bed Selection</Header>
+        <Content>
+            <p>You have selected <strong>@GetSelectedBedName()</strong> for inspection.</p>
+            <p>Are you ready to start the quality control report?</p>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Cancel" OnClick="@CloseDialog" />
+        <DialogButton Content="Start Report" IsPrimary="true" OnClick="@StartReportFromDialog" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
     private SfDialog? BedSelectionDialog;
     private List<BedInformation> AvailableBeds = new();
     private string? SelectedBedId;
@@ -359,59 +327,19 @@
 
     private async Task LoadBedInformation()
     {
-        // In production, this would come from the API
-        AvailableBeds = new List<BedInformation>
-        {
-            new BedInformation
-            {
-                Id = "bed1",
-                Name = "Bed 1",
-                Type = "Beam Bed",
-                Location = "Building A",
-                Length = 400,
-                Width = 12,
-                Capacity = 10,
-                AllowedProducts = new List<string> { "Beams", "Girders", "Spandrels" }
-            },
-            new BedInformation
-            {
-                Id = "bed2",
-                Name = "Bed 2",
-                Type = "Deck Bed",
-                Location = "Building B",
-                Length = 300,
-                Width = 16,
-                Capacity = 20,
-                AllowedProducts = new List<string> { "Double Tees", "Hollow Core", "Solid Slabs" }
-            },
-            new BedInformation
-            {
-                Id = "bed3",
-                Name = "Bed 3",
-                Type = "Column Bed",
-                Location = "Building A",
-                Length = 200,
-                Width = 10,
-                Capacity = 15,
-                AllowedProducts = new List<string> { "Columns", "Piles", "Posts" }
-            },
-            new BedInformation
-            {
-                Id = "bed4",
-                Name = "Bed 4",
-                Type = "Wall Bed",
-                Location = "Building C",
-                Length = 350,
-                Width = 14,
-                Capacity = 8,
-                AllowedProducts = new List<string> { "Wall Panels", "Architectural Panels", "Cladding" }
-            }
-        };
+        // Load beds from the BedDatabase
+        AvailableBeds = BedDatabase.GetAllBeds();
     }
 
     private void SelectBed(string bedId)
     {
         SelectedBedId = bedId;
+    }
+
+    private string GetSelectedBedName()
+    {
+        var bed = AvailableBeds.FirstOrDefault(b => b.Id == SelectedBedId);
+        return bed?.Name ?? "";
     }
 
     private void StartReport()

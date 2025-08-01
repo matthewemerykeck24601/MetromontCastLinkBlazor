@@ -6,6 +6,235 @@
 
 <PageTitle>Quality Control - Metromont CastLink</PageTitle>
 
+<style>
+    .quality-control-page {
+        padding: 2rem;
+        background: #f5f6fa;
+        min-height: calc(100vh - 60px);
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 1.125rem;
+        }
+
+    .quick-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .quick-action-btn {
+        flex: 1;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .quick-action-btn:hover {
+            border-color: #6366f1;
+            background: #f0f9ff;
+        }
+
+        .quick-action-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #6366f1;
+        }
+
+        .quick-action-btn .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+    .quality-overview {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+        .quality-overview h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .overview-item {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6366f1;
+        margin: 0;
+    }
+
+    .label {
+        font-size: 0.875rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+    }
+
+    .sublabel {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 0.25rem;
+    }
+
+    .quality-modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .quality-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .quality-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+    }
+
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .card-description {
+        color: #64748b;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.5;
+    }
+
+    /* Specific icon styles */
+    .card-icon.bed-report {
+        background: rgba(16, 185, 129, 0.2);
+    }
+
+    .card-icon.reports {
+        background: rgba(59, 130, 246, 0.2);
+    }
+
+    .card-icon.analysis {
+        background: rgba(245, 158, 11, 0.2);
+    }
+
+    /* Progress Animation */
+    @@keyframes progress-pulse {
+        0% {
+            opacity: 0.6;
+        }
+
+        50% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0.6;
+        }
+    }
+
+    .in-progress {
+        animation: progress-pulse 2s ease-in-out infinite;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .quality-control-page {
+            padding: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+        }
+
+        .quick-actions {
+            flex-direction: column;
+        }
+
+        .quality-modules {
+            grid-template-columns: 1fr;
+        }
+
+        .overview-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <div class="quality-control-page">
     <div class="page-header">
         <h1>Quality Control</h1>
@@ -50,7 +279,7 @@
             <div class="overview-item">
                 <div class="metric">@ComplianceScore%</div>
                 <div class="label">Compliance Score</div>
-                <div class="sublabel">PCI standards</div>
+                <div class="sublabel">PCI Standards</div>
             </div>
         </div>
     </div>
@@ -59,564 +288,78 @@
     <div class="quality-modules">
         <div class="quality-card" @onclick="@(() => NavigateTo("/quality/bed-report-selection"))">
             <div class="card-header">
-                <div class="card-icon bed-qc">
-                    <span class="e-icons e-clipboard"></span>
+                <div class="card-icon bed-report">
+                    📋
+                </div>
+                <div>
+                    <h3 class="card-title">Bed QC Reports</h3>
                 </div>
             </div>
             <div class="card-content">
-                <h3>Bed QC Report</h3>
-                <p>Create comprehensive quality control reports for production beds with PCI compliance checks.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>Ready for new report</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Create →</SfButton>
+                <p class="card-description">Create and manage quality control reports for production beds. Track defects, measurements, and compliance.</p>
             </div>
         </div>
 
         <div class="quality-card" @onclick="@(() => NavigateTo("/quality/reports"))">
             <div class="card-header">
                 <div class="card-icon reports">
-                    <span class="e-icons e-chart"></span>
+                    📊
+                </div>
+                <div>
+                    <h3 class="card-title">Report Management</h3>
                 </div>
             </div>
             <div class="card-content">
-                <h3>QC Reports</h3>
-                <p>View, search, and manage all quality control reports with advanced filtering options.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator active"></span>
-                    <span>@TotalReports total reports</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">View →</SfButton>
+                <p class="card-description">View, filter, and export all quality control reports. Track trends and identify areas for improvement.</p>
             </div>
         </div>
 
-        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/inspections"))">
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/analysis"))">
             <div class="card-header">
-                <div class="card-icon inspections">
-                    <span class="e-icons e-search"></span>
+                <div class="card-icon analysis">
+                    📈
+                </div>
+                <div>
+                    <h3 class="card-title">Quality Analysis</h3>
                 </div>
             </div>
             <div class="card-content">
-                <h3>Inspections</h3>
-                <p>Track and manage quality inspections throughout the production process.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator warning"></span>
-                    <span>@ActiveInspections active</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Manage →</SfButton>
+                <p class="card-description">Analyze quality metrics, trends, and patterns. Generate insights to improve production quality.</p>
             </div>
         </div>
-
-        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/defects"))">
-            <div class="card-header">
-                <div class="card-icon defects">
-                    <span class="e-icons e-warning"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Defect Tracking</h3>
-                <p>Monitor and resolve quality defects with root cause analysis and corrective actions.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator @(OpenDefects > 0 ? "warning" : "")"></span>
-                    <span>@OpenDefects open defects</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Track →</SfButton>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Quality Activity -->
-    <div class="recent-activity">
-        <h2>Recent Quality Activity</h2>
-        <div class="activity-list">
-            @foreach (var item in RecentActivities)
-            {
-                <div class="activity-item">
-                    <div class="item-icon @item.StatusClass">
-                        <span class="e-icons @item.Icon"></span>
-                    </div>
-                    <div class="item-content">
-                        <div class="item-header">
-                            <span class="item-title">@item.Title</span>
-                            <span class="item-time">@item.TimeAgo</span>
-                        </div>
-                        <div class="item-details">
-                            <span>@item.BedName</span>
-                            <span>@item.InspectorName</span>
-                            <span class="@item.StatusClass">@item.Status</span>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Quality Chart -->
-    <div class="quality-chart">
-        <h2>Weekly Pass Rate Trend</h2>
-        <SfChart Height="300px">
-            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
-                <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
-            </ChartPrimaryXAxis>
-            <ChartPrimaryYAxis Minimum="80" Maximum="100" Interval="5">
-                <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
-                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
-            </ChartPrimaryYAxis>
-            <ChartSeriesCollection>
-                <ChartSeries DataSource="@WeeklyPassRates" XName="Week" YName="PassRate" Type="ChartSeriesType.Line">
-                    <ChartMarker Visible="true" Height="10" Width="10">
-                    </ChartMarker>
-                </ChartSeries>
-            </ChartSeriesCollection>
-            <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
-        </SfChart>
     </div>
 </div>
 
-<style>
-    .quality-control-page {
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        margin-bottom: 2rem;
-    }
-
-        .page-header h1 {
-            margin: 0 0 0.5rem 0;
-            color: #1e293b;
-        }
-
-        .page-header p {
-            color: #64748b;
-            margin: 0;
-        }
-
-    .quality-overview {
-        background: white;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        margin-bottom: 2rem;
-    }
-
-        .quality-overview h2 {
-            margin: 0 0 1.5rem 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-    .overview-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .overview-item {
-        text-align: center;
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-        .overview-item .metric {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1e293b;
-            line-height: 1;
-        }
-
-        .overview-item .label {
-            font-size: 0.875rem;
-            color: #64748b;
-            margin-top: 0.5rem;
-        }
-
-        .overview-item .sublabel {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            margin-top: 0.25rem;
-        }
-
-    .quality-modules {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .quality-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .quality-card:hover {
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-    .card-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .card-icon {
-        width: 56px;
-        height: 56px;
-        background: #dbeafe;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        color: #3b82f6;
-    }
-
-        .card-icon.bed-qc {
-            background: #d1fae5;
-            color: #10b981;
-        }
-
-        .card-icon.reports {
-            background: #e0e7ff;
-            color: #6366f1;
-        }
-
-        .card-icon.inspections {
-            background: #fef3c7;
-            color: #f59e0b;
-        }
-
-        .card-icon.defects {
-            background: #fee2e2;
-            color: #ef4444;
-        }
-
-    .card-content h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .card-content p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-
-    .card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    .card-status {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-        color: #6b7280;
-    }
-
-    .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10b981;
-    }
-
-        .status-indicator.active {
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .status-indicator.warning {
-            background: #f59e0b;
-        }
-
-    @keyframes pulse {
-        0%
-
-    {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-
-    100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-
-    }
-
-    .recent-activity {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        margin-bottom: 2rem;
-    }
-
-        .recent-activity h2 {
-            margin: 0 0 1.5rem 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .activity-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-    .item-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-        .item-icon.pass {
-            background: #d1fae5;
-            color: #10b981;
-        }
-
-        .item-icon.fail {
-            background: #fee2e2;
-            color: #ef4444;
-        }
-
-        .item-icon.pending {
-            background: #fef3c7;
-            color: #f59e0b;
-        }
-
-    .item-content {
-        flex: 1;
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.25rem;
-    }
-
-    .item-title {
-        font-weight: 500;
-        color: #1e293b;
-    }
-
-    .item-time {
-        font-size: 0.875rem;
-        color: #94a3b8;
-    }
-
-    .item-details {
-        display: flex;
-        gap: 1rem;
-    }
-
-        .item-details span {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-    .quick-actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .quick-action-btn {
-        flex: 1;
-        padding: 1rem;
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .quick-action-btn:hover {
-            border-color: #6366f1;
-            background: #f0f9ff;
-        }
-
-        .quick-action-btn .icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #6366f1;
-        }
-
-        .quick-action-btn .label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-        }
-
-    .quality-chart {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-
-        .quality-chart h2 {
-            margin: 0 0 1.5rem 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-    @media (max-width: 768px) {
-        .quality-modules
-
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .overview-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .quick-actions {
-        flex-direction: column;
-    }
-
-    }
-</style>
-
 @code {
-    private int TodaysReports = 12;
-    private int PendingReviews = 3;
-    private int PassRate = 96;
-    private int ActiveInspections = 4;
-    private int ComplianceScore = 98;
-    private int TotalReports = 847;
-    private int OpenDefects = 2;
+    private int TodaysReports { get; set; } = 8;
+    private int PendingReviews { get; set; } = 3;
+    private int PassRate { get; set; } = 96;
+    private int ActiveInspections { get; set; } = 2;
+    private int ComplianceScore { get; set; } = 98;
 
-    private List<QualityActivity> RecentActivities = new();
-    private List<PassRateData> WeeklyPassRates = new();
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await LoadQualityData();
-        GeneratePassRateData();
+        LoadQualityData();
     }
 
-    private async Task LoadQualityData()
+    private void LoadQualityData()
     {
-        // Simulate loading recent quality activities
-        RecentActivities = new List<QualityActivity>
-        {
-            new QualityActivity
-            {
-                Title = "QC Report #1247 Completed",
-                BedName = "Bed 3",
-                InspectorName = "John Smith",
-                Status = "Pass",
-                StatusClass = "pass",
-                Icon = "e-check",
-                TimeAgo = "2 hours ago"
-            },
-            new QualityActivity
-            {
-                Title = "QC Report #1246 Under Review",
-                BedName = "Bed 1",
-                InspectorName = "Sarah Johnson",
-                Status = "Pending",
-                StatusClass = "pending",
-                Icon = "e-clock",
-                TimeAgo = "3 hours ago"
-            },
-            new QualityActivity
-            {
-                Title = "Defect Identified",
-                BedName = "Bed 5",
-                InspectorName = "Mike Davis",
-                Status = "Fail",
-                StatusClass = "fail",
-                Icon = "e-close",
-                TimeAgo = "5 hours ago"
-            }
-        };
+        // In production, this would load from API/database
+        TodaysReports = 8;
+        PendingReviews = 3;
+        PassRate = 96;
+        ActiveInspections = 2;
+        ComplianceScore = 98;
     }
 
-    private void GeneratePassRateData()
+    private void RefreshQualityData()
     {
-        WeeklyPassRates = new List<PassRateData>
-        {
-            new PassRateData { Week = "W1", PassRate = 94 },
-            new PassRateData { Week = "W2", PassRate = 96 },
-            new PassRateData { Week = "W3", PassRate = 95 },
-            new PassRateData { Week = "W4", PassRate = 97 },
-            new PassRateData { Week = "W5", PassRate = 96 },
-            new PassRateData { Week = "W6", PassRate = 98 }
-        };
-    }
-
-    private async Task RefreshQualityData()
-    {
-        await LoadQualityData();
+        LoadQualityData();
         StateHasChanged();
     }
 
     private void NavigateTo(string path)
     {
         Navigation.NavigateTo(path);
-    }
-
-    private class QualityActivity
-    {
-        public string Title { get; set; } = "";
-        public string BedName { get; set; } = "";
-        public string InspectorName { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string StatusClass { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public string TimeAgo { get; set; } = "";
-    }
-
-    private class PassRateData
-    {
-        public string Week { get; set; } = "";
-        public int PassRate { get; set; }
     }
 }

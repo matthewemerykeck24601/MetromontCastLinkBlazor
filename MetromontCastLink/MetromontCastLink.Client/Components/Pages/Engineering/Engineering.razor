@@ -6,6 +6,235 @@
 
 <PageTitle>Engineering - Metromont CastLink</PageTitle>
 
+<style>
+    .engineering-page {
+        padding: 2rem;
+        background: #f5f6fa;
+        min-height: calc(100vh - 60px);
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 1.125rem;
+        }
+
+    .quick-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .quick-action-btn {
+        flex: 1;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .quick-action-btn:hover {
+            border-color: #6366f1;
+            background: #f0f9ff;
+        }
+
+        .quick-action-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #6366f1;
+        }
+
+        .quick-action-btn .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+    .engineering-overview {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+        .engineering-overview h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .overview-item {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6366f1;
+        margin: 0;
+    }
+
+    .label {
+        font-size: 0.875rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+    }
+
+    .sublabel {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 0.25rem;
+    }
+
+    .engineering-modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .engineering-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .engineering-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+    }
+
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .card-description {
+        color: #64748b;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.5;
+    }
+
+    /* Specific icon styles */
+    .card-icon.calculator {
+        background: rgba(16, 185, 129, 0.2);
+    }
+
+    .card-icon.viewer {
+        background: rgba(59, 130, 246, 0.2);
+    }
+
+    .card-icon.summary {
+        background: rgba(245, 158, 11, 0.2);
+    }
+
+    /* Progress Animation */
+    @@keyframes progress-pulse {
+        0% {
+            opacity: 0.6;
+        }
+
+        50% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0.6;
+        }
+    }
+
+    .in-progress {
+        animation: progress-pulse 2s ease-in-out infinite;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .engineering-page {
+            padding: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+        }
+
+        .quick-actions {
+            flex-direction: column;
+        }
+
+        .engineering-modules {
+            grid-template-columns: 1fr;
+        }
+
+        .overview-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <div class="engineering-page">
     <div class="page-header">
         <h1>Engineering Center</h1>
@@ -60,557 +289,75 @@
         <div class="engineering-card" @onclick="@(() => NavigateTo("/engineering/calculator"))">
             <div class="card-header">
                 <div class="card-icon calculator">
-                    <span class="e-icons e-calculator"></span>
+                    🧮
+                </div>
+                <div>
+                    <h3 class="card-title">Design Calculator</h3>
                 </div>
             </div>
             <div class="card-content">
-                <h3>Design Calculator</h3>
-                <p>Comprehensive PCI-compliant calculations for beams, columns, connections, and more.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator active"></span>
-                    <span>5 calculations today</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Open →</SfButton>
+                <p class="card-description">Perform structural calculations for beams, columns, double tees, and connections per PCI standards.</p>
             </div>
         </div>
 
         <div class="engineering-card" @onclick="@(() => NavigateTo("/engineering/viewer"))">
             <div class="card-header">
                 <div class="card-icon viewer">
-                    <span class="e-icons e-3d-model"></span>
+                    👁️
+                </div>
+                <div>
+                    <h3 class="card-title">3D Model Viewer</h3>
                 </div>
             </div>
             <div class="card-content">
-                <h3>3D Model Viewer</h3>
-                <p>View and analyze Revit models directly from Autodesk Construction Cloud.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>15 models available</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">View →</SfButton>
+                <p class="card-description">View and interact with 3D models from ACC. Analyze designs and extract dimensions.</p>
             </div>
         </div>
 
         <div class="engineering-card" @onclick="@(() => NavigateTo("/engineering/summary"))">
             <div class="card-header">
                 <div class="card-icon summary">
-                    <span class="e-icons e-document"></span>
+                    📊
+                </div>
+                <div>
+                    <h3 class="card-title">Design Summary</h3>
                 </div>
             </div>
             <div class="card-content">
-                <h3>Design Summary Generator</h3>
-                <p>Automatically generate detailed design summaries from calculations and models.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator beta"></span>
-                    <span>@PendingSummaries pending</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Generate →</SfButton>
+                <p class="card-description">Generate comprehensive design summaries with calculations, drawings, and specifications.</p>
             </div>
         </div>
-
-        <div class="engineering-card" @onclick="@(() => NavigateTo("/engineering/library"))">
-            <div class="card-header">
-                <div class="card-icon library">
-                    <span class="e-icons e-folder"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Standards Library</h3>
-                <p>Access PCI standards, design codes, and technical specifications.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>@LibraryItems documents</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Browse →</SfButton>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Engineering Activity -->
-    <div class="recent-activity">
-        <h2>Recent Activity</h2>
-        <div class="activity-list">
-            @foreach (var item in RecentActivities)
-            {
-                <div class="activity-item">
-                    <div class="item-icon @item.Type">
-                        <span class="e-icons @item.Icon"></span>
-                    </div>
-                    <div class="item-content">
-                        <div class="item-header">
-                            <span class="item-title">@item.Title</span>
-                            <span class="item-time">@item.TimeAgo</span>
-                        </div>
-                        <div class="item-details">
-                            <span>@item.ProjectName</span>
-                            <span>@item.UserName</span>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Engineering Chart -->
-    <div class="engineering-chart">
-        <h2>Weekly Activity</h2>
-        <SfChart Height="300px">
-            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
-                <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
-            </ChartPrimaryXAxis>
-            <ChartPrimaryYAxis>
-                <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
-                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
-            </ChartPrimaryYAxis>
-            <ChartSeriesCollection>
-                <ChartSeries DataSource="@WeeklyActivityData" XName="Day" YName="Calculations" Type="ChartSeriesType.Line">
-                    <ChartMarker Visible="true" Height="10" Width="10">
-                    </ChartMarker>
-                </ChartSeries>
-            </ChartSeriesCollection>
-            <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
-        </SfChart>
     </div>
 </div>
 
-<style>
-    .engineering-page {
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        margin-bottom: 2rem;
-    }
-
-        .page-header h1 {
-            margin: 0 0 0.5rem 0;
-            color: #1e293b;
-        }
-
-        .page-header p {
-            color: #64748b;
-            margin: 0;
-        }
-
-    .engineering-overview {
-        background: white;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        margin-bottom: 2rem;
-    }
-
-        .engineering-overview h2 {
-            margin: 0 0 1.5rem 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-    .overview-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .overview-item {
-        text-align: center;
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-        .overview-item .metric {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1e293b;
-            line-height: 1;
-        }
-
-        .overview-item .label {
-            font-size: 0.875rem;
-            color: #64748b;
-            margin-top: 0.5rem;
-        }
-
-        .overview-item .sublabel {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            margin-top: 0.25rem;
-        }
-
-    .engineering-modules {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .engineering-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .engineering-card:hover {
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-    .card-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .card-icon {
-        width: 56px;
-        height: 56px;
-        background: #dbeafe;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        color: #3b82f6;
-    }
-
-        .card-icon.calculator {
-            background: #e0e7ff;
-            color: #6366f1;
-        }
-
-        .card-icon.viewer {
-            background: #fce7f3;
-            color: #ec4899;
-        }
-
-        .card-icon.summary {
-            background: #fef3c7;
-            color: #f59e0b;
-        }
-
-        .card-icon.library {
-            background: #d1fae5;
-            color: #10b981;
-        }
-
-    .card-content h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .card-content p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-
-    .card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    .card-status {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-        color: #6b7280;
-    }
-
-    .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10b981;
-    }
-
-        .status-indicator.active {
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .status-indicator.beta {
-            background: #f59e0b;
-        }
-
-    @keyframes pulse {
-        0%
-
-    {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-
-    100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-
-    }
-
-    .recent-activity {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        margin-bottom: 2rem;
-    }
-
-        .recent-activity h2 {
-            margin: 0 0 1.5rem 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .activity-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-    .item-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-        .item-icon.calculation {
-            background: #e0e7ff;
-            color: #6366f1;
-        }
-
-        .item-icon.model {
-            background: #d1fae5;
-            color: #10b981;
-        }
-
-        .item-icon.report {
-            background: #fef3c7;
-            color: #f59e0b;
-        }
-
-    .item-content {
-        flex: 1;
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.25rem;
-    }
-
-    .item-title {
-        font-weight: 500;
-        color: #1e293b;
-    }
-
-    .item-time {
-        font-size: 0.875rem;
-        color: #94a3b8;
-    }
-
-    .item-details {
-        display: flex;
-        gap: 1rem;
-    }
-
-        .item-details span {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-    .quick-actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .quick-action-btn {
-        flex: 1;
-        padding: 1rem;
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .quick-action-btn:hover {
-            border-color: #6366f1;
-            background: #f0f9ff;
-        }
-
-        .quick-action-btn .icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #6366f1;
-        }
-
-        .quick-action-btn .label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-        }
-
-    .engineering-chart {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-
-        .engineering-chart h2 {
-            margin: 0 0 1.5rem 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-    @media (max-width: 768px) {
-        .engineering-modules
-
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .overview-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .quick-actions {
-        flex-direction: column;
-    }
-
-    }
-</style>
-
 @code {
-    private int ActiveDesigns = 24;
-    private int CalculationsToday = 37;
-    private int ModelsViewed = 89;
-    private int ComplianceRate = 99;
-    private int PendingSummaries = 5;
-    private int LibraryItems = 156;
+    private int ActiveDesigns { get; set; } = 12;
+    private int CalculationsToday { get; set; } = 8;
+    private int ModelsViewed { get; set; } = 24;
+    private int ComplianceRate { get; set; } = 99;
 
-    private List<EngineeringActivity> RecentActivities = new();
-    private List<WeeklyActivity> WeeklyActivityData = new();
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await LoadEngineeringData();
-        GenerateWeeklyData();
+        LoadEngineeringData();
     }
 
-    private async Task LoadEngineeringData()
+    private void LoadEngineeringData()
     {
-        // Simulate loading recent engineering activities
-        RecentActivities = new List<EngineeringActivity>
-        {
-            new EngineeringActivity
-            {
-                Title = "Beam Calculation Completed",
-                Type = "calculation",
-                Icon = "e-calculator",
-                ProjectName = "Tech Campus A",
-                UserName = "John Smith",
-                TimeAgo = "2 hours ago"
-            },
-            new EngineeringActivity
-            {
-                Title = "3D Model Viewed",
-                Type = "model",
-                Icon = "e-3d-model",
-                ProjectName = "Medical Center",
-                UserName = "Sarah Johnson",
-                TimeAgo = "3 hours ago"
-            },
-            new EngineeringActivity
-            {
-                Title = "Design Summary Generated",
-                Type = "report",
-                Icon = "e-document",
-                ProjectName = "Office Complex",
-                UserName = "Mike Davis",
-                TimeAgo = "5 hours ago"
-            }
-        };
+        // In production, this would load from API/database
+        ActiveDesigns = 12;
+        CalculationsToday = 8;
+        ModelsViewed = 24;
+        ComplianceRate = 99;
     }
 
-    private void GenerateWeeklyData()
+    private void RefreshEngineeringData()
     {
-        WeeklyActivityData = new List<WeeklyActivity>
-        {
-            new WeeklyActivity { Day = "Mon", Calculations = 32 },
-            new WeeklyActivity { Day = "Tue", Calculations = 28 },
-            new WeeklyActivity { Day = "Wed", Calculations = 35 },
-            new WeeklyActivity { Day = "Thu", Calculations = 37 },
-            new WeeklyActivity { Day = "Fri", Calculations = 33 },
-            new WeeklyActivity { Day = "Sat", Calculations = 18 }
-        };
-    }
-
-    private async Task RefreshEngineeringData()
-    {
-        await LoadEngineeringData();
+        LoadEngineeringData();
         StateHasChanged();
     }
 
     private void NavigateTo(string path)
     {
         Navigation.NavigateTo(path);
-    }
-
-    private class EngineeringActivity
-    {
-        public string Title { get; set; } = "";
-        public string Type { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public string ProjectName { get; set; } = "";
-        public string UserName { get; set; } = "";
-        public string TimeAgo { get; set; } = "";
-    }
-
-    private class WeeklyActivity
-    {
-        public string Day { get; set; } = "";
-        public int Calculations { get; set; }
     }
 }

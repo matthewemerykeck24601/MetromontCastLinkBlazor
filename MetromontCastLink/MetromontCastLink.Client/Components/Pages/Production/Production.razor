@@ -1,260 +1,34 @@
-﻿@page "/production"
+﻿@page "/quality"
 @using MetromontCastLink.Shared.Models
 @using Syncfusion.Blazor.Charts
 @using Syncfusion.Blazor.Buttons
-@using Syncfusion.Blazor.Navigations
 @inject NavigationManager Navigation
-@inject IACCService ACCService
-@inject IStorageService StorageService
 
-<PageTitle>Production - Metromont CastLink</PageTitle>
-
-<div class="production-page">
-    <div class="page-header">
-        <h1>Production Management</h1>
-        <p>Real-time production tracking and scheduling for precast concrete manufacturing</p>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <button class="quick-action-btn" @onclick="@(() => NavigateTo("/production/scheduling"))">
-            <div class="icon">📅</div>
-            <div class="label">View Schedule</div>
-        </button>
-        <button class="quick-action-btn" @onclick="@(() => NavigateTo("/production/scheduling"))">
-            <div class="icon">➕</div>
-            <div class="label">New Production Run</div>
-        </button>
-        <button class="quick-action-btn" @onclick="RefreshProductionData">
-            <div class="icon">🔄</div>
-            <div class="label">Refresh Status</div>
-        </button>
-    </div>
-
-    <!-- Production Overview -->
-    <div class="production-overview">
-        <h2>Today's Production Overview</h2>
-        <div class="overview-grid">
-            <div class="overview-item">
-                <div class="metric">@ActiveBeds</div>
-                <div class="label">Active Beds</div>
-                <div class="sublabel">of @TotalBeds total</div>
-            </div>
-            <div class="overview-item">
-                <div class="metric">@TodaysPieces</div>
-                <div class="label">Pieces Today</div>
-                <div class="sublabel">@TodaysVolume cu. yd.</div>
-            </div>
-            <div class="overview-item">
-                <div class="metric">@CompletionRate%</div>
-                <div class="label">Completion Rate</div>
-                <div class="sublabel">vs. target</div>
-            </div>
-            <div class="overview-item">
-                <div class="metric">@EfficiencyRate%</div>
-                <div class="label">Efficiency</div>
-                <div class="sublabel">bed utilization</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Production Modules -->
-    <div class="production-modules">
-        <div class="production-card" @onclick="@(() => NavigateTo("/production/scheduling"))">
-            <div class="card-header">
-                <div class="card-icon scheduling">
-                    <span class="e-icons e-schedule"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Production Scheduling</h3>
-                <p>Create and manage production schedules, optimize bed utilization, and coordinate pours.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator active"></span>
-                    <span>@ActiveSchedules active schedules</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">View →</SfButton>
-            </div>
-        </div>
-
-        <div class="production-card" @onclick="@(() => NavigateTo("/production/bed-management"))">
-            <div class="card-header">
-                <div class="card-icon bed-management">
-                    <span class="e-icons e-grid"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Bed Management</h3>
-                <p>Monitor bed status, maintenance schedules, and production capacity.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator @(MaintenanceNeeded > 0 ? "warning" : "")"></span>
-                    <span>@(MaintenanceNeeded > 0 ? $"{MaintenanceNeeded} beds need maintenance" : "All beds operational")</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Manage →</SfButton>
-            </div>
-        </div>
-
-        <div class="production-card" @onclick="@(() => NavigateTo("/production/tracking"))">
-            <div class="card-header">
-                <div class="card-icon tracking">
-                    <span class="e-icons e-location"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Real-time Tracking</h3>
-                <p>Monitor production progress, piece locations, and quality checkpoints.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator active"></span>
-                    <span>Live tracking active</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Track →</SfButton>
-            </div>
-        </div>
-
-        <div class="production-card" @onclick="@(() => NavigateTo("/production/metrics"))">
-            <div class="card-header">
-                <div class="card-icon metrics">
-                    <span class="e-icons e-chart"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Production Metrics</h3>
-                <p>Analyze efficiency, cycle times, and production trends.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>@EfficiencyRate% efficiency today</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">View →</SfButton>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Production Activity -->
-    <div class="recent-activity">
-        <h2>Recent Production Activity</h2>
-        <div class="activity-list">
-            @foreach (var item in RecentProductionItems)
-            {
-                <div class="activity-item">
-                    <div class="item-icon @item.StatusClass">
-                        <span class="e-icons @item.Icon"></span>
-                    </div>
-                    <div class="item-content">
-                        <div class="item-header">
-                            <span class="item-title">@item.Title</span>
-                            <span class="item-time">@item.TimeAgo</span>
-                        </div>
-                        <div class="item-details">
-                            <span class="item-bed">@item.BedName</span>
-                            <span class="item-pieces">@item.Pieces pcs</span>
-                            <span class="item-project">@item.ProjectName</span>
-                        </div>
-                    </div>
-                    <div class="item-progress">
-                        <div class="percentage">@item.Progress%</div>
-                        <div class="time-remaining">@item.TimeRemaining</div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Production Chart -->
-    <div class="production-chart">
-        <h2>Weekly Production Trend</h2>
-        <SfChart Height="300px">
-            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
-                <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
-            </ChartPrimaryXAxis>
-            <ChartPrimaryYAxis>
-                <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
-                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
-            </ChartPrimaryYAxis>
-            <ChartSeriesCollection>
-                <ChartSeries DataSource="@WeeklyProductionData" XName="Day" YName="Pieces" Type="ChartSeriesType.Column">
-                    <ChartSeriesDataLabel Visible="true" Position="Syncfusion.Blazor.Charts.LabelPosition.Top">
-                    </ChartSeriesDataLabel>
-                </ChartSeries>
-            </ChartSeriesCollection>
-            <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
-        </SfChart>
-    </div>
-</div>
+<PageTitle>Quality Control - Metromont CastLink</PageTitle>
 
 <style>
-    .production-page {
+    .quality-control-page {
         padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        background: #f5f6fa;
+        min-height: calc(100vh - 60px);
     }
 
     .page-header {
         margin-bottom: 2rem;
     }
 
-    .page-header h1 {
-        margin: 0 0 0.5rem 0;
-        color: #1e293b;
-    }
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
 
-    .page-header p {
-        color: #64748b;
-        margin: 0;
-    }
-
-    .production-overview {
-        background: white;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        margin-bottom: 2rem;
-    }
-
-    .production-overview h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
-    }
-
-    .overview-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .overview-item {
-        text-align: center;
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-    .overview-item .metric {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1e293b;
-        line-height: 1;
-    }
-
-    .overview-item .label {
-        font-size: 0.875rem;
-        color: #64748b;
-        margin-top: 0.5rem;
-    }
-
-    .overview-item .sublabel {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        margin-top: 0.25rem;
-    }
+        .page-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 1.125rem;
+        }
 
     .quick-actions {
         display: flex;
@@ -273,252 +47,163 @@
         transition: all 0.2s ease;
     }
 
-    .quick-action-btn:hover {
-        border-color: #6366f1;
-        background: #f0f9ff;
-    }
+        .quick-action-btn:hover {
+            border-color: #6366f1;
+            background: #f0f9ff;
+        }
 
-    .quick-action-btn .icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-    }
+        .quick-action-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #6366f1;
+        }
 
-    .quick-action-btn .label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #374151;
-    }
+        .quick-action-btn .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
 
-    .production-modules {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .production-card {
+    .quality-overview {
         background: white;
         border-radius: 12px;
-        padding: 1.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        cursor: pointer;
-        transition: all 0.2s ease;
     }
 
-    .production-card:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
+        .quality-overview h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
     }
+
+    .overview-item {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6366f1;
+        margin: 0;
+    }
+
+    .label {
+        font-size: 0.875rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+    }
+
+    .sublabel {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 0.25rem;
+    }
+
+    .quality-modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .quality-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .quality-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
 
     .card-header {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
     }
 
     .card-icon {
-        width: 56px;
-        height: 56px;
-        background: #fee2e2;
+        width: 60px;
+        height: 60px;
+        background: rgba(255,255,255,0.2);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 28px;
-        color: #ef4444;
     }
 
-    .card-icon.scheduling {
-        background: #dbeafe;
-        color: #3b82f6;
+    .card-content {
+        padding: 1.5rem;
     }
 
-    .card-icon.bed-management {
-        background: #d1fae5;
-        color: #10b981;
-    }
-
-    .card-icon.tracking {
-        background: #fef3c7;
-        color: #f59e0b;
-    }
-
-    .card-icon.metrics {
-        background: #e0e7ff;
-        color: #6366f1;
-    }
-
-    .card-content h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.125rem;
+    .card-title {
+        font-size: 1.25rem;
         font-weight: 600;
-        color: #1e293b;
-    }
-
-    .card-content p {
         margin: 0;
-        font-size: 0.875rem;
-        color: #6b7280;
     }
 
-    .card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
+    .card-description {
+        color: #64748b;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.5;
     }
 
-    .card-status {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-        color: #6b7280;
+    /* Specific icon styles */
+    .card-icon.bed-report {
+        background: rgba(16, 185, 129, 0.2);
     }
 
-    .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10b981;
+    .card-icon.reports {
+        background: rgba(59, 130, 246, 0.2);
     }
 
-    .status-indicator.active {
-        animation: pulse 2s ease-in-out infinite;
-    }
-
-    .status-indicator.warning {
-        background: #f59e0b;
+    .card-icon.analysis {
+        background: rgba(245, 158, 11, 0.2);
     }
 
     /* Progress Animation */
-    @keyframes pulse {
+    @@keyframes progress-pulse {
         0% {
             opacity: 0.6;
-            transform: scale(1);
         }
 
         50% {
             opacity: 1;
-            transform: scale(1.2);
         }
 
         100% {
             opacity: 0.6;
-            transform: scale(1);
         }
     }
 
-    .recent-activity {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-        margin-bottom: 2rem;
-    }
-
-    .recent-activity h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
-    }
-
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .activity-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 8px;
-    }
-
-    .item-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-    .item-icon.in-progress {
-        background: #dbeafe;
-        color: #3b82f6;
-    }
-
-    .item-icon.completed {
-        background: #d1fae5;
-        color: #10b981;
-    }
-
-    .item-content {
-        flex: 1;
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.25rem;
-    }
-
-    .item-title {
-        font-weight: 500;
-        color: #1e293b;
-    }
-
-    .item-time {
-        font-size: 0.75rem;
-        color: #9ca3af;
-    }
-
-    .item-details {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-
-    .item-progress {
-        text-align: right;
-    }
-
-    .percentage {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .time-remaining {
-        font-size: 0.75rem;
-        color: #9ca3af;
-    }
-
-    .production-chart {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-
-    .production-chart h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
+    .in-progress {
+        animation: progress-pulse 2s ease-in-out infinite;
     }
 
     /* Responsive Design */
-    @media (max-width: 768px) {
-        .production-page {
+    @@media (max-width: 768px) {
+        .quality-control-page {
             padding: 1rem;
         }
 
@@ -530,141 +215,151 @@
             font-size: 1rem;
         }
 
-        .production-modules {
+        .quick-actions {
+            flex-direction: column;
+        }
+
+        .quality-modules {
             grid-template-columns: 1fr;
         }
 
         .overview-grid {
             grid-template-columns: 1fr 1fr;
         }
-
-        .quick-actions {
-            flex-direction: column;
-        }
     }
 
-    @media (max-width: 480px) {
-        .activity-item {
-            flex-direction: column;
-            align-items: start;
-            gap: 1rem;
-        }
-
-        .item-progress {
-            text-align: left;
-            width: 100%;
-        }
-
+    @@media (max-width: 480px) {
         .overview-grid {
             grid-template-columns: 1fr;
         }
     }
 </style>
 
+<div class="quality-control-page">
+    <div class="page-header">
+        <h1>Quality Control</h1>
+        <p>Ensure excellence in precast concrete production with comprehensive quality management</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" @onclick="@(() => NavigateTo("/quality/bed-report-selection"))">
+            <div class="icon">📋</div>
+            <div class="label">New Bed Report</div>
+        </button>
+        <button class="quick-action-btn" @onclick="@(() => NavigateTo("/quality/reports"))">
+            <div class="icon">📊</div>
+            <div class="label">View Reports</div>
+        </button>
+        <button class="quick-action-btn" @onclick="RefreshQualityData">
+            <div class="icon">🔄</div>
+            <div class="label">Refresh Data</div>
+        </button>
+    </div>
+
+    <!-- Quality Overview -->
+    <div class="quality-overview">
+        <h2>Quality Control Dashboard</h2>
+        <div class="overview-grid">
+            <div class="overview-item">
+                <div class="metric">@TodaysReports</div>
+                <div class="label">Reports Today</div>
+                <div class="sublabel">@PendingReviews pending review</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@PassRate%</div>
+                <div class="label">Pass Rate</div>
+                <div class="sublabel">Last 30 days</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@ActiveInspections</div>
+                <div class="label">Active Inspections</div>
+                <div class="sublabel">In progress</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@ComplianceScore%</div>
+                <div class="label">Compliance Score</div>
+                <div class="sublabel">PCI Standards</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Modules -->
+    <div class="quality-modules">
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/bed-report-selection"))">
+            <div class="card-header">
+                <div class="card-icon bed-report">
+                    📋
+                </div>
+                <div>
+                    <h3 class="card-title">Bed QC Reports</h3>
+                </div>
+            </div>
+            <div class="card-content">
+                <p class="card-description">Create and manage quality control reports for production beds. Track defects, measurements, and compliance.</p>
+            </div>
+        </div>
+
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/reports"))">
+            <div class="card-header">
+                <div class="card-icon reports">
+                    📊
+                </div>
+                <div>
+                    <h3 class="card-title">Report Management</h3>
+                </div>
+            </div>
+            <div class="card-content">
+                <p class="card-description">View, filter, and export all quality control reports. Track trends and identify areas for improvement.</p>
+            </div>
+        </div>
+
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/analysis"))">
+            <div class="card-header">
+                <div class="card-icon analysis">
+                    📈
+                </div>
+                <div>
+                    <h3 class="card-title">Quality Analysis</h3>
+                </div>
+            </div>
+            <div class="card-content">
+                <p class="card-description">Analyze quality metrics, trends, and patterns. Generate insights to improve production quality.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
-    private int ActiveBeds = 8;
-    private int TotalBeds = 12;
-    private int TodaysPieces = 47;
-    private decimal TodaysVolume = 325.5m;
-    private int CompletionRate = 92;
-    private int EfficiencyRate = 87;
-    private int ActiveSchedules = 3;
-    private int MaintenanceNeeded = 0;
+    private int TodaysReports { get; set; } = 8;
+    private int PendingReviews { get; set; } = 3;
+    private int PassRate { get; set; } = 96;
+    private int ActiveInspections { get; set; } = 2;
+    private int ComplianceScore { get; set; } = 98;
 
-    private List<ProductionItem> RecentProductionItems = new();
-    private List<WeeklyData> WeeklyProductionData = new();
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await LoadProductionData();
-        GenerateWeeklyData();
+        LoadQualityData();
     }
 
-    private async Task LoadProductionData()
+    private void LoadQualityData()
     {
-        // In real implementation, this would load from the API
-        RecentProductionItems = new List<ProductionItem>
-        {
-            new ProductionItem
-            {
-                Title = "Double Tee Pour Started",
-                BedName = "Prestress Bed 3",
-                Pieces = 4,
-                ProjectName = "Tech Campus A",
-                Progress = 35,
-                TimeRemaining = "5 hrs",
-                TimeAgo = "1 hour ago",
-                StatusClass = "in-progress",
-                Icon = "e-play"
-            },
-            new ProductionItem
-            {
-                Title = "Wall Panels Completed",
-                BedName = "Flat Bed 2",
-                Pieces = 8,
-                ProjectName = "Medical Center",
-                Progress = 100,
-                TimeRemaining = "Complete",
-                TimeAgo = "2 hours ago",
-                StatusClass = "completed",
-                Icon = "e-check"
-            },
-            new ProductionItem
-            {
-                Title = "Column Pour In Progress",
-                BedName = "PC Bed 1",
-                Pieces = 12,
-                ProjectName = "Office Complex",
-                Progress = 65,
-                TimeRemaining = "2 hrs",
-                TimeAgo = "3 hours ago",
-                StatusClass = "in-progress",
-                Icon = "e-play"
-            }
-        };
+        // In production, this would load from API/database
+        TodaysReports = 8;
+        PendingReviews = 3;
+        PassRate = 96;
+        ActiveInspections = 2;
+        ComplianceScore = 98;
     }
 
-    private void GenerateWeeklyData()
+    private void RefreshQualityData()
     {
-        WeeklyProductionData = new List<WeeklyData>
-        {
-            new WeeklyData { Day = "Mon", Pieces = 42 },
-            new WeeklyData { Day = "Tue", Pieces = 38 },
-            new WeeklyData { Day = "Wed", Pieces = 45 },
-            new WeeklyData { Day = "Thu", Pieces = 47 },
-            new WeeklyData { Day = "Fri", Pieces = 43 },
-            new WeeklyData { Day = "Sat", Pieces = 32 },
-            new WeeklyData { Day = "Sun", Pieces = 0 }
-        };
-    }
-
-    private async Task RefreshProductionData()
-    {
-        await LoadProductionData();
+        LoadQualityData();
         StateHasChanged();
     }
 
     private void NavigateTo(string path)
     {
         Navigation.NavigateTo(path);
-    }
-
-    private class ProductionItem
-    {
-        public string Title { get; set; } = "";
-        public string BedName { get; set; } = "";
-        public int Pieces { get; set; }
-        public string ProjectName { get; set; } = "";
-        public int Progress { get; set; }
-        public string TimeRemaining { get; set; } = "";
-        public string TimeAgo { get; set; } = "";
-        public string StatusClass { get; set; } = "";
-        public string Icon { get; set; } = "";
-    }
-
-    private class WeeklyData
-    {
-        public string Day { get; set; } = "";
-        public int Pieces { get; set; }
     }
 }
