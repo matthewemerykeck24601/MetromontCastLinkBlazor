@@ -20,19 +20,22 @@
                             OnOpen="@OnDropdownOpen" />
         <DropDownListTemplates TItem="ACCProject">
             <ItemTemplate>
+                @{
+                    var project = context as ACCProject;
+                }
                 <div class="project-item">
                     <div class="project-main">
-                        <span class="project-name">@((context as ACCProject)?.Name)</span>
-                        @if (!string.IsNullOrEmpty((context as ACCProject)?.Number))
+                        <span class="project-name">@project?.Name</span>
+                        @if (!string.IsNullOrEmpty(project?.Number))
                         {
-                            <span class="project-number">@((context as ACCProject)?.Number)</span>
+                            <span class="project-number">@project.Number</span>
                         }
                     </div>
-                    @if (!string.IsNullOrEmpty((context as ACCProject)?.Location))
+                    @if (!string.IsNullOrEmpty(project?.Location))
                     {
                         <div class="project-location">
                             <span class="e-icons e-location"></span>
-                            @((context as ACCProject)?.Location)
+                            @project.Location
                         </div>
                     }
                 </div>
@@ -206,7 +209,7 @@
         }
     }
 
-    private async Task OnProjectChange(ChangeEventArgs<string, ACCProject> args)
+    private async Task OnProjectChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> args)
     {
         await SetSelectedProject(args.Value);
     }

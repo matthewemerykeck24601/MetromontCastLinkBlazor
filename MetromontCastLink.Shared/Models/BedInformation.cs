@@ -1,5 +1,4 @@
-﻿// MetromontCastLink.Shared/Models/BedInformation.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,112 +8,174 @@ namespace MetromontCastLink.Shared.Models
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
-        public string Type { get; set; } = ""; // Standard, Prestress, Specialty
+        public string Type { get; set; } = "";
         public double Length { get; set; }
         public double Width { get; set; }
+        public double Capacity { get; set; }
+        public List<string> AllowedProductTypes { get; set; } = new();
         public string Location { get; set; } = "";
-        public string Status { get; set; } = "Active"; // Active, Maintenance, Inactive
-        public int Capacity { get; set; }
-        public DateTime LastInspection { get; set; }
-        public DateTime NextInspection { get; set; }
-        public string Notes { get; set; } = "";
-        public List<string> Features { get; set; } = new();
+        public string Status { get; set; } = "Active";
+        public BedSpecifications Specifications { get; set; } = new();
     }
 
-    public class BedDatabase
+    public class BedSpecifications
     {
-        private static readonly List<BedInformation> _beds = new()
-        {
-            new BedInformation
-            {
-                Id = "bed-001",
-                Name = "Bed 1 - Standard",
-                Type = "Standard",
-                Length = 400,
-                Width = 12,
-                Location = "Building A",
-                Status = "Active",
-                Capacity = 10,
-                LastInspection = DateTime.Now.AddDays(-30),
-                NextInspection = DateTime.Now.AddDays(60),
-                Features = new List<string> { "Steam Curing", "Automated Tensioning" }
-            },
-            new BedInformation
-            {
-                Id = "bed-002",
-                Name = "Bed 2 - Prestress",
-                Type = "Prestress",
-                Length = 500,
-                Width = 14,
-                Location = "Building A",
-                Status = "Active",
-                Capacity = 12,
-                LastInspection = DateTime.Now.AddDays(-45),
-                NextInspection = DateTime.Now.AddDays(45),
-                Features = new List<string> { "Self-Stressing", "Temperature Control", "Automated Tensioning" }
-            },
-            new BedInformation
-            {
-                Id = "bed-003",
-                Name = "Bed 3 - Specialty",
-                Type = "Specialty",
-                Length = 300,
-                Width = 16,
-                Location = "Building B",
-                Status = "Active",
-                Capacity = 8,
-                LastInspection = DateTime.Now.AddDays(-15),
-                NextInspection = DateTime.Now.AddDays(75),
-                Features = new List<string> { "Custom Forms", "Variable Width" }
-            },
-            new BedInformation
-            {
-                Id = "bed-004",
-                Name = "Bed 4 - Standard",
-                Type = "Standard",
-                Length = 400,
-                Width = 12,
-                Location = "Building B",
-                Status = "Maintenance",
-                Capacity = 10,
-                LastInspection = DateTime.Now.AddDays(-5),
-                NextInspection = DateTime.Now.AddDays(10),
-                Features = new List<string> { "Steam Curing" }
-            },
-            new BedInformation
-            {
-                Id = "bed-005",
-                Name = "Bed 5 - Prestress",
-                Type = "Prestress",
-                Length = 600,
-                Width = 14,
-                Location = "Building C",
-                Status = "Active",
-                Capacity = 15,
-                LastInspection = DateTime.Now.AddDays(-60),
-                NextInspection = DateTime.Now.AddDays(30),
-                Features = new List<string> { "Self-Stressing", "Automated Tensioning", "Temperature Control", "Remote Monitoring" }
-            }
-        };
+        public double MaxStrandForce { get; set; }
+        public double MaxProductLength { get; set; }
+        public double MaxProductWidth { get; set; }
+        public double MaxProductHeight { get; set; }
+        public bool SelfStressing { get; set; }
+        public bool HeatedBed { get; set; }
+        public double? TemperatureRange { get; set; }
+    }
 
+    public static class BedDatabase
+    {
         public static List<BedInformation> GetAllBeds()
         {
-            return new List<BedInformation>(_beds);
+            return new List<BedInformation>
+            {
+                new BedInformation
+                {
+                    Id = "beam",
+                    Name = "Beam",
+                    Type = "Beam Bed",
+                    Length = 400,
+                    Width = 8,
+                    Capacity = 50000,
+                    AllowedProductTypes = new List<string> { "Beam", "Girder", "Joist" },
+                    Location = "Building A - Section 1",
+                    Specifications = new BedSpecifications
+                    {
+                        MaxStrandForce = 50000,
+                        MaxProductLength = 100,
+                        MaxProductWidth = 8,
+                        MaxProductHeight = 6,
+                        SelfStressing = true,
+                        HeatedBed = true,
+                        TemperatureRange = 150
+                    }
+                },
+                new BedInformation
+                {
+                    Id = "deck1",
+                    Name = "Deck 1",
+                    Type = "Deck Bed",
+                    Length = 300,
+                    Width = 12,
+                    Capacity = 75000,
+                    AllowedProductTypes = new List<string> { "Double Tee", "Single Tee", "Deck Panel" },
+                    Location = "Building A - Section 2",
+                    Specifications = new BedSpecifications
+                    {
+                        MaxStrandForce = 75000,
+                        MaxProductLength = 60,
+                        MaxProductWidth = 12,
+                        MaxProductHeight = 3,
+                        SelfStressing = true,
+                        HeatedBed = true,
+                        TemperatureRange = 140
+                    }
+                },
+                new BedInformation
+                {
+                    Id = "deck2",
+                    Name = "Deck 2",
+                    Type = "Deck Bed",
+                    Length = 300,
+                    Width = 12,
+                    Capacity = 75000,
+                    AllowedProductTypes = new List<string> { "Double Tee", "Single Tee", "Deck Panel" },
+                    Location = "Building A - Section 3",
+                    Specifications = new BedSpecifications
+                    {
+                        MaxStrandForce = 75000,
+                        MaxProductLength = 60,
+                        MaxProductWidth = 12,
+                        MaxProductHeight = 3,
+                        SelfStressing = true,
+                        HeatedBed = true,
+                        TemperatureRange = 140
+                    }
+                },
+                new BedInformation
+                {
+                    Id = "flatbed1",
+                    Name = "Flat Bed #1",
+                    Type = "Flat Bed",
+                    Length = 200,
+                    Width = 20,
+                    Capacity = 60000,
+                    AllowedProductTypes = new List<string> { "Wall Panel", "Flat Slab", "Solid Slab", "Column" },
+                    Location = "Building B - Section 1",
+                    Specifications = new BedSpecifications
+                    {
+                        MaxStrandForce = 60000,
+                        MaxProductLength = 40,
+                        MaxProductWidth = 20,
+                        MaxProductHeight = 2,
+                        SelfStressing = false,
+                        HeatedBed = true,
+                        TemperatureRange = 120
+                    }
+                },
+                new BedInformation
+                {
+                    Id = "flatbed2",
+                    Name = "Flat Bed #2",
+                    Type = "Flat Bed",
+                    Length = 200,
+                    Width = 20,
+                    Capacity = 60000,
+                    AllowedProductTypes = new List<string> { "Wall Panel", "Flat Slab", "Solid Slab", "Column" },
+                    Location = "Building B - Section 2",
+                    Specifications = new BedSpecifications
+                    {
+                        MaxStrandForce = 60000,
+                        MaxProductLength = 40,
+                        MaxProductWidth = 20,
+                        MaxProductHeight = 2,
+                        SelfStressing = false,
+                        HeatedBed = true,
+                        TemperatureRange = 120
+                    }
+                },
+                new BedInformation
+                {
+                    Id = "pcbed1",
+                    Name = "PC Bed #1",
+                    Type = "Column Bed",
+                    Length = 150,
+                    Width = 10,
+                    Capacity = 40000,
+                    AllowedProductTypes = new List<string> { "Column", "Pile", "Post" },
+                    Location = "Building C - Section 1",
+                    Specifications = new BedSpecifications
+                    {
+                        MaxStrandForce = 40000,
+                        MaxProductLength = 50,
+                        MaxProductWidth = 3,
+                        MaxProductHeight = 3,
+                        SelfStressing = false,
+                        HeatedBed = false
+                    }
+                }
+            };
         }
 
         public static BedInformation? GetBedById(string id)
         {
-            return _beds.FirstOrDefault(b => b.Id == id);
+            return GetAllBeds().FirstOrDefault(b => b.Id == id);
         }
 
         public static List<BedInformation> GetBedsByType(string type)
         {
-            return _beds.Where(b => b.Type.Equals(type, StringComparison.OrdinalIgnoreCase)).ToList();
+            return GetAllBeds().Where(b => b.Type.Equals(type, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
-        public static List<BedInformation> GetActiveBeds()
+        public static List<BedInformation> GetBedsForProductType(string productType)
         {
-            return _beds.Where(b => b.Status == "Active").ToList();
+            return GetAllBeds().Where(b => b.AllowedProductTypes.Contains(productType)).ToList();
         }
     }
 }

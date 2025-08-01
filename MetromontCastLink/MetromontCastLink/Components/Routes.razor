@@ -1,8 +1,10 @@
-﻿// MetromontCastLink/MetromontCastLink/Components/Routes.razor
-<Router AppAssembly="typeof(Program).Assembly" 
-        AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
+﻿@using MetromontCastLink.Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
+
+<Router AppAssembly="typeof(Program).Assembly"
+        AdditionalAssemblies="new[] { typeof(MetromontCastLink.Client._Imports).Assembly }">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Client.Components.Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MetromontCastLink.Client.Components.Layout.MainLayout)">
             <NotAuthorized>
                 <div class="unauthorized-container">
                     <h2>Authentication Required</h2>
@@ -21,7 +23,7 @@
     </Found>
     <NotFound>
         <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="typeof(Client.Components.Layout.MainLayout)">
+        <LayoutView Layout="typeof(MetromontCastLink.Client.Components.Layout.MainLayout)">
             <div class="not-found-container">
                 <h1>404</h1>
                 <h2>Page Not Found</h2>
@@ -43,27 +45,27 @@
         padding: 2rem;
     }
 
-    .unauthorized-container h2, .not-found-container h1 {
-        margin: 0 0 1rem 0;
-        color: #1e293b;
-    }
+        .unauthorized-container h2, .not-found-container h1 {
+            margin: 0 0 1rem 0;
+            color: #1e293b;
+        }
 
-    .not-found-container h1 {
-        font-size: 4rem;
-        font-weight: 700;
-        color: #e2e8f0;
-    }
+        .not-found-container h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
 
-    .not-found-container h2 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0 0 0.5rem 0;
-    }
+        .not-found-container h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
 
-    .unauthorized-container p, .not-found-container p {
-        margin: 0 0 1.5rem 0;
-        color: #64748b;
-    }
+        .unauthorized-container p, .not-found-container p {
+            margin: 0 0 1.5rem 0;
+            color: #64748b;
+        }
 
     .loading-container {
         display: flex;
@@ -83,8 +85,10 @@
         margin-bottom: 1rem;
     }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .btn {
@@ -100,10 +104,10 @@
         cursor: pointer;
     }
 
-    .btn:hover {
-        background: #4f46e5;
-        transform: translateY(-1px);
-    }
+        .btn:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
 </style>
 
 @code {
@@ -114,78 +118,4 @@
     {
         await ACCService.InitiateAuthenticationAsync();
     }
-}
-
-// =====================================================
-// MetromontCastLink/MetromontCastLink/appsettings.json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "Microsoft.AspNetCore.Hosting.Diagnostics": "Information"
-    }
-  },
-  "AllowedHosts": "*",
-  "ACC": {
-    "ClientId": "YOUR_ACC_CLIENT_ID_HERE",
-    "ClientSecret": "YOUR_ACC_CLIENT_SECRET_HERE",
-    "CallbackUrl": "https://localhost:7050/signin-acc",
-    "Scopes": "data:read data:write data:create data:search account:read user:read viewables:read bucket:create bucket:read bucket:update bucket:delete"
-  },
-  "Jwt": {
-    "Key": "YourSuperSecretKeyHereThatShouldBeAtLeast32CharactersLong",
-    "Issuer": "MetromontCastLink",
-    "Audience": "MetromontCastLinkUsers",
-    "ExpiryInMinutes": 1440
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Data Source=castlink.db"
-  },
-  "Syncfusion": {
-    "LicenseKey": "YOUR_SYNCFUSION_LICENSE_KEY_HERE"
-  },
-  "Storage": {
-    "OssBucketPrefix": "metromont",
-    "OssPersistencePolicy": "persistent",
-    "LocalStorageEnabled": true
-  },
-  "Features": {
-    "EnableQualityControl": true,
-    "EnableEngineering": true,
-    "EnableProduction": false,
-    "EnableAnalytics": false,
-    "EnableNotifications": true
-  },
-  "urls": "https://localhost:7050;http://localhost:5186"
-}
-
-// =====================================================
-// MetromontCastLink/MetromontCastLink/appsettings.Development.json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Debug",
-      "Microsoft.AspNetCore": "Debug",
-      "MetromontCastLink": "Debug"
-    }
-  },
-  "DetailedErrors": true,
-  "ACC": {
-    "ClientId": "YOUR_DEV_ACC_CLIENT_ID",
-    "ClientSecret": "YOUR_DEV_ACC_CLIENT_SECRET",
-    "CallbackUrl": "https://localhost:7050/signin-acc"
-  }
-}
-
-// =====================================================
-// MetromontCastLink.Client/wwwroot/appsettings.json
-{
-  "ACC": {
-    "ClientId": "YOUR_ACC_CLIENT_ID_HERE",
-    "CallbackUrl": "https://localhost:7050/signin-acc"
-  },
-  "API": {
-    "BaseUrl": "https://localhost:7050"
-  }
 }

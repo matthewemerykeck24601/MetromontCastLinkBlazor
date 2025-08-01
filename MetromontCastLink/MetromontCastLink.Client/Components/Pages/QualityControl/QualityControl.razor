@@ -1,178 +1,576 @@
-﻿// Models/BedInformation.cs
-namespace MetromontCastLink.Shared.Models
-{
-    public class BedInformation
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Type { get; set; } = "";
-        public double Length { get; set; }
-        public double Width { get; set; }
-        public double Capacity { get; set; }
-        public List<string> AllowedProductTypes { get; set; } = new();
-        public string Location { get; set; } = "";
-        public string Status { get; set; } = "Active";
-        public BedSpecifications Specifications { get; set; } = new();
-    }
+﻿@page "/quality"
+@using MetromontCastLink.Shared.Models
+@using Syncfusion.Blazor.Charts
+@using Syncfusion.Blazor.Buttons
+@inject NavigationManager Navigation
 
-    public class BedSpecifications
-    {
-        public double MaxStrandForce { get; set; }
-        public double MaxProductLength { get; set; }
-        public double MaxProductWidth { get; set; }
-        public double MaxProductHeight { get; set; }
-        public bool SelfStressing { get; set; }
-        public bool HeatedBed { get; set; }
-        public double? TemperatureRange { get; set; }
-    }
+<PageTitle>Quality Control - Metromont CastLink</PageTitle>
 
-    public static class BedDatabase
-    {
-        public static List<BedInformation> GetAllBeds()
-        {
-            return new List<BedInformation>
+<div class="quality-control-page">
+    <div class="page-header">
+        <h1>Quality Control</h1>
+        <p>Ensure excellence in precast concrete production with comprehensive quality management</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" @onclick="@(() => NavigateTo("/quality/bed-report-selection"))">
+            <div class="icon">📋</div>
+            <div class="label">New Bed Report</div>
+        </button>
+        <button class="quick-action-btn" @onclick="@(() => NavigateTo("/quality/reports"))">
+            <div class="icon">📊</div>
+            <div class="label">View Reports</div>
+        </button>
+        <button class="quick-action-btn" @onclick="RefreshQualityData">
+            <div class="icon">🔄</div>
+            <div class="label">Refresh Data</div>
+        </button>
+    </div>
+
+    <!-- Quality Overview -->
+    <div class="quality-overview">
+        <h2>Quality Control Dashboard</h2>
+        <div class="overview-grid">
+            <div class="overview-item">
+                <div class="metric">@TodaysReports</div>
+                <div class="label">Reports Today</div>
+                <div class="sublabel">@PendingReviews pending review</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@PassRate%</div>
+                <div class="label">Pass Rate</div>
+                <div class="sublabel">Last 30 days</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@ActiveInspections</div>
+                <div class="label">Active Inspections</div>
+                <div class="sublabel">In progress</div>
+            </div>
+            <div class="overview-item">
+                <div class="metric">@ComplianceScore%</div>
+                <div class="label">Compliance Score</div>
+                <div class="sublabel">PCI standards</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Modules -->
+    <div class="quality-modules">
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/bed-report-selection"))">
+            <div class="card-header">
+                <div class="card-icon bed-qc">
+                    <span class="e-icons e-clipboard"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Bed QC Report</h3>
+                <p>Create comprehensive quality control reports for production beds with PCI compliance checks.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator"></span>
+                    <span>Ready for new report</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Create →</SfButton>
+            </div>
+        </div>
+
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/reports"))">
+            <div class="card-header">
+                <div class="card-icon reports-list">
+                    <span class="e-icons e-list"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Reports List</h3>
+                <p>View, search, and manage all quality control reports with ACC integration.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator"></span>
+                    <span>@TotalReports total reports</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">View →</SfButton>
+            </div>
+        </div>
+
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/defects"))">
+            <div class="card-header">
+                <div class="card-icon defect-tracking">
+                    <span class="e-icons e-warning"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Defect Tracking</h3>
+                <p>Monitor and manage quality issues, track resolutions, and analyze patterns.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator @(OpenDefects > 0 ? "warning" : "")"></span>
+                    <span>@OpenDefects open defects</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Track →</SfButton>
+            </div>
+        </div>
+
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/analytics"))">
+            <div class="card-header">
+                <div class="card-icon analytics">
+                    <span class="e-icons e-chart"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Quality Analytics</h3>
+                <p>Analyze quality trends, identify improvement opportunities, and generate insights.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator"></span>
+                    <span>Updated daily</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Analyze →</SfButton>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Quality Activity -->
+    <div class="recent-activity">
+        <h2>Recent Quality Activity</h2>
+        <div class="activity-list">
+            @foreach (var activity in RecentActivities)
             {
-                new BedInformation
-                {
-                    Id = "beam",
-                    Name = "Beam",
-                    Type = "Beam Bed",
-                    Length = 400,
-                    Width = 8,
-                    Capacity = 50000,
-                    AllowedProductTypes = new List<string> { "Beam", "Girder", "Joist" },
-                    Location = "Building A - Section 1",
-                    Specifications = new BedSpecifications
-                    {
-                        MaxStrandForce = 50000,
-                        MaxProductLength = 100,
-                        MaxProductWidth = 8,
-                        MaxProductHeight = 6,
-                        SelfStressing = true,
-                        HeatedBed = true,
-                        TemperatureRange = 150
-                    }
-                },
-                new BedInformation
-                {
-                    Id = "deck1",
-                    Name = "Deck 1",
-                    Type = "Deck Bed",
-                    Length = 300,
-                    Width = 12,
-                    Capacity = 75000,
-                    AllowedProductTypes = new List<string> { "Double Tee", "Single Tee", "Deck Panel" },
-                    Location = "Building A - Section 2",
-                    Specifications = new BedSpecifications
-                    {
-                        MaxStrandForce = 75000,
-                        MaxProductLength = 60,
-                        MaxProductWidth = 12,
-                        MaxProductHeight = 3,
-                        SelfStressing = true,
-                        HeatedBed = true,
-                        TemperatureRange = 140
-                    }
-                },
-                new BedInformation
-                {
-                    Id = "deck2",
-                    Name = "Deck 2",
-                    Type = "Deck Bed",
-                    Length = 300,
-                    Width = 12,
-                    Capacity = 75000,
-                    AllowedProductTypes = new List<string> { "Double Tee", "Single Tee", "Deck Panel" },
-                    Location = "Building A - Section 3",
-                    Specifications = new BedSpecifications
-                    {
-                        MaxStrandForce = 75000,
-                        MaxProductLength = 60,
-                        MaxProductWidth = 12,
-                        MaxProductHeight = 3,
-                        SelfStressing = true,
-                        HeatedBed = true,
-                        TemperatureRange = 140
-                    }
-                },
-                new BedInformation
-                {
-                    Id = "flatbed1",
-                    Name = "Flat Bed #1",
-                    Type = "Flat Bed",
-                    Length = 200,
-                    Width = 20,
-                    Capacity = 60000,
-                    AllowedProductTypes = new List<string> { "Wall Panel", "Flat Slab", "Solid Slab", "Column" },
-                    Location = "Building B - Section 1",
-                    Specifications = new BedSpecifications
-                    {
-                        MaxStrandForce = 60000,
-                        MaxProductLength = 40,
-                        MaxProductWidth = 20,
-                        MaxProductHeight = 2,
-                        SelfStressing = false,
-                        HeatedBed = true,
-                        TemperatureRange = 120
-                    }
-                },
-                new BedInformation
-                {
-                    Id = "flatbed2",
-                    Name = "Flat Bed #2",
-                    Type = "Flat Bed",
-                    Length = 200,
-                    Width = 20,
-                    Capacity = 60000,
-                    AllowedProductTypes = new List<string> { "Wall Panel", "Flat Slab", "Solid Slab", "Column" },
-                    Location = "Building B - Section 2",
-                    Specifications = new BedSpecifications
-                    {
-                        MaxStrandForce = 60000,
-                        MaxProductLength = 40,
-                        MaxProductWidth = 20,
-                        MaxProductHeight = 2,
-                        SelfStressing = false,
-                        HeatedBed = true,
-                        TemperatureRange = 120
-                    }
-                },
-                new BedInformation
-                {
-                    Id = "pcbed1",
-                    Name = "PC Bed #1",
-                    Type = "Column Bed",
-                    Length = 150,
-                    Width = 10,
-                    Capacity = 40000,
-                    AllowedProductTypes = new List<string> { "Column", "Pile", "Post" },
-                    Location = "Building C - Section 1",
-                    Specifications = new BedSpecifications
-                    {
-                        MaxStrandForce = 40000,
-                        MaxProductLength = 50,
-                        MaxProductWidth = 3,
-                        MaxProductHeight = 3,
-                        SelfStressing = false,
-                        HeatedBed = false
-                    }
-                }
-            };
+                <div class="activity-item">
+                    <div class="item-icon @activity.StatusClass">
+                        <span class="e-icons @activity.Icon"></span>
+                    </div>
+                    <div class="item-content">
+                        <div class="item-header">
+                            <span class="item-title">@activity.Title</span>
+                            <span class="item-time">@activity.TimeAgo</span>
+                        </div>
+                        <div class="item-details">
+                            <span class="item-bed">@activity.BedName</span>
+                            <span class="item-inspector">By @activity.Inspector</span>
+                            <span class="item-result">@activity.Result</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Quality Metrics Chart -->
+    <div class="quality-chart">
+        <h2>Weekly Pass Rate Trend</h2>
+        <SfChart Height="300px">
+            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
+                <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
+            </ChartPrimaryXAxis>
+            <ChartPrimaryYAxis>
+                <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
+                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
+                <ChartAxisLabelFormat>{value}%</ChartAxisLabelFormat>
+            </ChartPrimaryYAxis>
+            <ChartSeriesCollection>
+                <ChartSeries DataSource="@WeeklyPassRates" XName="Day" YName="PassRate" 
+                    Type="ChartSeriesType.Line" Marker="@(new ChartMarker{ Visible = true })">
+                </ChartSeries>
+            </ChartSeriesCollection>
+            <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
+        </SfChart>
+    </div>
+</div>
+
+<style>
+    .quality-control-page {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        margin: 0 0 0.5rem 0;
+        color: #1e293b;
+    }
+
+    .page-header p {
+        color: #64748b;
+        margin: 0;
+    }
+
+    .quality-overview {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .quality-overview h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        color: #1e293b;
+    }
+
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+    }
+
+    .overview-item {
+        text-align: center;
+    }
+
+    .overview-item .metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6366f1;
+        margin-bottom: 0.5rem;
+    }
+
+    .overview-item .label {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .overview-item .sublabel {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .quality-modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .quality-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .quality-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+        margin-bottom: 1rem;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .card-icon.bed-qc {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .card-icon.reports-list {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .card-icon.defect-tracking {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .card-icon.analytics {
+        background: #ede9fe;
+        color: #8b5cf6;
+    }
+
+    .card-content {
+        flex: 1;
+        margin-bottom: 1rem;
+    }
+
+    .card-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        color: #1e293b;
+    }
+
+    .card-content p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .card-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    .status-indicator.warning {
+        background: #f59e0b;
+    }
+
+    .recent-activity, .quality-chart {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .recent-activity h2, .quality-chart h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        color: #1e293b;
+    }
+
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 6px;
+    }
+
+    .item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e0e7ff;
+        color: #6366f1;
+    }
+
+    .item-icon.pass {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .item-icon.fail {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .item-content {
+        flex: 1;
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-title {
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .item-time {
+        font-size: 0.875rem;
+        color: #94a3b8;
+    }
+
+    .item-details {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .item-details span {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .quick-action-btn {
+        flex: 1;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .quick-action-btn:hover {
+        border-color: #6366f1;
+        background: #f0f9ff;
+    }
+
+    .quick-action-btn .icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #6366f1;
+    }
+
+    .quick-action-btn .label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    @media (max-width: 768px) {
+        .quality-modules {
+            grid-template-columns: 1fr;
         }
 
-        public static BedInformation? GetBedById(string id)
-        {
-            return GetAllBeds().FirstOrDefault(b => b.Id == id);
+        .overview-grid {
+            grid-template-columns: 1fr 1fr;
         }
 
-        public static List<BedInformation> GetBedsByType(string type)
-        {
-            return GetAllBeds().Where(b => b.Type.Equals(type, StringComparison.OrdinalIgnoreCase)).ToList();
+        .quick-actions {
+            flex-direction: column;
         }
+    }
+</style>
 
-        public static List<BedInformation> GetBedsForProductType(string productType)
+@code {
+    private int TodaysReports = 12;
+    private int PendingReviews = 3;
+    private int PassRate = 96;
+    private int ActiveInspections = 4;
+    private int ComplianceScore = 98;
+    private int TotalReports = 847;
+    private int OpenDefects = 2;
+
+    private List<QualityActivity> RecentActivities = new();
+    private List<PassRateData> WeeklyPassRates = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadQualityData();
+        GeneratePassRateData();
+    }
+
+    private async Task LoadQualityData()
+    {
+        // Simulate loading recent quality activities
+        RecentActivities = new List<QualityActivity>
         {
-            return GetAllBeds().Where(b => b.AllowedProductTypes.Contains(productType)).ToList();
-        }
+            new QualityActivity
+            {
+                Title = "Bed QC Report Completed",
+                BedName = "Beam Bed 1",
+                Inspector = "John Smith",
+                Result = "Pass",
+                TimeAgo = "30 min ago",
+                StatusClass = "pass",
+                Icon = "e-check"
+            },
+            new QualityActivity
+            {
+                Title = "Surface Defect Identified",
+                BedName = "Flat Bed 2",
+                Inspector = "Mary Johnson",
+                Result = "Minor Issue",
+                TimeAgo = "2 hours ago",
+                StatusClass = "fail",
+                Icon = "e-close"
+            },
+            new QualityActivity
+            {
+                Title = "Compliance Check Passed",
+                BedName = "Deck Bed 1",
+                Inspector = "Robert Davis",
+                Result = "100% Compliant",
+                TimeAgo = "3 hours ago",
+                StatusClass = "pass",
+                Icon = "e-check"
+            }
+        };
+    }
+
+    private void GeneratePassRateData()
+    {
+        WeeklyPassRates = new List<PassRateData>
+        {
+            new PassRateData { Day = "Mon", PassRate = 94 },
+            new PassRateData { Day = "Tue", PassRate = 96 },
+            new PassRateData { Day = "Wed", PassRate = 95 },
+            new PassRateData { Day = "Thu", PassRate = 98 },
+            new PassRateData { Day = "Fri", PassRate = 97 },
+            new PassRateData { Day = "Sat", PassRate = 96 },
+            new PassRateData { Day = "Sun", PassRate = 0 }
+        };
+    }
+
+    private async Task RefreshQualityData()
+    {
+        await LoadQualityData();
+        StateHasChanged();
+    }
+
+    private void NavigateTo(string path)
+    {
+        Navigation.NavigateTo(path);
+    }
+
+    private class QualityActivity
+    {
+        public string Title { get; set; } = "";
+        public string BedName { get; set; } = "";
+        public string Inspector { get; set; } = "";
+        public string Result { get; set; } = "";
+        public string TimeAgo { get; set; } = "";
+        public string StatusClass { get; set; } = "";
+        public string Icon { get; set; } = "";
+    }
+
+    private class PassRateData
+    {
+        public string Day { get; set; } = "";
+        public int PassRate { get; set; }
     }
 }
