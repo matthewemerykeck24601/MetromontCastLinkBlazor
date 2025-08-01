@@ -6,10 +6,10 @@ using Microsoft.IdentityModel.Tokens;
 using Syncfusion.Blazor;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+// Register Syncfusion license
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mzk3MzE1OEAzMzMwMmUzMDJlMzAzYjMzMzAzYkN5b3JlZ2Q4c0hyelFiaGtWY08yWDhiYk9KamNNR21kWmxYS3ArT3JqTjA9");
 
-// Add Syncfusion license (if you have one)
-// Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("YOUR_LICENSE_KEY");
+var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddRazorComponents()
@@ -150,4 +150,3 @@ logger.LogInformation($"URLs: {string.Join(", ", builder.Configuration["urls"]?.
 
 // Run the application
 app.Run();
-Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mzk3MzE1OEAzMzMwMmUzMDJlMzAzYjMzMzAzYkN5b3JlZ2Q4c0hyelFiaGtWY08yWDhiYk9KamNNR21kWmxYS3ArT3JqTjA9");

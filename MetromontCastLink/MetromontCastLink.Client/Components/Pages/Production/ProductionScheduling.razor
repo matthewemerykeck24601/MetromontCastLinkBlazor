@@ -232,14 +232,15 @@
     private List<ProductType> ProductTypes = new();
     private ProductionEvent NewEvent = new();
 
-    private List<ScheduleWorkHours> WorkHours = new List<ScheduleWorkHours>
+    // Use Syncfusion.Blazor.Schedule.ScheduleWorkHours explicitly
+    private List<Syncfusion.Blazor.Schedule.ScheduleWorkHours> WorkHours = new List<Syncfusion.Blazor.Schedule.ScheduleWorkHours>
     {
-        new ScheduleWorkHours { DayOfWeek = 1, StartHour = "06:00", EndHour = "18:00" },
-        new ScheduleWorkHours { DayOfWeek = 2, StartHour = "06:00", EndHour = "18:00" },
-        new ScheduleWorkHours { DayOfWeek = 3, StartHour = "06:00", EndHour = "18:00" },
-        new ScheduleWorkHours { DayOfWeek = 4, StartHour = "06:00", EndHour = "18:00" },
-        new ScheduleWorkHours { DayOfWeek = 5, StartHour = "06:00", EndHour = "18:00" },
-        new ScheduleWorkHours { DayOfWeek = 6, StartHour = "07:00", EndHour = "15:00" }
+        new Syncfusion.Blazor.Schedule.ScheduleWorkHours { DayOfWeek = 1, StartHour = "06:00", EndHour = "18:00" },
+        new Syncfusion.Blazor.Schedule.ScheduleWorkHours { DayOfWeek = 2, StartHour = "06:00", EndHour = "18:00" },
+        new Syncfusion.Blazor.Schedule.ScheduleWorkHours { DayOfWeek = 3, StartHour = "06:00", EndHour = "18:00" },
+        new Syncfusion.Blazor.Schedule.ScheduleWorkHours { DayOfWeek = 4, StartHour = "06:00", EndHour = "18:00" },
+        new Syncfusion.Blazor.Schedule.ScheduleWorkHours { DayOfWeek = 5, StartHour = "06:00", EndHour = "18:00" },
+        new Syncfusion.Blazor.Schedule.ScheduleWorkHours { DayOfWeek = 6, StartHour = "07:00", EndHour = "15:00" }
     };
 
     protected override async Task OnInitializedAsync()
@@ -289,31 +290,17 @@
         {
             new ProductionEvent
             {
-                Id = Guid.NewGuid().ToString(),
-                ProductName = "Precast Beam - Type A",
+                Id = "evt-001",
+                ProductName = "Precast Beam B-1234",
                 ProductType = "beam",
-                Quantity = 12,
+                Quantity = 5,
                 BedId = "bed1",
                 ProjectId = CurrentProjectId,
-                ProjectName = "Building A - Phase 1",
+                ProjectName = "Sample Project",
                 StartTime = DateTime.Today.AddHours(7),
                 EndTime = DateTime.Today.AddHours(15),
                 Status = "In Progress",
-                DesignNumber = "BM-A-001"
-            },
-            new ProductionEvent
-            {
-                Id = Guid.NewGuid().ToString(),
-                ProductName = "Column - C1",
-                ProductType = "column",
-                Quantity = 8,
-                BedId = "bed2",
-                ProjectId = CurrentProjectId,
-                ProjectName = "Building B - Level 3",
-                StartTime = DateTime.Today.AddDays(1).AddHours(8),
-                EndTime = DateTime.Today.AddDays(1).AddHours(14),
-                Status = "Scheduled",
-                DesignNumber = "COL-C1-042"
+                DesignNumber = "DES-2024-001"
             }
         };
 
@@ -429,12 +416,12 @@
         // Customize event appearance
     }
 
-    private void OnActionBegin(Syncfusion.Blazor.Schedule.ActionEventArgs<ProductionEvent> args)
+    private void OnActionBegin(ActionEventArgs<ProductionEvent> args)
     {
         // Handle schedule actions
     }
 
-    private void OnActionComplete(Syncfusion.Blazor.Schedule.ActionEventArgs<ProductionEvent> args)
+    private void OnActionComplete(ActionEventArgs<ProductionEvent> args)
     {
         // Handle action completion
     }

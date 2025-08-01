@@ -1,6 +1,7 @@
 ﻿// MetromontCastLink.Shared/Models/BedInformation.cs
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MetromontCastLink.Shared.Models
 {

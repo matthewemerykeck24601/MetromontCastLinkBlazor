@@ -2,6 +2,9 @@
 using Syncfusion.Blazor;
 using MetromontCastLink.Client.Services;
 
+// Register Syncfusion license
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mzk3MzE1OEAzMzMwMmUzMDJlMzAzYjMzMzAzYkN5b3JlZ2Q4c0hyelFiaGtWY08yWDhiYk9KamNNR21kWmxYS3ArT3JqTjA9");
+
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // Add Syncfusion Blazor

@@ -85,49 +85,19 @@
 
 .card-content h3 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: #1e293b;
 }
 
 .card-content p {
-    margin: 0 0 1rem 0;
-    color: #6b7280;
-    line-height: 1.5;
-}
-
-.card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
-}
-
-.card-status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    margin: 0;
     font-size: 0.875rem;
+    color: #6b7280;
 }
 
-    .card-status .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10b981;
-    }
-
-        .card-status .status-indicator.warning {
-            background: #f59e0b;
-        }
-
-        .card-status .status-indicator.alert {
-            background: #ef4444;
-        }
-
-/* Production Overview Section */
-.production-overview {
+/* Overview Section */
+.overview-section {
     background: white;
     border-radius: 12px;
     padding: 1.5rem;
@@ -135,7 +105,7 @@
     margin-bottom: 2rem;
 }
 
-    .production-overview h2 {
+    .overview-section h2 {
         margin: 0 0 1.5rem 0;
         font-size: 1.25rem;
         font-weight: 600;
@@ -149,14 +119,14 @@
 }
 
 .overview-item {
-    text-align: center;
     padding: 1rem;
     background: #f9fafb;
     border-radius: 8px;
+    text-align: center;
 }
 
-    .overview-item .metric {
-        font-size: 2.5rem;
+    .overview-item .value {
+        font-size: 2rem;
         font-weight: 700;
         color: #1e293b;
         line-height: 1;
@@ -286,6 +256,25 @@
         font-weight: 500;
         color: #374151;
     }
+
+/* Progress Animation */
+@keyframes progress-pulse {
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
+}
+
+.in-progress {
+    animation: progress-pulse 2s ease-in-out infinite;
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
