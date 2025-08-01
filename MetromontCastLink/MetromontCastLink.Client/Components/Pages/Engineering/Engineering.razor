@@ -65,14 +65,14 @@
             </div>
             <div class="card-content">
                 <h3>Design Calculator</h3>
-                <p>Perform complex precast concrete calculations following PCI standards with real-time validation.</p>
+                <p>Comprehensive PCI-compliant calculations for beams, columns, connections, and more.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>Ready for calculations</span>
+                    <span class="status-indicator active"></span>
+                    <span>5 calculations today</span>
                 </div>
-                <SfButton CssClass="e-flat e-small">Calculate →</SfButton>
+                <SfButton CssClass="e-flat e-small">Open →</SfButton>
             </div>
         </div>
 
@@ -84,12 +84,12 @@
             </div>
             <div class="card-content">
                 <h3>3D Model Viewer</h3>
-                <p>View and analyze BIM models directly from ACC with measurement and markup tools.</p>
+                <p>View and analyze Revit models directly from Autodesk Construction Cloud.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
                     <span class="status-indicator"></span>
-                    <span>Forge Viewer ready</span>
+                    <span>15 models available</span>
                 </div>
                 <SfButton CssClass="e-flat e-small">View →</SfButton>
             </div>
@@ -102,12 +102,12 @@
                 </div>
             </div>
             <div class="card-content">
-                <h3>Design Summary</h3>
-                <p>Generate comprehensive design reports and documentation synced with ACC projects.</p>
+                <h3>Design Summary Generator</h3>
+                <p>Automatically generate detailed design summaries from calculations and models.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
-                    <span class="status-indicator"></span>
+                    <span class="status-indicator beta"></span>
                     <span>@PendingSummaries pending</span>
                 </div>
                 <SfButton CssClass="e-flat e-small">Generate →</SfButton>
@@ -117,17 +117,17 @@
         <div class="engineering-card" @onclick="@(() => NavigateTo("/engineering/library"))">
             <div class="card-header">
                 <div class="card-icon library">
-                    <span class="e-icons e-library"></span>
+                    <span class="e-icons e-folder"></span>
                 </div>
             </div>
             <div class="card-content">
-                <h3>Design Library</h3>
-                <p>Access standard designs, templates, and engineering resources from your ACC library.</p>
+                <h3>Standards Library</h3>
+                <p>Access PCI standards, design codes, and technical specifications.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
                     <span class="status-indicator"></span>
-                    <span>@LibraryItems items</span>
+                    <span>@LibraryItems documents</span>
                 </div>
                 <SfButton CssClass="e-flat e-small">Browse →</SfButton>
             </div>
@@ -136,26 +136,22 @@
 
     <!-- Recent Engineering Activity -->
     <div class="recent-activity">
-        <h2>Recent Engineering Activity</h2>
+        <h2>Recent Activity</h2>
         <div class="activity-list">
-            @foreach (var activity in RecentActivities)
+            @foreach (var item in RecentActivities)
             {
                 <div class="activity-item">
-                    <div class="item-icon @activity.TypeClass">
-                        <span class="e-icons @activity.Icon"></span>
+                    <div class="item-icon @item.Type">
+                        <span class="e-icons @item.Icon"></span>
                     </div>
                     <div class="item-content">
                         <div class="item-header">
-                            <span class="item-title">@activity.Title</span>
-                            <span class="item-time">@activity.TimeAgo</span>
+                            <span class="item-title">@item.Title</span>
+                            <span class="item-time">@item.TimeAgo</span>
                         </div>
                         <div class="item-details">
-                            <span class="item-project">@activity.ProjectName</span>
-                            <span class="item-user">By @activity.UserName</span>
-                            @if (!string.IsNullOrEmpty(activity.Result))
-                            {
-                                <span class="item-result">@activity.Result</span>
-                            }
+                            <span>@item.ProjectName</span>
+                            <span>@item.UserName</span>
                         </div>
                     </div>
                 </div>
@@ -163,9 +159,9 @@
         </div>
     </div>
 
-    <!-- Engineering Performance Chart -->
+    <!-- Engineering Chart -->
     <div class="engineering-chart">
-        <h2>Weekly Design Activity</h2>
+        <h2>Weekly Activity</h2>
         <SfChart Height="300px">
             <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
                 <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
@@ -175,16 +171,12 @@
                 <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
             </ChartPrimaryYAxis>
             <ChartSeriesCollection>
-                <ChartSeries DataSource="@WeeklyActivityData" XName="Day" YName="Calculations"
-                             Name="Calculations" Type="ChartSeriesType.Column">
-                </ChartSeries>
-                <ChartSeries DataSource="@WeeklyActivityData" XName="Day" YName="ModelViews"
-                             Name="Model Views" Type="ChartSeriesType.Line"
-                             Marker="@(new ChartMarker{ Visible = true })">
+                <ChartSeries DataSource="@WeeklyActivityData" XName="Day" YName="Calculations" Type="ChartSeriesType.Line">
+                    <ChartMarker Visible="true" Height="10" Width="10">
+                    </ChartMarker>
                 </ChartSeries>
             </ChartSeriesCollection>
             <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
-            <ChartLegendSettings Visible="true" Position="LegendPosition.Top"></ChartLegendSettings>
         </SfChart>
     </div>
 </div>
@@ -213,8 +205,8 @@
     .engineering-overview {
         background: white;
         padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         margin-bottom: 2rem;
     }
 
@@ -227,77 +219,83 @@
     .overview-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 2rem;
+        gap: 1.5rem;
     }
 
     .overview-item {
         text-align: center;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
     }
 
         .overview-item .metric {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #6366f1;
-            margin-bottom: 0.5rem;
+            color: #1e293b;
+            line-height: 1;
         }
 
         .overview-item .label {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #1e293b;
-            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 0.5rem;
         }
 
         .overview-item .sublabel {
-            font-size: 0.875rem;
-            color: #64748b;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
         }
 
     .engineering-modules {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
     .engineering-card {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
         padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
+        transition: all 0.2s ease;
     }
 
         .engineering-card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
     .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
         margin-bottom: 1rem;
     }
 
     .card-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
+        width: 56px;
+        height: 56px;
+        background: #dbeafe;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 28px;
+        color: #3b82f6;
     }
 
         .card-icon.calculator {
-            background: #dbeafe;
-            color: #3b82f6;
+            background: #e0e7ff;
+            color: #6366f1;
         }
 
         .card-icon.viewer {
-            background: #d1fae5;
-            color: #10b981;
+            background: #fce7f3;
+            color: #ec4899;
         }
 
         .card-icon.summary {
@@ -306,31 +304,28 @@
         }
 
         .card-icon.library {
-            background: #ede9fe;
-            color: #8b5cf6;
+            background: #d1fae5;
+            color: #10b981;
         }
 
-    .card-content {
-        flex: 1;
-        margin-bottom: 1rem;
+    .card-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
     }
 
-        .card-content h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1.125rem;
-            color: #1e293b;
-        }
-
-        .card-content p {
-            margin: 0;
-            color: #64748b;
-            font-size: 0.875rem;
-        }
+    .card-content p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
 
     .card-footer {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
         padding-top: 1rem;
         border-top: 1px solid #e5e7eb;
     }
@@ -339,8 +334,8 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.875rem;
-        color: #64748b;
+        font-size: 0.75rem;
+        color: #6b7280;
     }
 
     .status-indicator {
@@ -350,15 +345,43 @@
         background: #10b981;
     }
 
-    .recent-activity, .engineering-chart {
+        .status-indicator.active {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.beta {
+            background: #f59e0b;
+        }
+
+    @keyframes pulse {
+        0%
+
+    {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    }
+
+    .recent-activity {
         background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         margin-bottom: 2rem;
     }
 
-        .recent-activity h2, .engineering-chart h2 {
+        .recent-activity h2 {
             margin: 0 0 1.5rem 0;
             font-size: 1.25rem;
             color: #1e293b;
@@ -375,8 +398,8 @@
         align-items: center;
         gap: 1rem;
         padding: 1rem;
-        background: #f8fafc;
-        border-radius: 6px;
+        background: #f9fafb;
+        border-radius: 8px;
     }
 
     .item-icon {
@@ -386,13 +409,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #e0e7ff;
-        color: #6366f1;
+        font-size: 20px;
     }
 
         .item-icon.calculation {
-            background: #dbeafe;
-            color: #3b82f6;
+            background: #e0e7ff;
+            color: #6366f1;
         }
 
         .item-icon.model {
@@ -469,6 +491,19 @@
             color: #374151;
         }
 
+    .engineering-chart {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+        .engineering-chart h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            color: #1e293b;
+        }
+
     @media (max-width: 768px) {
         .engineering-modules
 
@@ -512,32 +547,29 @@
             new EngineeringActivity
             {
                 Title = "Beam Calculation Completed",
-                ProjectName = "Downtown Tower",
-                UserName = "John Engineer",
-                Result = "Pass - 2.5 SF",
-                TimeAgo = "15 min ago",
-                TypeClass = "calculation",
-                Icon = "e-calculator"
+                Type = "calculation",
+                Icon = "e-calculator",
+                ProjectName = "Tech Campus A",
+                UserName = "John Smith",
+                TimeAgo = "2 hours ago"
             },
             new EngineeringActivity
             {
-                Title = "3D Model Reviewed",
+                Title = "3D Model Viewed",
+                Type = "model",
+                Icon = "e-3d-model",
                 ProjectName = "Medical Center",
-                UserName = "Sarah Designer",
-                Result = "",
-                TimeAgo = "1 hour ago",
-                TypeClass = "model",
-                Icon = "e-3d-model"
+                UserName = "Sarah Johnson",
+                TimeAgo = "3 hours ago"
             },
             new EngineeringActivity
             {
                 Title = "Design Summary Generated",
+                Type = "report",
+                Icon = "e-document",
                 ProjectName = "Office Complex",
-                UserName = "Mike Analyst",
-                Result = "12 pages",
-                TimeAgo = "3 hours ago",
-                TypeClass = "report",
-                Icon = "e-document"
+                UserName = "Mike Davis",
+                TimeAgo = "5 hours ago"
             }
         };
     }
@@ -546,13 +578,12 @@
     {
         WeeklyActivityData = new List<WeeklyActivity>
         {
-            new WeeklyActivity { Day = "Mon", Calculations = 42, ModelViews = 15 },
-            new WeeklyActivity { Day = "Tue", Calculations = 38, ModelViews = 22 },
-            new WeeklyActivity { Day = "Wed", Calculations = 45, ModelViews = 18 },
-            new WeeklyActivity { Day = "Thu", Calculations = 37, ModelViews = 25 },
-            new WeeklyActivity { Day = "Fri", Calculations = 41, ModelViews = 20 },
-            new WeeklyActivity { Day = "Sat", Calculations = 12, ModelViews = 8 },
-            new WeeklyActivity { Day = "Sun", Calculations = 0, ModelViews = 0 }
+            new WeeklyActivity { Day = "Mon", Calculations = 32 },
+            new WeeklyActivity { Day = "Tue", Calculations = 28 },
+            new WeeklyActivity { Day = "Wed", Calculations = 35 },
+            new WeeklyActivity { Day = "Thu", Calculations = 37 },
+            new WeeklyActivity { Day = "Fri", Calculations = 33 },
+            new WeeklyActivity { Day = "Sat", Calculations = 18 }
         };
     }
 
@@ -570,18 +601,16 @@
     private class EngineeringActivity
     {
         public string Title { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Icon { get; set; } = "";
         public string ProjectName { get; set; } = "";
         public string UserName { get; set; } = "";
-        public string Result { get; set; } = "";
         public string TimeAgo { get; set; } = "";
-        public string TypeClass { get; set; } = "";
-        public string Icon { get; set; } = "";
     }
 
     private class WeeklyActivity
     {
         public string Day { get; set; } = "";
         public int Calculations { get; set; }
-        public int ModelViews { get; set; }
     }
 }

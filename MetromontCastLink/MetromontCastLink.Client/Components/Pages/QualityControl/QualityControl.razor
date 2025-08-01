@@ -78,32 +78,51 @@
 
         <div class="quality-card" @onclick="@(() => NavigateTo("/quality/reports"))">
             <div class="card-header">
-                <div class="card-icon reports-list">
-                    <span class="e-icons e-list"></span>
+                <div class="card-icon reports">
+                    <span class="e-icons e-chart"></span>
                 </div>
             </div>
             <div class="card-content">
-                <h3>Reports List</h3>
-                <p>View, search, and manage all quality control reports with ACC integration.</p>
+                <h3>QC Reports</h3>
+                <p>View, search, and manage all quality control reports with advanced filtering options.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
-                    <span class="status-indicator"></span>
+                    <span class="status-indicator active"></span>
                     <span>@TotalReports total reports</span>
                 </div>
                 <SfButton CssClass="e-flat e-small">View →</SfButton>
             </div>
         </div>
 
+        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/inspections"))">
+            <div class="card-header">
+                <div class="card-icon inspections">
+                    <span class="e-icons e-search"></span>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3>Inspections</h3>
+                <p>Track and manage quality inspections throughout the production process.</p>
+            </div>
+            <div class="card-footer">
+                <div class="card-status">
+                    <span class="status-indicator warning"></span>
+                    <span>@ActiveInspections active</span>
+                </div>
+                <SfButton CssClass="e-flat e-small">Manage →</SfButton>
+            </div>
+        </div>
+
         <div class="quality-card" @onclick="@(() => NavigateTo("/quality/defects"))">
             <div class="card-header">
-                <div class="card-icon defect-tracking">
+                <div class="card-icon defects">
                     <span class="e-icons e-warning"></span>
                 </div>
             </div>
             <div class="card-content">
                 <h3>Defect Tracking</h3>
-                <p>Monitor and manage quality issues, track resolutions, and analyze patterns.</p>
+                <p>Monitor and resolve quality defects with root cause analysis and corrective actions.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
@@ -113,46 +132,27 @@
                 <SfButton CssClass="e-flat e-small">Track →</SfButton>
             </div>
         </div>
-
-        <div class="quality-card" @onclick="@(() => NavigateTo("/quality/analytics"))">
-            <div class="card-header">
-                <div class="card-icon analytics">
-                    <span class="e-icons e-chart"></span>
-                </div>
-            </div>
-            <div class="card-content">
-                <h3>Quality Analytics</h3>
-                <p>Analyze quality trends, identify improvement opportunities, and generate insights.</p>
-            </div>
-            <div class="card-footer">
-                <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>Updated daily</span>
-                </div>
-                <SfButton CssClass="e-flat e-small">Analyze →</SfButton>
-            </div>
-        </div>
     </div>
 
     <!-- Recent Quality Activity -->
     <div class="recent-activity">
         <h2>Recent Quality Activity</h2>
         <div class="activity-list">
-            @foreach (var activity in RecentActivities)
+            @foreach (var item in RecentActivities)
             {
                 <div class="activity-item">
-                    <div class="item-icon @activity.StatusClass">
-                        <span class="e-icons @activity.Icon"></span>
+                    <div class="item-icon @item.StatusClass">
+                        <span class="e-icons @item.Icon"></span>
                     </div>
                     <div class="item-content">
                         <div class="item-header">
-                            <span class="item-title">@activity.Title</span>
-                            <span class="item-time">@activity.TimeAgo</span>
+                            <span class="item-title">@item.Title</span>
+                            <span class="item-time">@item.TimeAgo</span>
                         </div>
                         <div class="item-details">
-                            <span class="item-bed">@activity.BedName</span>
-                            <span class="item-inspector">By @activity.Inspector</span>
-                            <span class="item-result">@activity.Result</span>
+                            <span>@item.BedName</span>
+                            <span>@item.InspectorName</span>
+                            <span class="@item.StatusClass">@item.Status</span>
                         </div>
                     </div>
                 </div>
@@ -160,21 +160,21 @@
         </div>
     </div>
 
-    <!-- Quality Metrics Chart -->
+    <!-- Quality Chart -->
     <div class="quality-chart">
         <h2>Weekly Pass Rate Trend</h2>
         <SfChart Height="300px">
             <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
                 <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
             </ChartPrimaryXAxis>
-            <ChartPrimaryYAxis>
+            <ChartPrimaryYAxis Minimum="80" Maximum="100" Interval="5">
                 <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
                 <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
-                <ChartAxisLabelFormat>{value}%</ChartAxisLabelFormat>
             </ChartPrimaryYAxis>
             <ChartSeriesCollection>
-                <ChartSeries DataSource="@WeeklyPassRates" XName="Day" YName="PassRate" 
-                    Type="ChartSeriesType.Line" Marker="@(new ChartMarker{ Visible = true })">
+                <ChartSeries DataSource="@WeeklyPassRates" XName="Week" YName="PassRate" Type="ChartSeriesType.Line">
+                    <ChartMarker Visible="true" Height="10" Width="10">
+                    </ChartMarker>
                 </ChartSeries>
             </ChartSeriesCollection>
             <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
@@ -193,137 +193,140 @@
         margin-bottom: 2rem;
     }
 
-    .page-header h1 {
-        margin: 0 0 0.5rem 0;
-        color: #1e293b;
-    }
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            color: #1e293b;
+        }
 
-    .page-header p {
-        color: #64748b;
-        margin: 0;
-    }
+        .page-header p {
+            color: #64748b;
+            margin: 0;
+        }
 
     .quality-overview {
         background: white;
         padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         margin-bottom: 2rem;
     }
 
-    .quality-overview h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
-    }
+        .quality-overview h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            color: #1e293b;
+        }
 
     .overview-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 2rem;
+        gap: 1.5rem;
     }
 
     .overview-item {
         text-align: center;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
     }
 
-    .overview-item .metric {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #6366f1;
-        margin-bottom: 0.5rem;
-    }
+        .overview-item .metric {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1;
+        }
 
-    .overview-item .label {
-        font-size: 1rem;
-        font-weight: 500;
-        color: #1e293b;
-        margin-bottom: 0.25rem;
-    }
+        .overview-item .label {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
 
-    .overview-item .sublabel {
-        font-size: 0.875rem;
-        color: #64748b;
-    }
+        .overview-item .sublabel {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
 
     .quality-modules {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
     .quality-card {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
         padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
+        transition: all 0.2s ease;
     }
 
-    .quality-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
+        .quality-card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
 
     .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
         margin-bottom: 1rem;
     }
 
     .card-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
+        width: 56px;
+        height: 56px;
+        background: #dbeafe;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-    }
-
-    .card-icon.bed-qc {
-        background: #dbeafe;
+        font-size: 28px;
         color: #3b82f6;
     }
 
-    .card-icon.reports-list {
-        background: #d1fae5;
-        color: #10b981;
-    }
+        .card-icon.bed-qc {
+            background: #d1fae5;
+            color: #10b981;
+        }
 
-    .card-icon.defect-tracking {
-        background: #fee2e2;
-        color: #ef4444;
-    }
+        .card-icon.reports {
+            background: #e0e7ff;
+            color: #6366f1;
+        }
 
-    .card-icon.analytics {
-        background: #ede9fe;
-        color: #8b5cf6;
-    }
+        .card-icon.inspections {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
 
-    .card-content {
-        flex: 1;
-        margin-bottom: 1rem;
-    }
+        .card-icon.defects {
+            background: #fee2e2;
+            color: #ef4444;
+        }
 
     .card-content h3 {
         margin: 0 0 0.5rem 0;
         font-size: 1.125rem;
+        font-weight: 600;
         color: #1e293b;
     }
 
     .card-content p {
         margin: 0;
-        color: #64748b;
         font-size: 0.875rem;
+        color: #6b7280;
     }
 
     .card-footer {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
         padding-top: 1rem;
         border-top: 1px solid #e5e7eb;
     }
@@ -332,8 +335,8 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.875rem;
-        color: #64748b;
+        font-size: 0.75rem;
+        color: #6b7280;
     }
 
     .status-indicator {
@@ -343,23 +346,47 @@
         background: #10b981;
     }
 
-    .status-indicator.warning {
-        background: #f59e0b;
+        .status-indicator.active {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.warning {
+            background: #f59e0b;
+        }
+
+    @keyframes pulse {
+        0%
+
+    {
+        opacity: 0.6;
+        transform: scale(1);
     }
 
-    .recent-activity, .quality-chart {
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    }
+
+    .recent-activity {
         background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         margin-bottom: 2rem;
     }
 
-    .recent-activity h2, .quality-chart h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
-    }
+        .recent-activity h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            color: #1e293b;
+        }
 
     .activity-list {
         display: flex;
@@ -372,8 +399,8 @@
         align-items: center;
         gap: 1rem;
         padding: 1rem;
-        background: #f8fafc;
-        border-radius: 6px;
+        background: #f9fafb;
+        border-radius: 8px;
     }
 
     .item-icon {
@@ -383,19 +410,23 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #e0e7ff;
-        color: #6366f1;
+        font-size: 20px;
     }
 
-    .item-icon.pass {
-        background: #d1fae5;
-        color: #10b981;
-    }
+        .item-icon.pass {
+            background: #d1fae5;
+            color: #10b981;
+        }
 
-    .item-icon.fail {
-        background: #fee2e2;
-        color: #ef4444;
-    }
+        .item-icon.fail {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .item-icon.pending {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
 
     .item-content {
         flex: 1;
@@ -422,10 +453,10 @@
         gap: 1rem;
     }
 
-    .item-details span {
-        font-size: 0.875rem;
-        color: #64748b;
-    }
+        .item-details span {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
 
     .quick-actions {
         display: flex;
@@ -444,35 +475,51 @@
         transition: all 0.2s ease;
     }
 
-    .quick-action-btn:hover {
-        border-color: #6366f1;
-        background: #f0f9ff;
+        .quick-action-btn:hover {
+            border-color: #6366f1;
+            background: #f0f9ff;
+        }
+
+        .quick-action-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #6366f1;
+        }
+
+        .quick-action-btn .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+    .quality-chart {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
 
-    .quick-action-btn .icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-        color: #6366f1;
-    }
-
-    .quick-action-btn .label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #374151;
-    }
+        .quality-chart h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            color: #1e293b;
+        }
 
     @media (max-width: 768px) {
-        .quality-modules {
-            grid-template-columns: 1fr;
-        }
+        .quality-modules
 
-        .overview-grid {
-            grid-template-columns: 1fr 1fr;
-        }
+    {
+        grid-template-columns: 1fr;
+    }
 
-        .quick-actions {
-            flex-direction: column;
-        }
+    .overview-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .quick-actions {
+        flex-direction: column;
+    }
+
     }
 </style>
 
@@ -501,33 +548,33 @@
         {
             new QualityActivity
             {
-                Title = "Bed QC Report Completed",
-                BedName = "Beam Bed 1",
-                Inspector = "John Smith",
-                Result = "Pass",
-                TimeAgo = "30 min ago",
+                Title = "QC Report #1247 Completed",
+                BedName = "Bed 3",
+                InspectorName = "John Smith",
+                Status = "Pass",
                 StatusClass = "pass",
-                Icon = "e-check"
+                Icon = "e-check",
+                TimeAgo = "2 hours ago"
             },
             new QualityActivity
             {
-                Title = "Surface Defect Identified",
-                BedName = "Flat Bed 2",
-                Inspector = "Mary Johnson",
-                Result = "Minor Issue",
-                TimeAgo = "2 hours ago",
+                Title = "QC Report #1246 Under Review",
+                BedName = "Bed 1",
+                InspectorName = "Sarah Johnson",
+                Status = "Pending",
+                StatusClass = "pending",
+                Icon = "e-clock",
+                TimeAgo = "3 hours ago"
+            },
+            new QualityActivity
+            {
+                Title = "Defect Identified",
+                BedName = "Bed 5",
+                InspectorName = "Mike Davis",
+                Status = "Fail",
                 StatusClass = "fail",
-                Icon = "e-close"
-            },
-            new QualityActivity
-            {
-                Title = "Compliance Check Passed",
-                BedName = "Deck Bed 1",
-                Inspector = "Robert Davis",
-                Result = "100% Compliant",
-                TimeAgo = "3 hours ago",
-                StatusClass = "pass",
-                Icon = "e-check"
+                Icon = "e-close",
+                TimeAgo = "5 hours ago"
             }
         };
     }
@@ -536,13 +583,12 @@
     {
         WeeklyPassRates = new List<PassRateData>
         {
-            new PassRateData { Day = "Mon", PassRate = 94 },
-            new PassRateData { Day = "Tue", PassRate = 96 },
-            new PassRateData { Day = "Wed", PassRate = 95 },
-            new PassRateData { Day = "Thu", PassRate = 98 },
-            new PassRateData { Day = "Fri", PassRate = 97 },
-            new PassRateData { Day = "Sat", PassRate = 96 },
-            new PassRateData { Day = "Sun", PassRate = 0 }
+            new PassRateData { Week = "W1", PassRate = 94 },
+            new PassRateData { Week = "W2", PassRate = 96 },
+            new PassRateData { Week = "W3", PassRate = 95 },
+            new PassRateData { Week = "W4", PassRate = 97 },
+            new PassRateData { Week = "W5", PassRate = 96 },
+            new PassRateData { Week = "W6", PassRate = 98 }
         };
     }
 
@@ -561,16 +607,16 @@
     {
         public string Title { get; set; } = "";
         public string BedName { get; set; } = "";
-        public string Inspector { get; set; } = "";
-        public string Result { get; set; } = "";
-        public string TimeAgo { get; set; } = "";
+        public string InspectorName { get; set; } = "";
+        public string Status { get; set; } = "";
         public string StatusClass { get; set; } = "";
         public string Icon { get; set; } = "";
+        public string TimeAgo { get; set; } = "";
     }
 
     private class PassRateData
     {
-        public string Day { get; set; } = "";
+        public string Week { get; set; } = "";
         public int PassRate { get; set; }
     }
 }

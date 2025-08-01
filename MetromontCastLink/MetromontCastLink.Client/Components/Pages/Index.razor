@@ -39,25 +39,25 @@
     <div class="quick-actions">
         <h2>Quick Actions</h2>
         <div class="actions-grid">
-            <div class="action-card" @onclick="() => NavigateTo('/quality/bed-report-selection')">
+            <div class="action-card" @onclick="() => NavigateTo(&quot;/quality/bed-report-selection&quot;)">
                 <div class="action-icon quality">
                     <span class="e-icons e-quality"></span>
                 </div>
                 <span>New QC Report</span>
             </div>
-            <div class="action-card" @onclick="() => NavigateTo('/engineering/calculator')">
+            <div class="action-card" @onclick="() => NavigateTo(&quot;/engineering/calculator&quot;)">
                 <div class="action-icon engineering">
                     <span class="e-icons e-calculator"></span>
                 </div>
                 <span>Design Calculator</span>
             </div>
-            <div class="action-card" @onclick="() => NavigateTo('/engineering/viewer')">
+            <div class="action-card" @onclick="() => NavigateTo(&quot;/engineering/viewer&quot;)">
                 <div class="action-icon model">
                     <span class="e-icons e-3d-model"></span>
                 </div>
                 <span>View Models</span>
             </div>
-            <div class="action-card" @onclick="() => NavigateTo('/production/scheduling')">
+            <div class="action-card" @onclick="() => NavigateTo(&quot;/production/scheduling&quot;)">
                 <div class="action-icon production">
                     <span class="e-icons e-calendar"></span>
                 </div>
@@ -68,89 +68,70 @@
 
     <!-- Dashboard Grid -->
     <div class="dashboard-grid">
-        <!-- Module Status -->
-        <div class="dashboard-card">
-            <h3>Module Status</h3>
-            <div class="module-list">
-                <div class="module-item">
-                    <div class="module-info">
-                        <span class="module-icon quality">
-                            <span class="e-icons e-quality"></span>
-                        </span>
-                        <div>
-                            <h4>Quality Control</h4>
-                            <p>Bed QC Reports & Inspections</p>
-                        </div>
-                    </div>
-                    <SfChip>
-                        <ChipItems>
-                            <ChipItem Text="Active" CssClass="status-active" />
-                        </ChipItems>
-                    </SfChip>
+        <!-- Production Overview -->
+        <div class="dashboard-card production-card">
+            <h3>Production Status</h3>
+            <div class="stats-summary">
+                <div class="stat">
+                    <span class="value">@ActiveBeds</span>
+                    <span class="label">Active Beds</span>
                 </div>
-                <div class="module-item">
-                    <div class="module-info">
-                        <span class="module-icon engineering">
-                            <span class="e-icons e-engineering"></span>
-                        </span>
-                        <div>
-                            <h4>Engineering</h4>
-                            <p>Design tools & calculations</p>
-                        </div>
-                    </div>
-                    <SfChip>
-                        <ChipItems>
-                            <ChipItem Text="Active" CssClass="status-active" />
-                        </ChipItems>
-                    </SfChip>
+                <div class="stat">
+                    <span class="value">@TodayProduction</span>
+                    <span class="label">Pieces Today</span>
                 </div>
-                <div class="module-item">
-                    <div class="module-info">
-                        <span class="module-icon production">
-                            <span class="e-icons e-production"></span>
-                        </span>
-                        <div>
-                            <h4>Production</h4>
-                            <p>Scheduling & bed management</p>
-                        </div>
-                    </div>
-                    <SfChip>
-                        <ChipItems>
-                            <ChipItem Text="Development" CssClass="status-development" />
-                        </ChipItems>
-                    </SfChip>
+                <div class="stat">
+                    <span class="value">@EfficiencyRate%</span>
+                    <span class="label">Efficiency</span>
                 </div>
             </div>
+            <SfButton CssClass="e-flat" @onclick="() => NavigateTo(&quot;/production&quot;)">View Details →</SfButton>
+        </div>
+
+        <!-- Quality Control Overview -->
+        <div class="dashboard-card quality-card">
+            <h3>Quality Control</h3>
+            <div class="stats-summary">
+                <div class="stat">
+                    <span class="value">@PassRate%</span>
+                    <span class="label">Pass Rate</span>
+                </div>
+                <div class="stat">
+                    <span class="value">@ReportsToday</span>
+                    <span class="label">Reports Today</span>
+                </div>
+                <div class="stat">
+                    <span class="value">@PendingReviews</span>
+                    <span class="label">Pending</span>
+                </div>
+            </div>
+            <SfButton CssClass="e-flat" @onclick="() => NavigateTo(&quot;/quality&quot;)">View Details →</SfButton>
+        </div>
+
+        <!-- Engineering Overview -->
+        <div class="dashboard-card engineering-card">
+            <h3>Engineering</h3>
+            <div class="stats-summary">
+                <div class="stat">
+                    <span class="value">@ActiveDesigns</span>
+                    <span class="label">Active Designs</span>
+                </div>
+                <div class="stat">
+                    <span class="value">@CalculationsToday</span>
+                    <span class="label">Calculations</span>
+                </div>
+                <div class="stat">
+                    <span class="value">@ModelsAvailable</span>
+                    <span class="label">3D Models</span>
+                </div>
+            </div>
+            <SfButton CssClass="e-flat" @onclick="() => NavigateTo(&quot;/engineering&quot;)">View Details →</SfButton>
         </div>
 
         <!-- Recent Activity -->
-        <div class="dashboard-card">
-            <h3>Recent Activity</h3>
-            <div class="activity-timeline">
-                @if (RecentActivities.Any())
-                {
-                    @foreach (var activity in RecentActivities.Take(5))
-                    {
-                        <div class="timeline-item">
-                            <div class="timeline-dot @activity.Type"></div>
-                            <div class="timeline-content">
-                                <p>@activity.Description</p>
-                                <span class="timeline-time">@GetRelativeTime(activity.Timestamp)</span>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <p class="no-activity">No recent activity to display</p>
-                }
-            </div>
-        </div>
-
-        <!-- Statistics Chart -->
         <div class="dashboard-card chart-card">
-            <h3>Weekly Statistics</h3>
-            <SfChart Height="300px">
+            <h3>Weekly Production Trend</h3>
+            <SfChart Height="250px">
                 <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category">
                     <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
                 </ChartPrimaryXAxis>
@@ -159,49 +140,70 @@
                     <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
                 </ChartPrimaryYAxis>
                 <ChartSeriesCollection>
-                    <ChartSeries DataSource="@ChartData" Name="QC Reports" XName="Day" YName="Reports" Type="ChartSeriesType.Column">
-                        <ChartSeriesAnimation Enable="true" Duration="1000"></ChartSeriesAnimation>
-                    </ChartSeries>
-                    <ChartSeries DataSource="@ChartData" Name="Calculations" XName="Day" YName="Calculations" Type="ChartSeriesType.Line">
-                        <ChartMarker Visible="true" Height="10" Width="10"></ChartMarker>
+                    <ChartSeries DataSource="@WeeklyProductionData" XName="Day" YName="Production" Type="ChartSeriesType.Column">
+                        <ChartSeriesDataLabel Visible="false"></ChartSeriesDataLabel>
                     </ChartSeries>
                 </ChartSeriesCollection>
-                <ChartLegendSettings Visible="true" Position="LegendPosition.Top"></ChartLegendSettings>
+                <ChartTooltipSettings Enable="true"></ChartTooltipSettings>
             </SfChart>
         </div>
     </div>
 
-    <!-- Platform Features -->
+    <!-- Recent Activity Timeline -->
+    <div class="activity-section">
+        <h2>Recent Activity</h2>
+        <div class="activity-timeline">
+            @if (RecentActivities.Any())
+            {
+                @foreach (var activity in RecentActivities)
+                {
+                    <div class="timeline-item">
+                        <div class="timeline-dot @activity.Type"></div>
+                        <div class="timeline-content">
+                            <p>@activity.Description</p>
+                            <span class="timeline-time">@activity.TimeAgo</span>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="no-activity">No recent activity</p>
+            }
+        </div>
+    </div>
+
+    <!-- Feature Highlights -->
     <div class="features-section">
         <h2>Platform Features</h2>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">
-                    <span class="e-icons e-cloud"></span>
+                    <span class="e-icons e-folder"></span>
                 </div>
                 <h4>ACC Integration</h4>
-                <p>Seamless connection with Autodesk Construction Cloud for project data and model access.</p>
+                <p>Seamless integration with Autodesk Construction Cloud for project management and model access.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
-                    <span class="e-icons e-shield"></span>
+                    <span class="e-icons e-chart"></span>
                 </div>
-                <h4>Secure Storage</h4>
-                <p>OSS backend with encrypted storage for all your quality reports and calculations.</p>
+                <h4>Real-time Analytics</h4>
+                <p>Monitor production efficiency, quality metrics, and engineering performance in real-time.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <span class="e-icons e-settings"></span>
+                </div>
+                <h4>PCI Compliance</h4>
+                <p>Built-in PCI standards and best practices for precast concrete design and manufacturing.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
                     <span class="e-icons e-mobile"></span>
                 </div>
                 <h4>Mobile Ready</h4>
-                <p>Responsive design works on tablets and mobile devices for field operations.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <span class="e-icons e-analytics"></span>
-                </div>
-                <h4>Real-time Analytics</h4>
-                <p>Track production metrics and quality trends with interactive dashboards.</p>
+                <p>Access your data and reports from anywhere with our responsive mobile-friendly interface.</p>
             </div>
         </div>
     </div>
@@ -209,73 +211,70 @@
 
 @code {
     private bool IsAuthenticated { get; set; }
-    private string UserName { get; set; } = "User";
-    private int ProjectCount { get; set; }
+    private string UserName { get; set; } = "Guest";
+    private int ProjectCount { get; set; } = 0;
     private string? CurrentProjectId { get; set; }
-    private List<Activity> RecentActivities = new();
-    private List<ChartDataPoint> ChartData = new();
+
+    // Dashboard metrics
+    private int ActiveBeds = 8;
+    private int TodayProduction = 47;
+    private int EfficiencyRate = 87;
+    private int PassRate = 96;
+    private int ReportsToday = 12;
+    private int PendingReviews = 3;
+    private int ActiveDesigns = 24;
+    private int CalculationsToday = 37;
+    private int ModelsAvailable = 15;
+
+    private List<WeeklyData> WeeklyProductionData = new();
+    private List<ActivityItem> RecentActivities = new();
 
     protected override async Task OnInitializedAsync()
     {
         await CheckAuthentication();
-        await LoadDashboardData();
-        GenerateChartData();
+        LoadDashboardData();
     }
 
     private async Task CheckAuthentication()
     {
-        IsAuthenticated = await ACCService.IsAuthenticatedAsync();
-        if (IsAuthenticated)
+        try
         {
-            var userProfile = await ACCService.GetUserProfileAsync();
-            if (userProfile != null)
+            var user = await ACCService.GetCurrentUserAsync();
+            if (user != null)
             {
-                UserName = userProfile.Name.Split(' ').FirstOrDefault() ?? "User";
+                IsAuthenticated = true;
+                UserName = user.Name ?? "User";
+                
+                var projects = await ACCService.GetProjectsAsync();
+                ProjectCount = projects.Count;
             }
-
-            var projects = await ACCService.GetProjectsAsync();
-            ProjectCount = projects.Count;
+        }
+        catch
+        {
+            IsAuthenticated = false;
         }
     }
 
-    private async Task LoadDashboardData()
+    private void LoadDashboardData()
     {
-        // This would load from your storage service
-        // For demo, using sample data
-        RecentActivities = new List<Activity>
+        // Weekly production data
+        WeeklyProductionData = new List<WeeklyData>
         {
-            new Activity
-            {
-                Type = "report",
-                Description = "Bed QC Report created for Flat Bed #1",
-                Timestamp = DateTime.Now.AddHours(-2)
-            },
-            new Activity
-            {
-                Type = "calculation",
-                Description = "Beam design calculation completed",
-                Timestamp = DateTime.Now.AddHours(-5)
-            },
-            new Activity
-            {
-                Type = "model",
-                Description = "3D model viewed: Building A - Level 2",
-                Timestamp = DateTime.Now.AddDays(-1)
-            }
+            new WeeklyData { Day = "Mon", Production = 42 },
+            new WeeklyData { Day = "Tue", Production = 38 },
+            new WeeklyData { Day = "Wed", Production = 45 },
+            new WeeklyData { Day = "Thu", Production = 47 },
+            new WeeklyData { Day = "Fri", Production = 43 },
+            new WeeklyData { Day = "Sat", Production = 32 }
         };
-    }
 
-    private void GenerateChartData()
-    {
-        var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-        var random = new Random();
-        
-        ChartData = days.Select(day => new ChartDataPoint
+        // Recent activities
+        RecentActivities = new List<ActivityItem>
         {
-            Day = day,
-            Reports = random.Next(2, 8),
-            Calculations = random.Next(3, 12)
-        }).ToList();
+            new ActivityItem { Type = "report", Description = "QC Report #1247 completed for Bed 3", TimeAgo = "2 hours ago" },
+            new ActivityItem { Type = "calculation", Description = "Beam design calculation saved", TimeAgo = "3 hours ago" },
+            new ActivityItem { Type = "model", Description = "3D model viewed for Project Alpha", TimeAgo = "5 hours ago" }
+        };
     }
 
     private async Task ConnectToACC()
@@ -288,31 +287,16 @@
         Navigation.NavigateTo(path);
     }
 
-    private string GetRelativeTime(DateTime timestamp)
+    private class WeeklyData
     {
-        var timeSpan = DateTime.Now - timestamp;
-        
-        if (timeSpan.TotalMinutes < 60)
-            return $"{(int)timeSpan.TotalMinutes} minutes ago";
-        if (timeSpan.TotalHours < 24)
-            return $"{(int)timeSpan.TotalHours} hours ago";
-        if (timeSpan.TotalDays < 7)
-            return $"{(int)timeSpan.TotalDays} days ago";
-        
-        return timestamp.ToString("MMM dd");
+        public string Day { get; set; } = "";
+        public int Production { get; set; }
     }
 
-    private class Activity
+    private class ActivityItem
     {
         public string Type { get; set; } = "";
         public string Description { get; set; } = "";
-        public DateTime Timestamp { get; set; }
-    }
-
-    private class ChartDataPoint
-    {
-        public string Day { get; set; } = "";
-        public int Reports { get; set; }
-        public int Calculations { get; set; }
+        public string TimeAgo { get; set; } = "";
     }
 }

@@ -58,18 +58,18 @@
                                 </div>
                                 <div class="spec-item">
                                     <span class="spec-label">Capacity:</span>
-                                    <span class="spec-value">@bed.Capacity.ToString("N0") lbs</span>
+                                    <span class="spec-value">@bed.Capacity pcs</span>
                                 </div>
                             </div>
                             <div class="allowed-products">
-                                <span class="products-label">Products:</span>
-                                @foreach (var product in bed.AllowedProductTypes)
+                                <span class="products-label">Allowed:</span>
+                                @foreach (var product in bed.AllowedProducts.Take(3))
                                 {
-                                    <SfChip>
-                                        <ChipItems>
-                                            <ChipItem Text="@product" CssClass="product-chip" />
-                                        </ChipItems>
-                                    </SfChip>
+                                    <SfChip CssClass="product-chip">@product</SfChip>
+                                }
+                                @if (bed.AllowedProducts.Count > 3)
+                                {
+                                    <span class="more-products">+@(bed.AllowedProducts.Count - 3) more</span>
                                 }
                             </div>
                         </div>
@@ -83,20 +83,20 @@
                 }
             </div>
 
-            @if (!string.IsNullOrEmpty(SelectedBedId))
-            {
-                <div class="additional-info">
-                    <h4>Additional Information (Optional)</h4>
-                    <div class="form-group">
-                        <label>Report Description</label>
-                        <SfTextBox @bind-Value="@ReportDescription"
-                                   Placeholder="e.g., Morning shift quality check" />
-                    </div>
+            <div class="additional-info">
+                <h4>Additional Information</h4>
+                <div class="form-group">
+                    <label>Inspector Name</label>
+                    <SfTextBox @bind-Value="@InspectorName" Placeholder="Enter inspector name" />
                 </div>
-            }
+                <div class="form-group">
+                    <label>Notes</label>
+                    <SfTextBox @bind-Value="@Notes" Multiline="true" Placeholder="Any additional notes" />
+                </div>
+            </div>
 
             <div class="action-buttons">
-                <SfButton CssClass="e-outline" @onclick="Cancel">Cancel</SfButton>
+                <SfButton CssClass="e-flat" @onclick="GoBack">Cancel</SfButton>
                 <SfButton CssClass="e-primary" @onclick="StartReport"
                           Disabled="@(string.IsNullOrEmpty(SelectedBedId))">
                     Start Report
@@ -329,15 +329,17 @@
         border-top: 1px solid #e5e7eb;
     }
 
-    /* FIX: Proper CSS media query syntax */
-    @media screen and (max-width: 768px) {
-        .bed-grid {
-            grid-template-columns: 1fr;
-        }
+    @media (max-width: 768px) {
+        .bed-grid
 
-        .bed-specs {
-            grid-template-columns: 1fr;
-        }
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .bed-specs {
+        grid-template-columns: 1fr;
+    }
+
     }
 </style>
 
@@ -347,15 +349,64 @@
     private SfDialog? BedSelectionDialog;
     private List<BedInformation> AvailableBeds = new();
     private string? SelectedBedId;
-    private string? ReportDescription;
+    private string? InspectorName;
+    private string? Notes;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Load available beds
-        AvailableBeds = BedDatabase.GetAllBeds()
-            .Where(b => b.Status == "Active")
-            .OrderBy(b => b.Name)
-            .ToList();
+        await LoadBedInformation();
+    }
+
+    private async Task LoadBedInformation()
+    {
+        // In production, this would come from the API
+        AvailableBeds = new List<BedInformation>
+        {
+            new BedInformation
+            {
+                Id = "bed1",
+                Name = "Bed 1",
+                Type = "Beam Bed",
+                Location = "Building A",
+                Length = 400,
+                Width = 12,
+                Capacity = 10,
+                AllowedProducts = new List<string> { "Beams", "Girders", "Spandrels" }
+            },
+            new BedInformation
+            {
+                Id = "bed2",
+                Name = "Bed 2",
+                Type = "Deck Bed",
+                Location = "Building B",
+                Length = 300,
+                Width = 16,
+                Capacity = 20,
+                AllowedProducts = new List<string> { "Double Tees", "Hollow Core", "Solid Slabs" }
+            },
+            new BedInformation
+            {
+                Id = "bed3",
+                Name = "Bed 3",
+                Type = "Column Bed",
+                Location = "Building A",
+                Length = 200,
+                Width = 10,
+                Capacity = 15,
+                AllowedProducts = new List<string> { "Columns", "Piles", "Posts" }
+            },
+            new BedInformation
+            {
+                Id = "bed4",
+                Name = "Bed 4",
+                Type = "Wall Bed",
+                Location = "Building C",
+                Length = 350,
+                Width = 14,
+                Capacity = 8,
+                AllowedProducts = new List<string> { "Wall Panels", "Architectural Panels", "Cladding" }
+            }
+        };
     }
 
     private void SelectBed(string bedId)
@@ -363,50 +414,29 @@
         SelectedBedId = bedId;
     }
 
-    private async Task StartReport()
+    private void StartReport()
     {
-        if (string.IsNullOrEmpty(SelectedBedId))
+        if (!string.IsNullOrEmpty(SelectedBedId))
         {
-            return;
+            Navigation.NavigateTo($"/quality/bed-qc-report/{SelectedBedId}");
         }
-
-        // Store the description if provided
-        if (!string.IsNullOrEmpty(ReportDescription))
-        {
-            // Could store in state service or pass as query parameter
-        }
-
-        // Navigate to the bed report page
-        Navigation.NavigateTo($"/quality/bed-report/{SelectedBedId}");
     }
 
-    private async Task StartReportFromDialog()
+    private void StartReportFromDialog()
     {
-        await StartReport();
-        CloseDialog();
+        StartReport();
     }
 
-    private void Cancel()
+    private async Task CloseDialog()
     {
-        Navigation.NavigateTo("/quality");
+        if (BedSelectionDialog != null)
+        {
+            await BedSelectionDialog.HideAsync();
+        }
     }
 
     private void GoBack()
     {
         Navigation.NavigateTo("/quality");
-    }
-
-    private void CloseDialog()
-    {
-        ShowAsDialog = false;
-        StateHasChanged();
-    }
-
-    public void ShowDialog()
-    {
-        SelectedBedId = null;
-        ReportDescription = null;
-        ShowAsDialog = true;
-        StateHasChanged();
     }
 }
