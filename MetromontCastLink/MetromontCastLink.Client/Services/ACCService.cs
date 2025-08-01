@@ -7,6 +7,8 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.JSInterop;
 using MetromontCastLink.Shared.Models;
+using Microsoft.Extensions.Configuration;
+using MetromontCastLink.Shared.Services;
 
 namespace MetromontCastLink.Client.Services
 {

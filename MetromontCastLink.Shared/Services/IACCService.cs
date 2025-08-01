@@ -1,10 +1,10 @@
-﻿// IACCService.cs
+﻿// MetromontCastLink.Shared/Services/IACCService.cs
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MetromontCastLink.Shared.Models;
 
-namespace MetromontCastLink.Client.Services
+namespace MetromontCastLink.Shared.Services
 {
     public interface IACCService
     {

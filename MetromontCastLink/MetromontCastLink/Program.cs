@@ -1,6 +1,7 @@
 ﻿// MetromontCastLink/MetromontCastLink/Program.cs
 using MetromontCastLink.Components;
 using MetromontCastLink.Services;
+using MetromontCastLink.Shared.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Syncfusion.Blazor;
@@ -63,6 +64,7 @@ builder.Services.AddAuthorization();
 // Register custom services
 builder.Services.AddScoped<IForgeAuthService, ForgeAuthService>();
 builder.Services.AddScoped<IOssStorageService, OssStorageService>();
+builder.Services.AddScoped<IACCService, ACCService>();
 
 // Configure CORS for ACC/Forge APIs
 builder.Services.AddCors(options =>
