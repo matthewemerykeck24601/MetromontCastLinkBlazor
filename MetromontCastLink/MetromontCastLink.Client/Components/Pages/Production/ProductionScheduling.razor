@@ -87,14 +87,14 @@
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        color: #475569;
     }
 
     .schedule-container {
         flex: 1;
         background: white;
         border-radius: 8px;
-        padding: 1rem;
+        padding: 1.5rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         overflow: hidden;
     }
@@ -106,26 +106,23 @@
     }
 
     .resource-item {
-        padding: 0.75rem;
-        background: #f9fafb;
-        border-radius: 6px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .resource-item:hover {
-        background: #f3f4f6;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
     }
 
     .resource-item.available {
-        border-left: 3px solid #10b981;
+        border-color: #10b981;
+        background: #f0fdf4;
     }
 
     .resource-item.occupied {
-        border-left: 3px solid #ef4444;
+        border-color: #f59e0b;
+        background: #fffbeb;
     }
 
     .resource-name {
@@ -141,46 +138,52 @@
     }
 
     .resource-item.available .resource-status {
-        background: #d1fae5;
-        color: #065f46;
+        background: #10b981;
+        color: white;
     }
 
     .resource-item.occupied .resource-status {
-        background: #fee2e2;
-        color: #991b1b;
+        background: #f59e0b;
+        color: white;
     }
 
     .stats-grid {
         display: grid;
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
     }
 
     .stat-item {
-        padding: 1rem;
-        background: #f9fafb;
-        border-radius: 6px;
         text-align: center;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
     }
 
     .stat-value {
+        display: block;
         font-size: 1.5rem;
         font-weight: 600;
         color: #1e293b;
-        display: block;
+        margin-bottom: 0.25rem;
     }
 
     .stat-label {
+        display: block;
         font-size: 0.75rem;
-        color: #6b7280;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
-    /* Event Template Styles */
+    /* Event template styles */
     .event-template {
         padding: 0.5rem;
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
         border-radius: 4px;
     }
 
@@ -192,7 +195,7 @@
     }
 
     .event-title {
-        font-weight: 500;
+        font-weight: 600;
         font-size: 0.875rem;
     }
 
@@ -200,100 +203,50 @@
         font-size: 0.625rem;
         padding: 0.125rem 0.375rem;
         border-radius: 3px;
-        background: #e5e7eb;
-        color: #4b5563;
+        font-weight: 500;
     }
 
     .event-details {
-        display: flex;
-        gap: 0.5rem;
         font-size: 0.75rem;
-        color: #6b7280;
-    }
-
-    .status-scheduled {
-        background: #dbeafe !important;
-    }
-
-    .status-progress {
-        background: #fef3c7 !important;
+        opacity: 0.8;
     }
 
     .status-completed {
-        background: #d1fae5 !important;
+        background: #10b981;
+        color: white;
     }
 
-    /* Dialog Styles */
-    .schedule-form {
-        padding: 1rem;
+    .status-in-progress {
+        background: #3b82f6;
+        color: white;
     }
 
-    .form-group {
-        margin-bottom: 1rem;
+    .status-scheduled {
+        background: #8b5cf6;
+        color: white;
     }
 
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #374151;
-    }
-
-    .required {
-        color: #ef4444;
-    }
-
-    .dialog-footer {
+    /* Loading spinner */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
         display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-        padding: 1rem;
-    }
-
-    /* Responsive Design */
-    @@media (max-width: 768px) {
-        .scheduling-container {
-            flex-direction: column;
-        }
-
-        .control-panel {
-            width: 100%;
-            border-right: none;
-            border-bottom: 1px solid #e5e7eb;
-            max-height: 300px;
-        }
-
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 480px) {
-        .header-content {
-            flex-direction: column;
-            align-items: start;
-            gap: 1rem;
-        }
-
-        .header-right {
-            width: 100%;
-            justify-content: flex-start;
-        }
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
     }
 </style>
 
 <div class="production-scheduling-page">
+    <!-- Header -->
     <div class="page-header">
         <div class="header-content">
             <div class="header-left">
-                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="GoBack">Back</SfButton>
+                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="GoBack" />
                 <h2>Production Scheduling</h2>
             </div>
             <div class="header-right">
@@ -307,16 +260,20 @@
         </div>
     </div>
 
+    <!-- Main Content -->
     <div class="scheduling-container">
-        <!-- Left Panel: Filters and Controls -->
+        <!-- Control Panel -->
         <div class="control-panel">
             <div class="control-section">
                 <h3>Filters</h3>
                 
                 <div class="filter-group">
                     <label>Project</label>
-                    <ACCProjectSelector @bind-SelectedProjectId="@CurrentProjectId" 
-                        OnProjectSelected="OnProjectSelected" />
+                    <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@CurrentProjectId"
+                        DataSource="@Projects" Placeholder="Select project">
+                        <DropDownListFieldSettings Text="Name" Value="Id" />
+                        <DropDownListEvents TValue="string" TItem="ACCProject" ValueChange="@OnProjectSelected" />
+                    </SfDropDownList>
                 </div>
 
                 <div class="filter-group">
@@ -421,6 +378,292 @@
             </SfSchedule>
         </div>
     </div>
+
+    <!-- Toast Notification -->
+    <SfToast @ref="ToastObj" ShowCloseButton="true" Timeout="5000">
+        <ToastPosition X="Right" Y="Top" />
+    </SfToast>
 </div>
 
-<!-- Rest of the component stays the same... -->
+@code {
+    // Component References
+    private SfSchedule<ProductionEvent>? ScheduleRef;
+    private SfToast? ToastObj;
+    
+    // Properties for filters and data
+    private string? CurrentProjectId { get; set; }
+    private DateTime? StartDate { get; set; } = DateTime.Today;
+    private DateTime? EndDate { get; set; } = DateTime.Today.AddDays(7);
+    private string[]? SelectedBedTypes { get; set; }
+    private string[]? SelectedProductTypes { get; set; }
+    
+    // Data collections
+    private List<ACCProject> Projects { get; set; } = new();
+    private List<BedResource> BedResources { get; set; } = new();
+    private List<ProductionEvent> ProductionEvents { get; set; } = new();
+    private List<BedType> BedTypes { get; set; } = new();
+    private List<ProductType> ProductTypes { get; set; } = new();
+    
+    // Work hours configuration
+    private List<ScheduleWorkHours> WorkHours { get; set; } = new();
+    
+    // Loading states
+    private bool IsLoading { get; set; } = false;
+    private bool IsScheduleLoading { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize work hours
+        WorkHours = new List<ScheduleWorkHours>
+        {
+            new ScheduleWorkHours { DayOfWeek = 0, StartHour = "06:00", EndHour = "18:00" },
+            new ScheduleWorkHours { DayOfWeek = 1, StartHour = "06:00", EndHour = "18:00" },
+            new ScheduleWorkHours { DayOfWeek = 2, StartHour = "06:00", EndHour = "18:00" },
+            new ScheduleWorkHours { DayOfWeek = 3, StartHour = "06:00", EndHour = "18:00" },
+            new ScheduleWorkHours { DayOfWeek = 4, StartHour = "06:00", EndHour = "18:00" },
+            new ScheduleWorkHours { DayOfWeek = 5, StartHour = "06:00", EndHour = "14:00" }
+        };
+
+        // Initialize bed types
+        BedTypes = new List<BedType>
+        {
+            new BedType { Id = "1", Name = "Standard Bed" },
+            new BedType { Id = "2", Name = "Heavy Duty Bed" },
+            new BedType { Id = "3", Name = "Specialty Bed" }
+        };
+
+        // Initialize product types
+        ProductTypes = new List<ProductType>
+        {
+            new ProductType { Id = "1", Name = "Double Tee" },
+            new ProductType { Id = "2", Name = "Wall Panel" },
+            new ProductType { Id = "3", Name = "Column" },
+            new ProductType { Id = "4", Name = "Beam/Spandrel" },
+            new ProductType { Id = "5", Name = "Special Product" }
+        };
+
+        await LoadInitialData();
+    }
+
+    private async Task LoadInitialData()
+    {
+        try
+        {
+            IsLoading = true;
+
+            // Check authentication
+            if (!await ACCService.IsAuthenticatedAsync())
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            // Load projects
+            Projects = await ACCService.GetProjectsAsync();
+            
+            // Get current project
+            var currentProject = await ACCService.GetCurrentProjectAsync();
+            if (currentProject != null)
+            {
+                CurrentProjectId = currentProject.Id;
+                await LoadScheduleData();
+            }
+
+            // Initialize bed resources (demo data - replace with actual data source)
+            InitializeBedResources();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading initial data: {ex.Message}");
+            await ShowToast("Error loading data", "error");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void InitializeBedResources()
+    {
+        BedResources = new List<BedResource>
+        {
+            new BedResource { Id = "bed-1", Name = "Bed 1", Type = "Standard", Color = "#3B82F6", IsAvailable = true },
+            new BedResource { Id = "bed-2", Name = "Bed 2", Type = "Standard", Color = "#3B82F6", IsAvailable = true },
+            new BedResource { Id = "bed-3", Name = "Bed 3", Type = "Heavy Duty", Color = "#8B5CF6", IsAvailable = false },
+            new BedResource { Id = "bed-4", Name = "Bed 4", Type = "Heavy Duty", Color = "#8B5CF6", IsAvailable = true },
+            new BedResource { Id = "bed-5", Name = "Bed 5", Type = "Specialty", Color = "#10B981", IsAvailable = true }
+        };
+    }
+
+    private async Task LoadScheduleData()
+    {
+        try
+        {
+            IsScheduleLoading = true;
+
+            // Load production events from storage or API
+            // For now, using demo data
+            ProductionEvents = GenerateDemoEvents();
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading schedule data: {ex.Message}");
+            await ShowToast("Error loading schedule", "error");
+        }
+        finally
+        {
+            IsScheduleLoading = false;
+        }
+    }
+
+    private List<ProductionEvent> GenerateDemoEvents()
+    {
+        var events = new List<ProductionEvent>();
+        var startDate = StartDate ?? DateTime.Today;
+
+        // Generate some demo events
+        events.Add(new ProductionEvent
+        {
+            Id = Guid.NewGuid().ToString(),
+            ProductName = "DT-2024-001",
+            ProductType = "Double Tee",
+            Quantity = 4,
+            BedId = "bed-1",
+            ProjectId = CurrentProjectId,
+            ProjectName = "Parking Garage A",
+            StartTime = startDate.AddHours(7),
+            EndTime = startDate.AddHours(15),
+            Status = "In Progress",
+            DesignNumber = "DT-STD-001"
+        });
+
+        events.Add(new ProductionEvent
+        {
+            Id = Guid.NewGuid().ToString(),
+            ProductName = "WP-2024-015",
+            ProductType = "Wall Panel",
+            Quantity = 6,
+            BedId = "bed-2",
+            ProjectId = CurrentProjectId,
+            ProjectName = "Office Building B",
+            StartTime = startDate.AddDays(1).AddHours(8),
+            EndTime = startDate.AddDays(1).AddHours(14),
+            Status = "Scheduled",
+            DesignNumber = "WP-STD-003"
+        });
+
+        return events;
+    }
+
+    // Event Handlers
+    private async Task OnProjectSelected(ChangeEventArgs<string, ACCProject> args)
+    {
+        CurrentProjectId = args.Value;
+        await LoadScheduleData();
+    }
+
+    private async Task OnDateRangeChange(RangePickerEventArgs<DateTime?> args)
+    {
+        if (args.StartDate.HasValue && args.EndDate.HasValue)
+        {
+            StartDate = args.StartDate;
+            EndDate = args.EndDate;
+            await RefreshSchedule();
+        }
+    }
+
+    private async Task OnBedTypeChange(MultiSelectChangeEventArgs<string[]> args)
+    {
+        SelectedBedTypes = args.Value;
+        await RefreshSchedule();
+    }
+
+    private async Task OnProductTypeChange(MultiSelectChangeEventArgs<string[]> args)
+    {
+        SelectedProductTypes = args.Value;
+        await RefreshSchedule();
+    }
+
+    private async Task RefreshSchedule()
+    {
+        await LoadScheduleData();
+        ScheduleRef?.RefreshEventsAsync();
+    }
+
+    // Schedule Event Handlers
+    private void OnEventRendered(EventRenderedArgs<ProductionEvent> args)
+    {
+        // Custom rendering logic if needed
+    }
+
+    private async Task OnActionBegin(ActionEventArgs<ProductionEvent> args)
+    {
+        if (args.ActionType == ActionType.EventCreate || args.ActionType == ActionType.EventChange)
+        {
+            // Validate event data
+            if (args.AddedRecords?.Count > 0 || args.ChangedRecords?.Count > 0)
+            {
+                var eventData = args.AddedRecords?.FirstOrDefault() ?? args.ChangedRecords?.FirstOrDefault();
+                if (eventData != null)
+                {
+                    // Add validation logic here
+                }
+            }
+        }
+    }
+
+    private async Task OnActionComplete(ActionEventArgs<ProductionEvent> args)
+    {
+        if (args.ActionType == ActionType.EventCreate)
+        {
+            await ShowToast("Event created successfully", "success");
+        }
+        else if (args.ActionType == ActionType.EventChange)
+        {
+            await ShowToast("Event updated successfully", "success");
+        }
+        else if (args.ActionType == ActionType.EventRemove)
+        {
+            await ShowToast("Event removed successfully", "success");
+        }
+    }
+
+    // UI Action Methods
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/production");
+    }
+
+    private void ShowNewScheduleDialog()
+    {
+        // TODO: Implement new schedule dialog
+        Console.WriteLine("Show new schedule dialog");
+    }
+
+    private string GetStatusClass(string? status)
+    {
+        return status switch
+        {
+            "Completed" => "status-completed",
+            "In Progress" => "status-in-progress",
+            "Scheduled" => "status-scheduled",
+            _ => "status-default"
+        };
+    }
+
+    // Toast notification helper
+    private async Task ShowToast(string message, string type = "info")
+    {
+        var toastModel = new ToastModel
+        {
+            Title = type == "error" ? "Error" : type == "success" ? "Success" : "Info",
+            Content = message,
+            CssClass = $"e-toast-{type}",
+            Icon = type == "error" ? "e-error" : type == "success" ? "e-success" : "e-info"
+        };
+
+        await ToastObj!.ShowAsync(toastModel);
+    }
+}
