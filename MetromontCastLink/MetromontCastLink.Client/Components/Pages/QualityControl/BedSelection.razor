@@ -329,17 +329,15 @@
         border-top: 1px solid #e5e7eb;
     }
 
-    @media (max-width: 768px) {
-        .bed-grid
+    /* FIX: Proper CSS media query syntax */
+    @media screen and (max-width: 768px) {
+        .bed-grid {
+            grid-template-columns: 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .bed-specs {
-        grid-template-columns: 1fr;
-    }
-
+        .bed-specs {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 

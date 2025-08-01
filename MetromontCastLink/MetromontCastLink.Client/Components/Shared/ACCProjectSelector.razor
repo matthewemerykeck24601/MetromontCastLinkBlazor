@@ -16,8 +16,23 @@
                     Enabled="@Enabled" ShowClearButton="@ShowClearButton">
         <DropDownListFieldSettings Text="Name" Value="Id" />
         <DropDownListEvents TValue="string" TItem="ACCProject"
-                            ValueChange="@OnProjectChange"
-                            OnOpen="@OnDropdownOpen" />
+                            ValueChange="@(async (args) => await OnProjectChange(args))"
+                            OnOpen="@(async (args) => await OnDropdownOpen(args))" />
+        @code {
+            // ... other code ...
+
+            // Change the parameter type of OnDropdownOpen to match the event's argument type
+            private async Task OnDropdownOpen(Syncfusion.Blazor.DropDowns.BeforeOpenEventArgs args)
+            {
+                // Reload projects if needed
+                if (!Projects.Any() && !IsLoading)
+                {
+                    await LoadProjects();
+                }
+            }
+
+            // ... other code ...
+        }
         <DropDownListTemplates TItem="ACCProject">
             <ItemTemplate>
                 @{
@@ -209,7 +224,7 @@
         }
     }
 
-    private async Task OnProjectChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> args)
+    private async Task OnProjectChange(ChangeEventArgs<string, ACCProject> args)
     {
         await SetSelectedProject(args.Value);
     }

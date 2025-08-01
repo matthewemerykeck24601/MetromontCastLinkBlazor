@@ -1,5 +1,4 @@
-﻿// MetromontCastLink.Client/Services/StorageService.cs
-using MetromontCastLink.Shared.Models;
+﻿using MetromontCastLink.Shared.Models;
 using MetromontCastLink.Client.Services;
 using Microsoft.JSInterop;
 using System;
@@ -84,6 +83,13 @@ namespace MetromontCastLink.Client.Services
                     Message = ex.Message
                 };
             }
+        }
+
+        // Implement SaveQCReportAsync to match the interface
+        public async Task<StorageResult> SaveQCReportAsync(QCReport report)
+        {
+            // This delegates to SaveReportAsync for backwards compatibility
+            return await SaveReportAsync(report);
         }
 
         public async Task<List<QCReportListItem>> GetReportsAsync(string projectId)

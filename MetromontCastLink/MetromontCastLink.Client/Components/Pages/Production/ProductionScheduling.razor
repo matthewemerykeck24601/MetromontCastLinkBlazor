@@ -48,7 +48,7 @@
                     <SfDateRangePicker TValue="DateTime?" @bind-StartDate="@StartDate" @bind-EndDate="@EndDate"
                         Placeholder="Select date range" Format="MM/dd/yyyy">
                         <DateRangePickerEvents TValue="DateTime?" 
-                            ValueChange="OnDateRangeChange" />
+                            ValueChange="@(async (args) => await OnDateRangeChange(args))" />
                     </SfDateRangePicker>
                 </div>
 
@@ -57,8 +57,8 @@
                     <SfMultiSelect TValue="string[]" TItem="BedType" @bind-Value="@SelectedBedTypes"
                         DataSource="@BedTypes" Placeholder="All bed types">
                         <MultiSelectFieldSettings Text="Name" Value="Id" />
-                        <MultiSelectEvents TValue="string[]" TItem="BedType"
-                            ValueChange="OnBedTypeChange" />
+                        <MultiSelectEvents TValue="string[]" TItem="BedType" 
+                            ValueChange="@(async (args) => await OnBedTypeChange(args))" />
                     </SfMultiSelect>
                 </div>
 
@@ -67,8 +67,8 @@
                     <SfMultiSelect TValue="string[]" TItem="ProductType" @bind-Value="@SelectedProductTypes"
                         DataSource="@ProductTypes" Placeholder="All product types">
                         <MultiSelectFieldSettings Text="Name" Value="Id" />
-                        <MultiSelectEvents TValue="string[]" TItem="ProductType"
-                            ValueChange="OnProductTypeChange" />
+                        <MultiSelectEvents TValue="string[]" TItem="ProductType" 
+                            ValueChange="@(async (args) => await OnProductTypeChange(args))" />
                     </SfMultiSelect>
                 </div>
             </div>
@@ -170,59 +170,71 @@
                     </div>
                     <div class="form-group">
                         <label>Quantity <span class="required">*</span></label>
-                        <SfNumericTextBox TValue="int?" @bind-Value="@NewEvent.Quantity" 
-                            Min="1" Placeholder="Enter quantity" />
+                        <SfNumericTextBox TValue="int?" @bind-Value="@NewEvent.Quantity" Min="1" />
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Production Bed <span class="required">*</span></label>
-                    <SfDropDownList TValue="string" TItem="BedResource" @bind-Value="@NewEvent.BedId"
-                        DataSource="@BedResources.Where(b => b.IsAvailable)" Placeholder="Select bed">
-                        <DropDownListFieldSettings Text="Name" Value="Id" />
-                    </SfDropDownList>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Production Bed <span class="required">*</span></label>
+                        <SfDropDownList TValue="string" TItem="BedResource" @bind-Value="@NewEvent.BedId"
+                            DataSource="@BedResources.Where(b => b.IsAvailable)" Placeholder="Select bed">
+                            <DropDownListFieldSettings Text="Name" Value="Id" />
+                        </SfDropDownList>
+                    </div>
+                    <div class="form-group">
+                        <label>Project</label>
+                        <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@NewEvent.ProjectId"
+                            DataSource="@Projects" Placeholder="Select project">
+                            <DropDownListFieldSettings Text="Name" Value="Id" />
+                        </SfDropDownList>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Start Time <span class="required">*</span></label>
                         <SfDateTimePicker TValue="DateTime?" @bind-Value="@NewEvent.StartTime" 
-                            Format="MM/dd/yyyy hh:mm tt" />
+                            Format="MM/dd/yyyy HH:mm" />
                     </div>
                     <div class="form-group">
                         <label>End Time <span class="required">*</span></label>
                         <SfDateTimePicker TValue="DateTime?" @bind-Value="@NewEvent.EndTime" 
-                            Format="MM/dd/yyyy hh:mm tt" />
+                            Format="MM/dd/yyyy HH:mm" />
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Design Number</label>
-                    <SfTextBox @bind-Value="@NewEvent.DesignNumber" Placeholder="e.g., DES-2024-001" />
+                    <SfTextBox @bind-Value="@NewEvent.DesignNumber" Placeholder="Enter design number" />
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <SfTextBox @bind-Value="@NewEvent.Notes" Multiline="true" Placeholder="Additional notes" />
                 </div>
             </div>
         </Content>
         <FooterTemplate>
             <div class="dialog-footer">
-                <SfButton CssClass="e-outline" @onclick="CloseNewScheduleDialog">Cancel</SfButton>
-                <SfButton CssClass="e-primary" @onclick="SaveNewSchedule">Create Schedule</SfButton>
+                <SfButton CssClass="e-primary" @onclick="SaveNewSchedule">Save Schedule</SfButton>
+                <SfButton @onclick="CloseNewScheduleDialog">Cancel</SfButton>
             </div>
         </FooterTemplate>
     </DialogTemplates>
 </SfDialog>
 
 <!-- Toast Notification -->
-<SfToast @ref="ToastObj" ShowCloseButton="true" Timeout="5000">
-    <ToastPosition X="Right" Y="Top"></ToastPosition>
+<SfToast @ref="ToastObj" Title="Notification" Width="300px" Position="ToastPosition.TopRight">
+    <ToastPosition X="Right" Y="Top" />
 </SfToast>
 
 <style>
     .production-scheduling-page {
-        height: calc(100vh - 80px);
+        height: calc(100vh - 64px);
         display: flex;
         flex-direction: column;
     }
 
     .page-header {
         background: white;
-        padding: 1rem 2rem;
+        padding: 1rem 1.5rem;
         border-bottom: 1px solid #e5e7eb;
     }
 
@@ -240,6 +252,8 @@
 
     .header-left h2 {
         margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
         color: #1e293b;
     }
 
@@ -255,10 +269,10 @@
     }
 
     .control-panel {
-        width: 320px;
+        width: 300px;
         background: white;
-        padding: 1.5rem;
         border-right: 1px solid #e5e7eb;
+        padding: 1.5rem;
         overflow-y: auto;
     }
 
@@ -282,7 +296,7 @@
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        color: #4b5563;
     }
 
     .resource-list {
@@ -294,8 +308,9 @@
     .resource-item {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         padding: 0.75rem;
-        background: #f8fafc;
+        background: #f9fafb;
         border-radius: 6px;
         font-size: 0.875rem;
     }
@@ -314,33 +329,34 @@
     }
 
     .resource-status {
-        color: #64748b;
+        font-size: 0.75rem;
+        color: #6b7280;
     }
 
     .stats-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     .stat-item {
-        text-align: center;
+        background: #f3f4f6;
         padding: 1rem;
-        background: #f8fafc;
         border-radius: 6px;
+        text-align: center;
     }
 
     .stat-value {
         display: block;
         font-size: 1.5rem;
         font-weight: 600;
-        color: #6366f1;
-        margin-bottom: 0.25rem;
+        color: #1e293b;
     }
 
     .stat-label {
-        font-size: 0.875rem;
-        color: #64748b;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
     }
 
     .schedule-container {
@@ -353,52 +369,57 @@
     .event-template {
         padding: 0.5rem;
         height: 100%;
-        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
 
     .event-header {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         margin-bottom: 0.25rem;
     }
 
     .event-title {
-        font-weight: 600;
+        font-weight: 500;
         font-size: 0.875rem;
-        color: white;
     }
 
     .event-status {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 3px;
+        background: #e5e7eb;
+        color: #4b5563;
     }
 
     .event-details {
         display: flex;
         gap: 0.5rem;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.9);
-    }
-
-    .status-completed {
-        background: #10b981;
-    }
-
-    .status-progress {
-        background: #f59e0b;
+        color: #6b7280;
     }
 
     .status-scheduled {
-        background: #6366f1;
+        background: #dbeafe !important;
     }
 
-    /* Form Styles */
+    .status-progress {
+        background: #fef3c7 !important;
+    }
+
+    .status-completed {
+        background: #d1fae5 !important;
+    }
+
+    /* Dialog Styles */
     .schedule-form {
         padding: 1rem;
     }
 
     .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .form-row {
@@ -426,12 +447,7 @@
         padding: 1rem;
     }
 
-    @media (max-width: 1024px) {
-        .control-panel {
-            width: 280px;
-        }
-    }
-
+    /* Responsive Design */
     @media (max-width: 768px) {
         .scheduling-container {
             flex-direction: column;
@@ -442,6 +458,23 @@
             border-right: none;
             border-bottom: 1px solid #e5e7eb;
             max-height: 300px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .header-content {
+            flex-direction: column;
+            align-items: start;
+            gap: 1rem;
+        }
+
+        .header-right {
+            width: 100%;
+            justify-content: flex-start;
         }
     }
 </style>
@@ -461,6 +494,7 @@
     private List<BedResource> BedResources = new();
     private List<BedType> BedTypes = new();
     private List<ProductType> ProductTypes = new();
+    private List<ACCProject> Projects = new();
     private ProductionEvent NewEvent = new();
 
     // Use Syncfusion.Blazor.Schedule.ScheduleWorkHours explicitly
@@ -506,39 +540,52 @@
             new BedResource { Id = "bed1", Name = "Bed 1", Color = "#1e88e5", IsAvailable = true },
             new BedResource { Id = "bed2", Name = "Bed 2", Color = "#43a047", IsAvailable = true },
             new BedResource { Id = "bed3", Name = "Bed 3", Color = "#e53935", IsAvailable = false },
-            new BedResource { Id = "bed4", Name = "Bed 4", Color = "#fb8c00", IsAvailable = true },
-            new BedResource { Id = "bed5", Name = "Bed 5", Color = "#8e24aa", IsAvailable = true }
+            new BedResource { Id = "bed4", Name = "Bed 4", Color = "#fb8c00", IsAvailable = true }
         };
+
+        // Load projects
+        try
+        {
+            Projects = await ACCService.GetProjectsAsync();
+        }
+        catch
+        {
+            Projects = new List<ACCProject>();
+        }
 
         await LoadProductionEvents();
     }
 
     private async Task LoadProductionEvents()
     {
-        // This would load from ACC OSS in production
-        // For now, using sample data
+        // In a real implementation, this would load from ACC/OSS
         ProductionEvents = new List<ProductionEvent>
         {
             new ProductionEvent
             {
-                Id = "evt-001",
-                ProductName = "Precast Beam B-1234",
-                ProductType = "beam",
-                Quantity = 5,
+                Id = "1",
+                ProductName = "Double Tee DT-24",
+                ProductType = "slab",
+                Quantity = 4,
                 BedId = "bed1",
-                ProjectId = CurrentProjectId,
-                ProjectName = "Sample Project",
+                ProjectName = "Tech Campus A",
                 StartTime = DateTime.Today.AddHours(7),
                 EndTime = DateTime.Today.AddHours(15),
-                Status = "In Progress",
-                DesignNumber = "DES-2024-001"
+                Status = "In Progress"
+            },
+            new ProductionEvent
+            {
+                Id = "2",
+                ProductName = "Wall Panel WP-15",
+                ProductType = "wall",
+                Quantity = 8,
+                BedId = "bed2",
+                ProjectName = "Medical Center",
+                StartTime = DateTime.Today.AddDays(1).AddHours(6),
+                EndTime = DateTime.Today.AddDays(1).AddHours(14),
+                Status = "Scheduled"
             }
         };
-
-        if (ScheduleRef != null)
-        {
-            await ScheduleRef.RefreshEventsAsync();
-        }
     }
 
     private string GetStatusClass(string? status)

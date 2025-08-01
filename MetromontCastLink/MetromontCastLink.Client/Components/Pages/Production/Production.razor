@@ -48,12 +48,12 @@
             <div class="overview-item">
                 <div class="metric">@CompletionRate%</div>
                 <div class="label">Completion Rate</div>
-                <div class="sublabel">vs. scheduled</div>
+                <div class="sublabel">vs. target</div>
             </div>
             <div class="overview-item">
-                <div class="metric">@UpcomingPours</div>
-                <div class="label">Upcoming Pours</div>
-                <div class="sublabel">next 24 hours</div>
+                <div class="metric">@EfficiencyRate%</div>
+                <div class="label">Efficiency</div>
+                <div class="sublabel">bed utilization</div>
             </div>
         </div>
     </div>
@@ -68,26 +68,26 @@
             </div>
             <div class="card-content">
                 <h3>Production Scheduling</h3>
-                <p>Manage pour schedules, bed allocation, and production timelines with ACC integration.</p>
+                <p>Create and manage production schedules, optimize bed utilization, and coordinate pours.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
-                    <span class="status-indicator"></span>
-                    <span>@ScheduledPours scheduled this week</span>
+                    <span class="status-indicator active"></span>
+                    <span>@ActiveSchedules active schedules</span>
                 </div>
-                <SfButton CssClass="e-flat e-small">Open →</SfButton>
+                <SfButton CssClass="e-flat e-small">View →</SfButton>
             </div>
         </div>
 
-        <div class="production-card" @onclick="@(() => NavigateTo("/production/beds"))">
+        <div class="production-card" @onclick="@(() => NavigateTo("/production/bed-management"))">
             <div class="card-header">
                 <div class="card-icon bed-management">
-                    <span class="e-icons e-settings"></span>
+                    <span class="e-icons e-grid"></span>
                 </div>
             </div>
             <div class="card-content">
                 <h3>Bed Management</h3>
-                <p>Configure bed specifications, maintenance schedules, and production capabilities.</p>
+                <p>Monitor bed status, maintenance schedules, and production capacity.</p>
             </div>
             <div class="card-footer">
                 <div class="card-status">
@@ -213,8 +213,8 @@
     .production-overview {
         background: white;
         padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         margin-bottom: 2rem;
     }
 
@@ -227,240 +227,33 @@
     .overview-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 2rem;
+        gap: 1.5rem;
     }
 
     .overview-item {
         text-align: center;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
     }
 
     .overview-item .metric {
         font-size: 2.5rem;
         font-weight: 700;
-        color: #6366f1;
-        margin-bottom: 0.5rem;
+        color: #1e293b;
+        line-height: 1;
     }
 
     .overview-item .label {
-        font-size: 1rem;
-        font-weight: 500;
-        color: #1e293b;
-        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.5rem;
     }
 
     .overview-item .sublabel {
-        font-size: 0.875rem;
-        color: #64748b;
-    }
-
-    .production-modules {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .production-card {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .production-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .card-header {
-        margin-bottom: 1rem;
-    }
-
-    .card-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-    }
-
-    .card-icon.scheduling {
-        background: #dbeafe;
-        color: #3b82f6;
-    }
-
-    .card-icon.bed-management {
-        background: #fef3c7;
-        color: #f59e0b;
-    }
-
-    .card-icon.tracking {
-        background: #d1fae5;
-        color: #10b981;
-    }
-
-    .card-icon.metrics {
-        background: #ede9fe;
-        color: #8b5cf6;
-    }
-
-    .card-content {
-        flex: 1;
-        margin-bottom: 1rem;
-    }
-
-    .card-content h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.125rem;
-        color: #1e293b;
-    }
-
-    .card-content p {
-        margin: 0;
-        color: #64748b;
-        font-size: 0.875rem;
-    }
-
-    .card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    .card-status {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-        color: #64748b;
-    }
-
-    .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10b981;
-    }
-
-    .status-indicator.warning {
-        background: #f59e0b;
-    }
-
-    .status-indicator.active {
-        background: #10b981;
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: .5;
-        }
-    }
-
-    .recent-activity, .production-chart {
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        margin-bottom: 2rem;
-    }
-
-    .recent-activity h2, .production-chart h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
-    }
-
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .activity-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: #f8fafc;
-        border-radius: 6px;
-    }
-
-    .item-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #e0e7ff;
-        color: #6366f1;
-    }
-
-    .item-icon.completed {
-        background: #d1fae5;
-        color: #10b981;
-    }
-
-    .item-icon.in-progress {
-        background: #fef3c7;
-        color: #f59e0b;
-    }
-
-    .item-content {
-        flex: 1;
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.25rem;
-    }
-
-    .item-title {
-        font-weight: 500;
-        color: #1e293b;
-    }
-
-    .item-time {
-        font-size: 0.875rem;
-        color: #94a3b8;
-    }
-
-    .item-details {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .item-details span {
-        font-size: 0.875rem;
-        color: #64748b;
-    }
-
-    .item-progress {
-        text-align: right;
-    }
-
-    .item-progress .percentage {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .item-progress .time-remaining {
         font-size: 0.75rem;
         color: #94a3b8;
+        margin-top: 0.25rem;
     }
 
     .quick-actions {
@@ -488,7 +281,6 @@
     .quick-action-btn .icon {
         font-size: 1.5rem;
         margin-bottom: 0.5rem;
-        color: #6366f1;
     }
 
     .quick-action-btn .label {
@@ -497,7 +289,247 @@
         color: #374151;
     }
 
+    .production-modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .production-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .production-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-icon {
+        width: 56px;
+        height: 56px;
+        background: #fee2e2;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: #ef4444;
+    }
+
+    .card-icon.scheduling {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .card-icon.bed-management {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .card-icon.tracking {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .card-icon.metrics {
+        background: #e0e7ff;
+        color: #6366f1;
+    }
+
+    .card-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .card-content p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .card-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    .status-indicator.active {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-indicator.warning {
+        background: #f59e0b;
+    }
+
+    /* Progress Animation */
+    @keyframes pulse {
+        0% {
+            opacity: 0.6;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        100% {
+            opacity: 0.6;
+            transform: scale(1);
+        }
+    }
+
+    .recent-activity {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        margin-bottom: 2rem;
+    }
+
+    .recent-activity h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        color: #1e293b;
+    }
+
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .item-icon.in-progress {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .item-icon.completed {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .item-content {
+        flex: 1;
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-title {
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .item-time {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+    .item-details {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .item-progress {
+        text-align: right;
+    }
+
+    .percentage {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .time-remaining {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+    .production-chart {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .production-chart h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        color: #1e293b;
+    }
+
+    /* Responsive Design */
     @media (max-width: 768px) {
+        .production-page {
+            padding: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+        }
+
         .production-modules {
             grid-template-columns: 1fr;
         }
@@ -510,18 +542,34 @@
             flex-direction: column;
         }
     }
+
+    @media (max-width: 480px) {
+        .activity-item {
+            flex-direction: column;
+            align-items: start;
+            gap: 1rem;
+        }
+
+        .item-progress {
+            text-align: left;
+            width: 100%;
+        }
+
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 @code {
-    private int ActiveBeds = 12;
-    private int TotalBeds = 20;
+    private int ActiveBeds = 8;
+    private int TotalBeds = 12;
     private int TodaysPieces = 47;
-    private double TodaysVolume = 342.5;
-    private int CompletionRate = 87;
-    private int UpcomingPours = 8;
-    private int ScheduledPours = 24;
-    private int MaintenanceNeeded = 2;
-    private int EfficiencyRate = 92;
+    private decimal TodaysVolume = 325.5m;
+    private int CompletionRate = 92;
+    private int EfficiencyRate = 87;
+    private int ActiveSchedules = 3;
+    private int MaintenanceNeeded = 0;
 
     private List<ProductionItem> RecentProductionItems = new();
     private List<WeeklyData> WeeklyProductionData = new();
@@ -534,18 +582,18 @@
 
     private async Task LoadProductionData()
     {
-        // Simulate loading recent production items
+        // In real implementation, this would load from the API
         RecentProductionItems = new List<ProductionItem>
         {
             new ProductionItem
             {
-                Title = "Beam B-1234 Pour Started",
-                BedName = "Bed 1",
-                Pieces = 5,
-                ProjectName = "Downtown Tower",
+                Title = "Double Tee Pour Started",
+                BedName = "Prestress Bed 3",
+                Pieces = 4,
+                ProjectName = "Tech Campus A",
                 Progress = 35,
-                TimeRemaining = "4.5 hrs",
-                TimeAgo = "10 min ago",
+                TimeRemaining = "5 hrs",
+                TimeAgo = "1 hour ago",
                 StatusClass = "in-progress",
                 Icon = "e-play"
             },
