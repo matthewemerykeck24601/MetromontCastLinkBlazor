@@ -7,6 +7,20 @@
 		<StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
 		<UserSecretsId>8c43dc60-e1b5-4c7b-bb81-0cd6ed7cb810</UserSecretsId>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="Components\Pages\Engineering\**" />
+	  <Compile Remove="Components\Pages\Production\**" />
+	  <Compile Remove="Components\Pages\QualityControl\**" />
+	  <Content Remove="Components\Pages\Engineering\**" />
+	  <Content Remove="Components\Pages\Production\**" />
+	  <Content Remove="Components\Pages\QualityControl\**" />
+	  <EmbeddedResource Remove="Components\Pages\Engineering\**" />
+	  <EmbeddedResource Remove="Components\Pages\Production\**" />
+	  <EmbeddedResource Remove="Components\Pages\QualityControl\**" />
+	  <None Remove="Components\Pages\Engineering\**" />
+	  <None Remove="Components\Pages\Production\**" />
+	  <None Remove="Components\Pages\QualityControl\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.0" />
@@ -39,9 +53,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Components\Pages\Engineering\Components\" />
-		<Folder Include="Components\Pages\Production\Components\" />
-		<Folder Include="Components\Pages\QualityControl\Components\" />
 		<Folder Include="wwwroot\css\" />
 		<Folder Include="wwwroot\data\" />
 	</ItemGroup>

@@ -54,7 +54,8 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "YourDefaultSecretKeyHere1234567890"))
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ??
+            "YourDefaultSecretKeyHere1234567890"))
     };
 });
 
@@ -110,8 +111,12 @@ else
 // Enable HTTPS redirection
 app.UseHttpsRedirection();
 
-// Serve static files
+// IMPORTANT: Configure static files BEFORE UseRouting
+// This ensures embedded static files from NuGet packages are served
 app.UseStaticFiles();
+
+// Enable static files for Blazor WebAssembly
+app.UseBlazorFrameworkFiles();
 
 // Enable routing
 app.UseRouting();
