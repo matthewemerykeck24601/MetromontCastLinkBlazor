@@ -1,451 +1,113 @@
 ﻿@page "/"
 @using MetromontCastLink.Shared.Models
-@using Syncfusion.Blazor.Charts
-@using Syncfusion.Blazor.Buttons
 @using MetromontCastLink.Shared.Services
+@using Syncfusion.Blazor.Buttons
 @inject NavigationManager Navigation
 @inject IACCService ACCService
 
-<PageTitle>Metromont CastLink</PageTitle>
-
-<style>
-    .home-page {
-        padding: 2rem;
-        background: #f5f6fa;
-        min-height: calc(100vh - 60px);
-    }
-
-    .welcome-section {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-
-    .welcome-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 2rem;
-    }
-
-    .welcome-text h1 {
-        margin: 0 0 1rem 0;
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .welcome-text p {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.125rem;
-        color: #64748b;
-        line-height: 1.6;
-    }
-
-    .welcome-stats {
-        display: flex;
-        gap: 2rem;
-    }
-
-    .stat-item {
-        text-align: center;
-    }
-
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #6366f1;
-        margin: 0;
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .dashboard-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .card-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin: 0;
-    }
-
-    .card-icon {
-        width: 40px;
-        height: 40px;
-        background: #f0f9ff;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-    .chart-card {
-        grid-column: span 2;
-    }
-
-    .actions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-top: 1.5rem;
-    }
-
-    .action-card {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: block;
-    }
-
-        .action-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-        }
-
-    .action-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .action-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin: 0 0 0.5rem 0;
-    }
-
-    .action-description {
-        font-size: 0.875rem;
-        opacity: 0.9;
-        margin: 0;
-    }
-
-    .recent-activity {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-
-    .activity-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .activity-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin: 0;
-    }
-
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .activity-item {
-        display: flex;
-        gap: 1rem;
-        padding: 1rem;
-        background: #f8fafc;
-        border-radius: 8px;
-        align-items: center;
-    }
-
-    .activity-icon {
-        width: 40px;
-        height: 40px;
-        background: #e0e7ff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .activity-content {
-        flex: 1;
-    }
-
-    .activity-description {
-        margin: 0 0 0.25rem 0;
-        font-size: 0.875rem;
-        color: #1e293b;
-    }
-
-    .activity-time {
-        margin: 0;
-        font-size: 0.75rem;
-        color: #94a3b8;
-    }
-
-    /* Responsive Design */
-    @@media (max-width: 768px) {
-        .home-page {
-            padding: 1rem;
-        }
-
-        .welcome-content {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .welcome-text h1 {
-            font-size: 2rem;
-        }
-
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .chart-card {
-            grid-column: span 1;
-        }
-
-        .actions-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
+<PageTitle>Metromont El Diablo</PageTitle>
 
 <div class="home-page">
     <div class="welcome-section">
-        <div class="welcome-content">
-            <div class="welcome-text">
-                <h1>Welcome to Metromont CastLink</h1>
-                <p>Your integrated platform for precast concrete production management, quality control, and engineering design.</p>
-                @if (IsAuthenticated)
-                {
-                    <SfButton CssClass="e-primary e-round-corner">
-                        <span class="e-icons e-play"></span> Get Started
-                    </SfButton>
-                }
-                else
-                {
-                    <SfButton CssClass="e-primary e-round-corner" @onclick="ConnectToACC">
-                        <span class="e-icons e-link"></span> Connect to ACC
-                    </SfButton>
-                }
-            </div>
-            <div class="welcome-stats">
-                <div class="stat-item">
-                    <p class="stat-value">@ProjectCount</p>
-                    <p class="stat-label">Active Projects</p>
-                </div>
-                <div class="stat-item">
-                    <p class="stat-value">@ProductionCount</p>
-                    <p class="stat-label">Units Today</p>
-                </div>
-                <div class="stat-item">
-                    <p class="stat-value">@QualityRate%</p>
-                    <p class="stat-label">Quality Rate</p>
-                </div>
-            </div>
-        </div>
+        <h1>Welcome to Metromont El Diablo</h1>
+        <p>Your integrated manufacturing execution system connecting shop floor operations with project management, design development, and quality control.</p>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="dashboard-card chart-card">
-            <div class="card-header">
-                <h3 class="card-title">Weekly Production Overview</h3>
-                <div class="card-icon">📊</div>
+    <div class="modules-grid">
+        <!-- Production Scheduling -->
+        <div class="module-card production-scheduling">
+            <div class="module-icon">
+                <span class="icon">📊</span>
             </div>
-            <SfChart Height="250px">
-                <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category" />
-                <ChartPrimaryYAxis Title="Units Produced" />
-                <ChartSeriesCollection>
-                    <ChartSeries DataSource="@WeeklyProductionData" XName="Day" YName="Production" Type="ChartSeriesType.Column">
-                        <ChartSeriesAnimation Enable="true" Duration="1000" />
-                    </ChartSeries>
-                </ChartSeriesCollection>
-            </SfChart>
+            <h3>Production Scheduling</h3>
+            <p>Plan and schedule production runs, manage capacity, and optimize resource allocation across all casting lines.</p>
+            <div class="module-footer">
+                <span class="status active">Active</span>
+                <span class="availability">Available Now</span>
+            </div>
         </div>
 
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h3 class="card-title">Quick Actions</h3>
-                <div class="card-icon">⚡</div>
+        <!-- Inventory Tracking -->
+        <div class="module-card inventory-tracking">
+            <div class="module-icon">
+                <span class="icon">📦</span>
             </div>
-            <div class="actions-grid">
-                <a href="/quality/bed-report-selection" class="action-card">
-                    <div class="action-icon">📋</div>
-                    <h4 class="action-title">QC Report</h4>
-                    <p class="action-description">Start bed inspection</p>
-                </a>
-                <a href="/engineering/calculator" class="action-card">
-                    <div class="action-icon">🧮</div>
-                    <h4 class="action-title">Design Calc</h4>
-                    <p class="action-description">Engineering tools</p>
-                </a>
-                <a href="/engineering/viewer" class="action-card">
-                    <div class="action-icon">👁️</div>
-                    <h4 class="action-title">3D Viewer</h4>
-                    <p class="action-description">View models</p>
-                </a>
-                <a href="/production/scheduling" class="action-card">
-                    <div class="action-icon">📅</div>
-                    <h4 class="action-title">Schedule</h4>
-                    <p class="action-description">Production planning</p>
-                </a>
+            <h3>Inventory Tracking</h3>
+            <p>Real-time inventory management for raw materials, finished products, and work-in-progress tracking.</p>
+            <div class="module-footer">
+                <span class="status in-development">In Development</span>
+                <span class="availability">Q1 2025</span>
             </div>
         </div>
-    </div>
 
-    <div class="recent-activity">
-        <div class="activity-header">
-            <h3 class="activity-title">Recent Activity</h3>
-            <SfButton CssClass="e-flat">View All</SfButton>
+        <!-- Haul Management -->
+        <div class="module-card haul-management">
+            <div class="module-icon">
+                <span class="icon">🚛</span>
+            </div>
+            <h3>Haul Management</h3>
+            <p>Coordinate transportation, delivery scheduling, and logistics for finished precast elements.</p>
+            <div class="module-footer">
+                <span class="status in-planning">In Planning</span>
+                <span class="availability">Q3 2025</span>
+            </div>
         </div>
-        <div class="activity-list">
-            @if (RecentActivities.Any())
-            {
-                @foreach (var activity in RecentActivities)
-                {
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            @if (activity.Type == "report")
-                            {
-                                <span>📄</span>
-                            }
-                            else if (activity.Type == "calculation")
-                            {
-                                <span>🧮</span>
-                            }
-                            else
-                            {
-                                <span>👁️</span>
-                            }
-                        </div>
-                        <div class="activity-content">
-                            <p class="activity-description">@activity.Description</p>
-                            <p class="activity-time">@activity.TimeAgo</p>
-                        </div>
-                    </div>
-                }
-            }
-            else
-            {
-                <div style="text-align: center; padding: 2rem; color: #94a3b8;">
-                    <p>No recent activity</p>
-                </div>
-            }
+
+        <!-- Quality Control -->
+        <div class="module-card quality-control">
+            <div class="module-icon">
+                <span class="icon">✓</span>
+            </div>
+            <h3>Quality Control</h3>
+            <p>Comprehensive quality management including stressing calculations, testing protocols, and compliance tracking.</p>
+            <div class="module-footer">
+                <span class="status active">Active</span>
+                <span class="availability">Available Now</span>
+            </div>
+        </div>
+
+        <!-- Fab Shop -->
+        <div class="module-card fab-shop">
+            <div class="module-icon">
+                <span class="icon">🔧</span>
+            </div>
+            <h3>Fab Shop</h3>
+            <p>Manage fabrication operations, equipment maintenance, and production line efficiency metrics.</p>
+            <div class="module-footer">
+                <span class="status in-development">In Development</span>
+                <span class="availability">Q2 2025</span>
+            </div>
+        </div>
+
+        <!-- Design Development -->
+        <div class="module-card design-development">
+            <div class="module-icon">
+                <span class="icon">📐</span>
+            </div>
+            <h3>Design Development</h3>
+            <p>Technical drawing management, CAD integration, engineering calculations, and design revision control.</p>
+            <div class="module-footer">
+                <span class="status active">Active</span>
+                <span class="availability">In Development</span>
+            </div>
         </div>
     </div>
 </div>
 
 @code {
-    private bool IsAuthenticated { get; set; }
-    private string UserName { get; set; } = "User";
-    private int ProjectCount { get; set; } = 0;
-    private int ProductionCount { get; set; } = 42;
-    private int QualityRate { get; set; } = 98;
-
-    private List<WeeklyData> WeeklyProductionData = new();
-    private List<ActivityItem> RecentActivities = new();
-
     protected override async Task OnInitializedAsync()
     {
-        await CheckAuthentication();
-        LoadDashboardData();
-    }
-
-    private async Task CheckAuthentication()
-    {
-        try
+        // Check authentication status when page loads
+        var isAuthenticated = await ACCService.IsAuthenticatedAsync();
+        if (!isAuthenticated)
         {
-            IsAuthenticated = await ACCService.IsAuthenticatedAsync();
-            if (IsAuthenticated)
-            {
-                var userProfile = await ACCService.GetUserProfileAsync();
-                UserName = userProfile?.Name ?? "User";
-
-                var projects = await ACCService.GetProjectsAsync();
-                ProjectCount = projects.Count;
-            }
-        }
-        catch
-        {
-            IsAuthenticated = false;
+            // For now, we'll just log this - later we can redirect to signin
+            Console.WriteLine("User not authenticated");
         }
     }
 
-    private void LoadDashboardData()
+    private void NavigateToModule(string route)
     {
-        // Weekly production data
-        WeeklyProductionData = new List<WeeklyData>
-        {
-            new WeeklyData { Day = "Mon", Production = 42 },
-            new WeeklyData { Day = "Tue", Production = 38 },
-            new WeeklyData { Day = "Wed", Production = 45 },
-            new WeeklyData { Day = "Thu", Production = 47 },
-            new WeeklyData { Day = "Fri", Production = 43 },
-            new WeeklyData { Day = "Sat", Production = 32 }
-        };
-
-        // Recent activities
-        RecentActivities = new List<ActivityItem>
-        {
-            new ActivityItem { Type = "report", Description = "QC Report #1247 completed for Bed 3", TimeAgo = "2 hours ago" },
-            new ActivityItem { Type = "calculation", Description = "Beam design calculation saved", TimeAgo = "3 hours ago" },
-            new ActivityItem { Type = "model", Description = "3D model viewed for Project Alpha", TimeAgo = "5 hours ago" }
-        };
-    }
-
-    private async Task ConnectToACC()
-    {
-        await ACCService.InitiateAuthenticationAsync();
-    }
-
-    private void NavigateTo(string path)
-    {
-        Navigation.NavigateTo(path);
-    }
-
-    private class WeeklyData
-    {
-        public string Day { get; set; } = "";
-        public int Production { get; set; }
-    }
-
-    private class ActivityItem
-    {
-        public string Type { get; set; } = "";
-        public string Description { get; set; } = "";
-        public string TimeAgo { get; set; } = "";
+        Navigation.NavigateTo(route);
     }
 }

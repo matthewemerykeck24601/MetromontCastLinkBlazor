@@ -1,109 +1,30 @@
-@inherits LayoutComponentBase @inject NavigationManager Navigation @inject IJSRuntime JSRuntime @inject IACCService ACCService <div class="page"> <header class="main-header"> <div class="header-container"> <div class="header-left"> <div class="logo-section"> <img src="/images/metromont-logo.png" alt="Metromont" class="company-logo" /> <div class="app-title"> <h1>CastLink</h1> <span class="version-badge">v3.0</span> </div> </div> </div> <div class="header-center"> <SfChip> <ChipItems> <ChipItem Text="@($"Project: {
-    CurrentProjectName
-}
-
-")" CssClass="project-chip" / >
-</ChipItems >
-</SfChip >
-</div >
-
-<div class="header-right" >
-<div class="auth-status" >
-@if (IsAuthenticated) {
-    <SfChip> <ChipItems> <ChipItem CssClass="auth-chip-success"> <span class="auth-indicator authenticated"></span> <span>ACC Connected</span> </ChipItem> </ChipItems> </SfChip> <SfButton CssClass="e-flat" IconCss="e-icons e-refresh" @onclick="RefreshData" />
-}
-
-else {
-    <SfChip> <ChipItems> <ChipItem CssClass="auth-chip-warning"> <span class="auth-indicator"></span> <span>Not Connected</span> </ChipItem> </ChipItems> </SfChip> <SfButton CssClass="e-primary" @onclick="InitiateAuth">Connect to ACC</SfButton>
-}
-
-</div >
-<SfButton CssClass="e-flat e-round" IconCss="e-icons e-user" @onclick="ToggleUserMenu" / >
-</div >
-</div >
-</header >
-
-<div class="main-container" >
-<nav class="sidebar @(IsSidebarCollapsed ? "collapsed" : "")" >
-<div class="nav-header" >
-<SfButton CssClass="e-flat e-round" IconCss="e-icons e-menu" @onclick="ToggleSidebar" / >
-</div >
-
-<SfTreeView TValue="MenuItem" @ref="TreeView" CssClass="nav-treeview" >
-<TreeViewFieldsSettings DataSource="@MenuItems" Id="Id" ParentID="ParentId"
-Text="Text" IconCss="IconCss" NavigateUrl="NavigateUrl" HasChildren="HasChild" Expanded="Expanded" / >
-<TreeViewEvents TValue="MenuItem" NodeClicked="OnMenuItemClick" / >
-</SfTreeView >
-</nav >
-
-<main class="content-area" >
-<SfToast @ref="ToastObj" Title="Notification" Icon="e-meeting" >
-<ToastPosition X="Right" Y="Top" / >
-<ToastAnimationSettings >
-<ToastShowAnimationSettings Effect="@ToastEffect.FadeIn" Duration="600" / >
-<ToastHideAnimationSettings Effect="@ToastEffect.FadeOut" Duration="600" / >
-</ToastAnimationSettings >
-</SfToast >
-
-<CascadingValue Value="this" >
-<div class="page-content" >
-@Body
-</div >
-</CascadingValue >
-</main >
-</div >
-</div >
-
-@* User Menu Popup *@
-<SfDialog @ref="UserMenuDialog" Width="300px" ShowCloseIcon="true" IsModal="true"
-Visible="@IsUserMenuVisible" Header="User Profile" >
-<DialogTemplates >
-<Content >
-<div class="user-menu-content" >
-@if (UserProfile != null) {
-    <div class="user-info"> <div class="user-avatar"> <span>@UserProfile.Name.FirstOrDefault()</span> </div> <div class="user-details"> <h4>@UserProfile.Name</h4> <p>@UserProfile.Email</p> <SfChip> <ChipItems> <ChipItem Text="@UserProfile.Role" /> </ChipItems> </SfChip> </div> </div>
-}
-
-<div class="user-actions" >
-<SfButton CssClass="e-flat e-block" @onclick="NavigateToSettings" >
-<span class="e-icons e-settings" > </span > Settings
-</SfButton >
-<SfButton CssClass="e-flat e-block" @onclick="SignOut" >
-<span class="e-icons e-logout" > </span > Sign Out
-</SfButton >
-</div >
-</div >
-</Content >
-</DialogTemplates >
-</SfDialog >
-
-<style >
 .page {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #f5f7fa;
+    background-color: #f8f9fa;
 }
 
 .main-header {
-    background: white;
+    background: #2c3e50;
+    color: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 1000;
-    height: 64px;
 }
 
 .header-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 100%;
-    padding: 0 1rem;
+    height: 70px;
+    padding: 0 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-.header-left, .header-right {
+.header-left {
     display: flex;
     align-items: center;
-    gap: 1rem;
 }
 
 .logo-section {
@@ -112,414 +33,56 @@ Visible="@IsUserMenuVisible" Header="User Profile" >
     gap: 1rem;
 }
 
-.company-logo {
-    height: 40px;
-    width: auto;
+.logo-icon {
+    font-size: 2rem;
 }
 
-.app-title {
+.app-title h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+.header-right {
     display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
+    align-items: center;
+    gap: 1rem;
 }
 
-    .app-title h1 {
-        margin: 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.125rem;
+}
 
-.version-badge {
-    background: #e0f2fe;
-    color: #0369a1;
-    padding: 0.125rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
+.user-name {
     font-weight: 500;
 }
 
-.main-container {
+.user-email {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: #e74c3c;
+    border-radius: 50%;
     display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.sidebar {
-    width: 250px;
-    background: white;
-    box-shadow: 2px 0 4px rgba(0,0,0,0.05);
-    transition: width 0.3s ease;
-    overflow-y: auto;
-}
-
-    .sidebar.collapsed {
-        width: 60px;
-    }
-
-.nav-header {
-    padding: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
 }
 
 .content-area {
     flex: 1;
     overflow-y: auto;
-    background: #f5f7fa;
-}
-
-.page-content {
-    padding: 1.5rem;
-}
-
-.auth-status {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.auth-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #fbbf24;
-    margin-right: 0.5rem;
-}
-
-    .auth-indicator.authenticated {
-        background: #10b981;
-    }
-
-.project-chip .e-chip {
-    background: #f3f4f6;
-    color: #374151;
-}
-
-.auth-chip-success .e-chip {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.auth-chip-warning .e-chip {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.user-menu-content {
-    padding: 1rem;
-}
-
-.user-info {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.user-avatar {
-    width: 48px;
-    height: 48px;
-    background: #6366f1;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.user-details h4 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.user-details p {
-    margin: 0 0 0.5rem 0;
-    color: #6b7280;
-    font-size: 0.875rem;
-}
-
-.user-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        left: -250px;
-        height: 100%;
-        z-index: 999;
-        transition: left 0.3s ease;
-    }
-
-        .sidebar.mobile-open {
-            left: 0;
-        }
-
-    .header-center {
-        display: none;
-    }
-}
-
-</style >
-
-@code {
-    private SfTreeView<MenuItem>? TreeView;
-    private SfToast? ToastObj;
-    private SfDialog? UserMenuDialog;
-    private bool IsAuthenticated
-
-{
-    get;
-    set;
-}
-
-private bool IsSidebarCollapsed {
-    get;
-    set;
-}
-
-private bool IsUserMenuVisible {
-    get;
-    set;
-}
-
-private string CurrentProjectName {
-    get;
-    set;
-}
-
-= "No Project Selected";
-private UserProfile? UserProfile {
-    get;
-    set;
-}
-
-private List<MenuItem > MenuItems = new List<MenuItem > {
-    new MenuItem
-
-{
-    Id = "1", Text = "Dashboard", IconCss = "e-icons e-home", NavigateUrl = "/"
-}
-
-,
-new MenuItem {
-    Id = "2", Text = "Engineering", IconCss = "e-icons e-engineering", HasChild = true, Expanded = true
-}
-
-,
-new MenuItem {
-    Id = "2-1", Text = "Design Calculator", IconCss = "e-icons e-calculator", ParentId = "2", NavigateUrl = "/engineering/calculator"
-}
-
-,
-new MenuItem {
-    Id = "2-2", Text = "Model Viewer", IconCss = "e-icons e-3d-model", ParentId = "2", NavigateUrl = "/engineering/viewer"
-}
-
-,
-new MenuItem {
-    Id = "2-3", Text = "Design Summary", IconCss = "e-icons e-document", ParentId = "2", NavigateUrl = "/engineering/summary"
-}
-
-,
-new MenuItem {
-    Id = "3", Text = "Quality Control", IconCss = "e-icons e-quality", HasChild = true, Expanded = true
-}
-
-,
-new MenuItem {
-    Id = "3-1", Text = "Bed QC Report", IconCss = "e-icons e-report", ParentId = "3", NavigateUrl = "/quality/bed-report"
-}
-
-,
-new MenuItem {
-    Id = "3-2", Text = "Reports List", IconCss = "e-icons e-list", ParentId = "3", NavigateUrl = "/quality/reports"
-}
-
-,
-new MenuItem {
-    Id = "4", Text = "Production", IconCss = "e-icons e-production", HasChild = true
-}
-
-,
-new MenuItem {
-    Id = "4-1", Text = "Scheduling", IconCss = "e-icons e-calendar", ParentId = "4", NavigateUrl = "/production/scheduling"
-}
-
-,
-new MenuItem {
-    Id = "4-2", Text = "Bed Management", IconCss = "e-icons e-settings", ParentId = "4", NavigateUrl = "/production/beds"
-}
-
-}
-
-;
-
-protected override async Task OnInitializedAsync() {
-    await CheckAuthentication();
-    await LoadUserProfile();
-}
-
-private async Task CheckAuthentication() {
-    try
-
-{
-    IsAuthenticated = await ACCService.IsAuthenticatedAsync();
-    if (IsAuthenticated)
-
-{
-    var projectData = await ACCService.GetCurrentProjectAsync();
-    CurrentProjectName = projectData?.Name ?? "No Project Selected";
-}
-
-}
-
-catch (Exception ex) {
-    await ShowNotification("Authentication check failed", "error");
-}
-
-}
-
-private async Task LoadUserProfile() {
-    if (IsAuthenticated)
-
-{
-    UserProfile = await ACCService.GetUserProfileAsync();
-}
-
-}
-
-private void ToggleSidebar() {
-    IsSidebarCollapsed = !IsSidebarCollapsed;
-}
-
-private void ToggleUserMenu() {
-    IsUserMenuVisible = !IsUserMenuVisible;
-}
-
-private void OnMenuItemClick(NodeClickEventArgs args) {
-    var item = args.NodeData as MenuItem;
-    if (!string.IsNullOrEmpty(item?.NavigateUrl))
-
-{
-    Navigation .NavigateTo(item.NavigateUrl);
-}
-
-}
-
-private async Task InitiateAuth() {
-    await ACCService.InitiateAuthenticationAsync();
-}
-
-private async Task RefreshData() {
-    await ShowNotification("Refreshing data...", "info");
-    await CheckAuthentication();
-    await LoadUserProfile();
-}
-
-private void NavigateToSettings() {
-    IsUserMenuVisible = false;
-    Navigation .NavigateTo("/settings");
-}
-
-private async Task SignOut() {
-    await ACCService.SignOutAsync();
-    IsAuthenticated = false;
-    UserProfile = null;
-    CurrentProjectName = "No Project Selected";
-    IsUserMenuVisible = false;
-    Navigation .NavigateTo("/");
-}
-
-public async Task ShowNotification(string message, string type = "info") {
-    if (ToastObj != null)
-
-{
-    var cssClass = type switch
-
-{
-    "success" => "e-toast-success", "error" => "e-toast-danger", "warning" => "e-toast-warning", _ => "e-toast-info"
-}
-
-;
-
-await ToastObj.ShowAsync(new ToastModel { 
-                Content = message, 
-                CssClass = cssClass,
-                Timeout = 3000 
-            });
-}
-}
-
-public class MenuItem {
-    public string Id
-
-{
-    get;
-    set;
-}
-
-= "";
-public string Text {
-    get;
-    set;
-}
-
-= "";
-public string? ParentId {
-    get;
-    set;
-}
-
-public string? IconCss {
-    get;
-    set;
-}
-
-public string? NavigateUrl {
-    get;
-    set;
-}
-
-public bool HasChild {
-    get;
-    set;
-}
-
-public bool Expanded {
-    get;
-    set;
-}
-
-}
-
-public class UserProfile {
-    public string Name
-
-{
-    get;
-    set;
-}
-
-= "";
-public string Email {
-    get;
-    set;
-}
-
-= "";
-public string Role {
-    get;
-    set;
-}
-
-= "";
-}
 }

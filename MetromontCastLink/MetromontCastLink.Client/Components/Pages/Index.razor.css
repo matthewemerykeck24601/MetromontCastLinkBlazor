@@ -1,327 +1,178 @@
-﻿body {
-    
-.home-page {
+﻿.home-page {
+    padding: 3rem 2rem;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 1rem;
 }
 
 .welcome-section {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    color: white;
-    border-radius: 16px;
-    padding: 3rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    text-align: center;
+    margin-bottom: 3rem;
 }
 
-.welcome-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    .welcome-section h1 {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .welcome-section p {
+        font-size: 1.125rem;
+        color: #6c757d;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+.modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 2rem;
 }
 
-.welcome-text h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 2.5rem;
-    font-weight: 700;
-}
-
-.welcome-text p {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.125rem;
-    opacity: 0.9;
-}
-
-.user-greeting {
-    font-size: 1rem;
-    opacity: 0.8;
-    margin-top: 1rem;
-}
-
-.quick-actions {
-    margin-bottom: 2rem;
-}
-
-    .quick-actions h2 {
-        margin: 0 0 1rem 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-.actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-}
-
-.action-card {
+.module-card {
     background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
-    cursor: pointer;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    border-top: 4px solid;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    border: 2px solid transparent;
-}
-
-    .action-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        border-color: #e2e8f0;
-    }
-
-.action-icon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 0.75rem;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: white;
-}
-
-    .action-icon.quality {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    }
-
-    .action-icon.engineering {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    }
-
-    .action-icon.model {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    }
-
-    .action-icon.production {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-.action-card span {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-}
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.dashboard-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-}
-
-    .dashboard-card h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1e293b;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-.chart-card {
-    grid-column: span 2;
-}
-
-.module-list {
+    cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
 }
 
-.module-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    background: #f9fafb;
-    border-radius: 8px;
+    .module-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+/* Module-specific border colors */
+.production-scheduling {
+    border-top-color: #3498db;
 }
 
-.module-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.inventory-tracking {
+    border-top-color: #27ae60;
+}
+
+.haul-management {
+    border-top-color: #f39c12;
+}
+
+.quality-control {
+    border-top-color: #e74c3c;
+}
+
+.fab-shop {
+    border-top-color: #9b59b6;
+}
+
+.design-development {
+    border-top-color: #1abc9c;
 }
 
 .module-icon {
-    width: 40px;
-    height: 40px;
+    width: 60px;
+    height: 60px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
 }
 
-    .module-icon.quality {
-        background: #10b981;
-    }
+.production-scheduling .module-icon {
+    background: #ebf5fb;
+}
 
-    .module-icon.engineering {
-        background: #6366f1;
-    }
+.inventory-tracking .module-icon {
+    background: #e8f8f5;
+}
 
-    .module-icon.production {
-        background: #ef4444;
-    }
+.haul-management .module-icon {
+    background: #fef5e7;
+}
 
-.module-info h4 {
-    margin: 0;
-    font-size: 0.875rem;
+.quality-control .module-icon {
+    background: #fadbd8;
+}
+
+.fab-shop .module-icon {
+    background: #f4ecf7;
+}
+
+.design-development .module-icon {
+    background: #e8f6f3;
+}
+
+.module-card h3 {
+    font-size: 1.5rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
     font-weight: 600;
-    color: #1e293b;
 }
 
-.module-info p {
-    margin: 0;
-    font-size: 0.75rem;
-    color: #6b7280;
+.module-card p {
+    color: #6c757d;
+    line-height: 1.6;
+    flex: 1;
+    margin-bottom: 1.5rem;
 }
 
-.status-active .e-chip {
-    background: #d1fae5;
-    color: #065f46;
-    font-size: 0.75rem;
-}
-
-.status-development .e-chip {
-    background: #fef3c7;
-    color: #92400e;
-    font-size: 0.75rem;
-}
-
-.activity-timeline {
+.module-footer {
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.timeline-item {
-    display: flex;
-    gap: 0.75rem;
-    position: relative;
-}
-
-.timeline-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-top: 0.25rem;
-    flex-shrink: 0;
-}
-
-    .timeline-dot.report {
-        background: #10b981;
-    }
-
-    .timeline-dot.calculation {
-        background: #6366f1;
-    }
-
-    .timeline-dot.model {
-        background: #f59e0b;
-    }
-
-.timeline-content p {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.875rem;
-    color: #1e293b;
-}
-
-.timeline-time {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.no-activity {
-    text-align: center;
-    color: #9ca3af;
-    padding: 2rem;
-}
-
-.features-section {
-    margin-top: 3rem;
-}
-
-    .features-section h2 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-.features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-}
-
-.feature-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-}
-
-.feature-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1rem;
-    background: #f3f4f6;
-    border-radius: 12px;
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    color: #6366f1;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
 }
 
-.feature-card h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #1e293b;
-}
-
-.feature-card p {
-    margin: 0;
+.status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
     font-size: 0.875rem;
-    color: #6b7280;
-    line-height: 1.5;
+    font-weight: 500;
 }
 
+    .status.active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status.in-development {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status.in-planning {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+.availability {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
-    .welcome-content {
-        flex-direction: column;
-        text-align: center;
+    .home-page {
+        padding: 2rem 1rem;
     }
 
-    .dashboard-grid {
+    .welcome-section h1 {
+        font-size: 2rem;
+    }
+
+    .modules-grid {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
 
-    .chart-card {
-        grid-column: span 1;
+    .module-card {
+        padding: 1.5rem;
     }
-
-    .actions-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-</style >
 }
