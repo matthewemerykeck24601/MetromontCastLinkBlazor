@@ -1,0 +1,32 @@
+﻿@* Place this file in: MetromontCastLink.Client/Components/Layout/Footer.razor *@
+
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h3>Metromont El Diablo</h3>
+            <p>Connecting manufacturing excellence with project success through integrated technology solutions.</p>
+        </div>
+        <div class="footer-section">
+            <h3>Quick Links</h3>
+            <p><a href="/quality" @onclick:preventDefault @onclick="@(() => NavigateToModule("/quality"))">Quality Control</a></p>
+            <p><a href="/engineering/calculator" @onclick:preventDefault @onclick="@(() => NavigateToModule("/engineering/calculator"))">Design Development</a></p>
+            <p><a href="/production/scheduling" @onclick:preventDefault @onclick="@(() => NavigateToModule("/production/scheduling"))">Production Scheduling</a></p>
+            <p><a href="/inventory" @onclick:preventDefault @onclick="@(() => NavigateToModule("/inventory"))">Inventory Tracking</a></p>
+        </div>
+        <div class="footer-section">
+            <h3>Support</h3>
+            <p><a href="mailto:support@metromont.com">support@metromont.com</a></p>
+            <p><a href="tel:+1234567890">(123) 456-7890</a></p>
+            <p><a href="https://metromont.com" target="_blank">metromont.com</a></p>
+        </div>
+    </div>
+</footer>
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private void NavigateToModule(string route)
+    {
+        Navigation.NavigateTo(route);
+    }
+}
