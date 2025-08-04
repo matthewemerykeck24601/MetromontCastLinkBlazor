@@ -161,7 +161,7 @@
 
         if (query["code"] != null)
         {
-            await HandleAuthCallback();
+            await HandleAuthCallback(query["code"]!);
         }
         else if (query["error"] != null)
         {
@@ -187,23 +187,33 @@
         }
     }
 
-    private async Task HandleAuthCallback()
+    private async Task HandleAuthCallback(string code)
     {
         try
         {
             IsLoading = true;
             StateHasChanged();
 
-            // The ACCService should handle the callback processing
-            var isAuthenticated = await ACCService.IsAuthenticatedAsync();
-
-            if (isAuthenticated)
+            // Call the HandleCallbackAsync method in ACCService
+            if (ACCService is MetromontCastLink.Client.Services.ACCService clientService)
             {
-                Navigation.NavigateTo("/");
+                await clientService.HandleCallbackAsync(code);
+
+                // Verify authentication was successful
+                var isAuthenticated = await ACCService.IsAuthenticatedAsync();
+                if (isAuthenticated)
+                {
+                    // Navigate to the main page or dashboard
+                    Navigation.NavigateTo("/", forceLoad: true);
+                }
+                else
+                {
+                    ErrorMessage = "Authentication callback failed. Please try again.";
+                }
             }
             else
             {
-                ErrorMessage = "Authentication callback failed. Please try again.";
+                ErrorMessage = "Service configuration error. Please contact support.";
             }
         }
         catch (Exception ex)
