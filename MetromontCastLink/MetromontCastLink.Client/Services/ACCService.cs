@@ -1,14 +1,7 @@
-﻿// MetromontCastLink.Client/Services/ACCService.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Microsoft.JSInterop;
-using MetromontCastLink.Shared.Models;
-using Microsoft.Extensions.Configuration;
+﻿using MetromontCastLink.Shared.Models;
 using MetromontCastLink.Shared.Services;
+using Microsoft.JSInterop;
+using System.Net.Http.Json;
 
 namespace MetromontCastLink.Client.Services
 {
@@ -21,6 +14,7 @@ namespace MetromontCastLink.Client.Services
         private readonly string[] _scopes;
 
         private string? _accessToken;
+        private string? _jwtToken;  // Store the internal JWT token as well
         private DateTime _tokenExpiry;
         private UserProfile? _userProfile;
         private List<ACCProject>? _projects;
@@ -67,6 +61,7 @@ namespace MetromontCastLink.Client.Services
             if (storedToken != null && !IsTokenExpired(storedToken))
             {
                 _accessToken = storedToken.AccessToken;
+                _jwtToken = storedToken.JwtToken;
                 _tokenExpiry = storedToken.ExpiresAt;
                 return true;
             }
@@ -148,7 +143,7 @@ namespace MetromontCastLink.Client.Services
                 tokenRequest.Content = JsonContent.Create(new
                 {
                     code = code,
-                    redirectUri = _callbackUrl  // FIXED: Changed from redirecturi to redirectUri (camelCase)
+                    redirectUri = _callbackUrl
                 });
 
                 Console.WriteLine($"Sending token request with redirectUri: {_callbackUrl}");
@@ -158,24 +153,24 @@ namespace MetromontCastLink.Client.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var tokenData = await response.Content.ReadFromJsonAsync<TokenResponse>();
-                    if (tokenData != null && !string.IsNullOrEmpty(tokenData.AccessToken))
+                    if (tokenData != null && !string.IsNullOrEmpty(tokenData.AutodeskToken))
                     {
-                        _accessToken = tokenData.AccessToken;
+                        _accessToken = tokenData.AutodeskToken;  // Use the Autodesk token
+                        _jwtToken = tokenData.Token;             // Store the JWT token
                         _tokenExpiry = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn);
 
                         Console.WriteLine($"Token exchange successful, expires in {tokenData.ExpiresIn} seconds");
+                        Console.WriteLine($"Autodesk Token received: {!string.IsNullOrEmpty(_accessToken)}");
+                        Console.WriteLine($"JWT Token received: {!string.IsNullOrEmpty(_jwtToken)}");
 
                         // Store token in session storage
                         await StoreTokenAsync(new StoredToken
                         {
-                            AccessToken = tokenData.AccessToken,
+                            AccessToken = _accessToken,
+                            JwtToken = _jwtToken,
                             ExpiresAt = _tokenExpiry,
-                            RefreshToken = tokenData.RefreshToken,
-                            Scope = tokenData.Scope
+                            RefreshToken = tokenData.RefreshToken
                         });
-
-                        // Log scope analysis
-                        LogScopeAnalysis(tokenData.Scope);
 
                         // Notify listeners
                         AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs
@@ -187,6 +182,7 @@ namespace MetromontCastLink.Client.Services
                     else
                     {
                         Console.WriteLine("Token response was successful but no access token received");
+                        Console.WriteLine($"Response data: Token={tokenData?.Token != null}, AutodeskToken={tokenData?.AutodeskToken != null}");
                     }
                 }
                 else
@@ -203,52 +199,30 @@ namespace MetromontCastLink.Client.Services
             }
         }
 
-        private void LogScopeAnalysis(string? scope)
-        {
-            if (string.IsNullOrEmpty(scope))
-            {
-                Console.WriteLine("No scope information received");
-                return;
-            }
-
-            Console.WriteLine($"Granted scopes: {scope}");
-            var grantedScopes = scope.Split(' ');
-            var missingScopes = _scopes.Except(grantedScopes).ToList();
-
-            if (missingScopes.Any())
-            {
-                Console.WriteLine($"Warning: The following requested scopes were not granted: {string.Join(", ", missingScopes)}");
-            }
-        }
-
         public async Task<UserProfile?> GetUserProfileAsync()
         {
-            if (_userProfile != null)
-            {
-                return _userProfile;
-            }
-
-            var token = await GetAccessTokenAsync();
-            if (string.IsNullOrEmpty(token))
-            {
+            if (!await IsAuthenticatedAsync())
                 return null;
-            }
+
+            if (_userProfile != null)
+                return _userProfile;
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/userinfo");
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                // Call the User Info endpoint with the access token
+                var request = new HttpRequestMessage(HttpMethod.Get, "https://developer.api.autodesk.com/userprofile/v1/users/@me");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
 
                 var response = await _httpClient.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    var data = await response.Content.ReadFromJsonAsync<dynamic>();
+                    var userData = await response.Content.ReadFromJsonAsync<dynamic>();
                     _userProfile = new UserProfile
                     {
-                        Id = data.userId?.ToString() ?? "",
-                        Name = $"{data.firstName} {data.lastName}",
-                        Email = data.emailId?.ToString() ?? "",
-                        Role = data.jobTitle?.ToString() ?? ""
+                        Id = userData?.userId?.ToString() ?? "",
+                        Name = userData?.userName?.ToString() ?? "",
+                        Email = userData?.emailId?.ToString() ?? "",
+                        Role = userData?.jobTitle?.ToString() ?? ""  // Map jobTitle to Role
                     };
                 }
             }
@@ -262,20 +236,58 @@ namespace MetromontCastLink.Client.Services
 
         public async Task<List<ACCProject>> GetProjectsAsync()
         {
-            if (_projects != null)
-            {
-                return _projects;
-            }
-
-            var token = await GetAccessTokenAsync();
-            if (string.IsNullOrEmpty(token))
-            {
+            if (!await IsAuthenticatedAsync())
                 return new List<ACCProject>();
+
+            if (_projects != null)
+                return _projects;
+
+            try
+            {
+                // Get hubs first
+                var hubsRequest = new HttpRequestMessage(HttpMethod.Get, "https://developer.api.autodesk.com/project/v1/hubs");
+                hubsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+
+                var hubsResponse = await _httpClient.SendAsync(hubsRequest);
+                if (hubsResponse.IsSuccessStatusCode)
+                {
+                    var hubsData = await hubsResponse.Content.ReadFromJsonAsync<dynamic>();
+                    _projects = new List<ACCProject>();
+
+                    // For each hub, get projects
+                    foreach (var hub in hubsData?.data ?? new List<dynamic>())
+                    {
+                        var hubId = hub?.id?.ToString();
+                        if (string.IsNullOrEmpty(hubId)) continue;
+
+                        var projectsRequest = new HttpRequestMessage(HttpMethod.Get, $"https://developer.api.autodesk.com/project/v1/hubs/{hubId}/projects");
+                        projectsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+
+                        var projectsResponse = await _httpClient.SendAsync(projectsRequest);
+                        if (projectsResponse.IsSuccessStatusCode)
+                        {
+                            var projectsData = await projectsResponse.Content.ReadFromJsonAsync<dynamic>();
+                            foreach (var project in projectsData?.data ?? new List<dynamic>())
+                            {
+                                _projects.Add(new ACCProject
+                                {
+                                    Id = project?.id?.ToString() ?? "",
+                                    Name = project?.attributes?.name?.ToString() ?? "",
+                                    Number = project?.attributes?.scopes?.ToString() ?? "",  // Project number might be in scopes
+                                    Location = "",  // Not typically available in basic project info
+                                    Status = "active"  // Default to active
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting projects: {ex.Message}");
             }
 
-            // TODO: Implement actual project retrieval
-            _projects = new List<ACCProject>();
-            return _projects;
+            return _projects ?? new List<ACCProject>();
         }
 
         public Task<ACCProject?> GetCurrentProjectAsync()
@@ -285,6 +297,7 @@ namespace MetromontCastLink.Client.Services
 
         public Task<bool> SetCurrentProjectAsync(string projectId)
         {
+            // Find the project by ID and set it as current
             _currentProject = _projects?.FirstOrDefault(p => p.Id == projectId);
             return Task.FromResult(_currentProject != null);
         }
@@ -298,6 +311,7 @@ namespace MetromontCastLink.Client.Services
         public async Task SignOutAsync()
         {
             _accessToken = null;
+            _jwtToken = null;
             _tokenExpiry = DateTime.MinValue;
             _userProfile = null;
             _projects = null;
@@ -361,21 +375,22 @@ namespace MetromontCastLink.Client.Services
             return token.ExpiresAt <= DateTime.UtcNow.AddMinutes(-5); // 5 minute buffer
         }
 
-        // Internal classes
+        // Internal classes - Updated to match backend response
         private class StoredToken
         {
             public string AccessToken { get; set; } = string.Empty;
+            public string? JwtToken { get; set; }
             public DateTime ExpiresAt { get; set; }
             public string? RefreshToken { get; set; }
-            public string? Scope { get; set; }
         }
 
         private class TokenResponse
         {
-            public string AccessToken { get; set; } = string.Empty;
+            // These property names must match exactly what the backend sends
+            public string Token { get; set; } = string.Empty;           // Internal JWT token
+            public string AutodeskToken { get; set; } = string.Empty;   // Autodesk access token
             public string? RefreshToken { get; set; }
             public int ExpiresIn { get; set; }
-            public string? Scope { get; set; }
             public string? TokenType { get; set; }
         }
     }
