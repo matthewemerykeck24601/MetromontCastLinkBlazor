@@ -1,0 +1,77 @@
+﻿@page "/test-auth"
+@using MetromontCastLink.Shared.Services
+@inject NavigationManager Navigation
+@inject IACCService ACCService
+
+<PageTitle>Test Authentication</PageTitle>
+
+<div style="padding: 2rem;">
+    <h2>Authentication Test Page</h2>
+
+    <div style="margin: 1rem 0; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem;">
+        <h3>Authentication Status</h3>
+        <p>Is Authenticated: <strong>@IsAuthenticated</strong></p>
+        <p>Last Check: @LastCheck</p>
+        <button @onclick="CheckAuth" style="padding: 0.5rem 1rem;">Check Auth Status</button>
+    </div>
+
+    <div style="margin: 1rem 0; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem;">
+        <h3>Navigation Test</h3>
+        <button @onclick="GoToSignIn" style="padding: 0.5rem 1rem; margin-right: 0.5rem;">Go to Sign In</button>
+        <button @onclick="GoToHome" style="padding: 0.5rem 1rem;">Go to Home</button>
+    </div>
+
+    <div style="margin: 1rem 0; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem;">
+        <h3>Direct Auth Test</h3>
+        <button @onclick="TestDirectAuth" style="padding: 0.5rem 1rem;">Test Direct Authentication</button>
+        @if (!string.IsNullOrEmpty(AuthTestResult))
+        {
+            <p style="margin-top: 0.5rem;">Result: @AuthTestResult</p>
+        }
+    </div>
+</div>
+
+@code {
+    private bool IsAuthenticated;
+    private string LastCheck = "Not checked yet";
+    private string? AuthTestResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuth();
+    }
+
+    private async Task CheckAuth()
+    {
+        IsAuthenticated = await ACCService.IsAuthenticatedAsync();
+        LastCheck = DateTime.Now.ToString("HH:mm:ss");
+        StateHasChanged();
+    }
+
+    private void GoToSignIn()
+    {
+        Navigation.NavigateTo("/signin-acc");
+    }
+
+    private void GoToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task TestDirectAuth()
+    {
+        try
+        {
+            AuthTestResult = "Starting authentication...";
+            StateHasChanged();
+
+            await ACCService.InitiateAuthenticationAsync();
+            AuthTestResult = "Authentication initiated - you should be redirected";
+        }
+        catch (Exception ex)
+        {
+            AuthTestResult = $"Error: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+}

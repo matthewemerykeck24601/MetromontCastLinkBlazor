@@ -31,6 +31,18 @@ namespace MetromontCastLink.Controllers
             _logger = logger;
         }
 
+        [HttpGet("test")]
+        public IActionResult TestAuth()
+        {
+            return Ok(new
+            {
+                status = "Auth controller is working",
+                clientIdConfigured = !string.IsNullOrEmpty(_configuration["ACC:ClientId"]),
+                clientSecretConfigured = !string.IsNullOrEmpty(_configuration["ACC:ClientSecret"]),
+                timestamp = DateTime.UtcNow
+            });
+        }
+
         [HttpPost("callback")]
         public async Task<IActionResult> ExchangeCodeForToken([FromBody] TokenExchangeRequest request)
         {
@@ -39,17 +51,27 @@ namespace MetromontCastLink.Controllers
                 var clientId = _configuration["ACC:ClientId"];
                 var clientSecret = _configuration["ACC:ClientSecret"];
 
-                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                if (string.IsNullOrEmpty(clientId))
                 {
-                    _logger.LogError("Missing ACC CLIENT_ID or CLIENT_SECRET");
+                    _logger.LogError("ACC ClientId is not configured");
                     return StatusCode(500, new
                     {
                         error = "Server configuration error",
-                        details = "Missing CLIENT_ID or CLIENT_SECRET"
+                        details = "ACC ClientId is not configured. Please check your configuration."
                     });
                 }
 
-                _logger.LogInformation("Exchanging code for token...");
+                if (string.IsNullOrEmpty(clientSecret))
+                {
+                    _logger.LogError("ACC ClientSecret is not configured");
+                    return StatusCode(500, new
+                    {
+                        error = "Server configuration error",
+                        details = "ACC ClientSecret is not configured. Please add it to user secrets."
+                    });
+                }
+
+                _logger.LogInformation($"Exchanging code for token - ClientId: {clientId[..8]}...");
 
                 // Create the token request
                 var tokenRequestBody = new FormUrlEncodedContent(new[]
@@ -62,6 +84,8 @@ namespace MetromontCastLink.Controllers
                 });
 
                 var httpClient = _httpClientFactory.CreateClient();
+                httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+
                 var response = await httpClient.PostAsync(
                     "https://developer.api.autodesk.com/authentication/v2/token",
                     tokenRequestBody);
@@ -72,11 +96,32 @@ namespace MetromontCastLink.Controllers
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError($"Token exchange failed: {responseContent}");
-                    return StatusCode((int)response.StatusCode, new
+
+                    // Parse error response for better error messages
+                    try
                     {
-                        error = "Token exchange failed",
-                        details = responseContent
-                    });
+                        var errorData = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                        var errorMessage = errorData.GetProperty("error").GetString();
+                        var errorDescription = errorData.TryGetProperty("error_description", out var desc)
+                            ? desc.GetString() : "No additional details provided";
+
+                        return StatusCode((int)response.StatusCode, new
+                        {
+                            error = errorMessage,
+                            details = errorDescription,
+                            hint = errorMessage == "invalid_client"
+                                ? "Check your ACC ClientId and ClientSecret in user secrets"
+                                : "Check your authorization code and redirect URI"
+                        });
+                    }
+                    catch
+                    {
+                        return StatusCode((int)response.StatusCode, new
+                        {
+                            error = "Token exchange failed",
+                            details = responseContent
+                        });
+                    }
                 }
 
                 var tokenData = JsonSerializer.Deserialize<TokenResponse>(responseContent,
@@ -84,13 +129,22 @@ namespace MetromontCastLink.Controllers
 
                 if (tokenData?.AccessToken == null)
                 {
-                    return BadRequest(new { error = "Invalid token response" });
+                    return BadRequest(new { error = "Invalid token response - no access token received" });
                 }
+
+                _logger.LogInformation("Successfully obtained ACC access token");
 
                 // Get user profile from ACC
                 var userProfile = await GetUserProfile(tokenData.AccessToken);
 
                 // Generate internal JWT token
+                var jwtKey = _configuration["Jwt:Key"];
+                if (string.IsNullOrEmpty(jwtKey))
+                {
+                    _logger.LogError("JWT Key is not configured");
+                    return StatusCode(500, new { error = "JWT signing key not configured" });
+                }
+
                 var jwtToken = GenerateJwtToken(
                     userProfile?.UserId ?? "unknown",
                     userProfile?.Email ?? "unknown@example.com",
@@ -108,10 +162,23 @@ namespace MetromontCastLink.Controllers
                     UserProfile = userProfile
                 });
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Network error during token exchange");
+                return StatusCode(503, new
+                {
+                    error = "Network error",
+                    details = "Unable to reach Autodesk authentication service. Check your internet connection."
+                });
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during token exchange");
-                return StatusCode(500, new { error = "Internal server error" });
+                _logger.LogError(ex, "Unexpected error during token exchange");
+                return StatusCode(500, new
+                {
+                    error = "Internal server error",
+                    details = ex.Message
+                });
             }
         }
 
@@ -122,6 +189,11 @@ namespace MetromontCastLink.Controllers
             {
                 var clientId = _configuration["ACC:ClientId"];
                 var clientSecret = _configuration["ACC:ClientSecret"];
+
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                {
+                    return StatusCode(500, new { error = "Server configuration error" });
+                }
 
                 var refreshRequestBody = new FormUrlEncodedContent(new[]
                 {
@@ -138,6 +210,8 @@ namespace MetromontCastLink.Controllers
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Token refresh failed: {errorContent}");
                     return StatusCode((int)response.StatusCode, new { error = "Token refresh failed" });
                 }
 
@@ -193,8 +267,14 @@ namespace MetromontCastLink.Controllers
                         UserId = data.GetProperty("userId").GetString() ?? "",
                         Name = $"{data.GetProperty("firstName").GetString()} {data.GetProperty("lastName").GetString()}",
                         Email = data.GetProperty("emailId").GetString() ?? "",
-                        ProfileImage = data.GetProperty("profileImages").GetProperty("sizeX80").GetString()
+                        ProfileImage = data.TryGetProperty("profileImages", out var images) &&
+                                     images.TryGetProperty("sizeX80", out var img)
+                                     ? img.GetString() : null
                     };
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to get user profile: {response.StatusCode}");
                 }
             }
             catch (Exception ex)
@@ -219,8 +299,8 @@ namespace MetromontCastLink.Controllers
                     new Claim("authenticated_at", DateTime.UtcNow.ToString("O"))
                 }),
                 Expires = DateTime.UtcNow.AddDays(1),
-                Issuer = _configuration["Jwt:Issuer"],
-                Audience = _configuration["Jwt:Audience"],
+                Issuer = _configuration["Jwt:Issuer"] ?? "MetromontCastLink",
+                Audience = _configuration["Jwt:Audience"] ?? "MetromontCastLinkUsers",
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)

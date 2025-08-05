@@ -12,6 +12,12 @@ Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mzk3MzE1OEAzMzMw
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add user secrets in Development
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddUserSecrets<Program>();
+}
+
 // Add services to the container
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
@@ -26,7 +32,7 @@ builder.Services.AddControllers();
 // Add memory cache for token storage
 builder.Services.AddMemoryCache();
 
-// Add HttpClient
+// Add HttpClient factory
 builder.Services.AddHttpClient();
 
 // Configure HttpClient for Forge/ACC APIs
@@ -37,7 +43,13 @@ builder.Services.AddHttpClient("ForgeAPI", client =>
     client.DefaultRequestHeaders.Add("User-Agent", "MetromontCastLink/3.0");
 });
 
-// Add authentication
+// Configure JWT authentication
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT Key is not configured. Please set it in user secrets or environment variables.");
+}
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -51,11 +63,27 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ??
-            "YourDefaultSecretKeyHere1234567890"))
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "MetromontCastLink",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "MetromontCastLinkUsers",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.Zero
+    };
+
+    // Support JWT in query string for SignalR
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -75,7 +103,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "https://developer.api.autodesk.com",
                 "https://localhost:7050",
-                "https://localhost:5001"
+                "https://localhost:5001",
+                "http://localhost:5186"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -95,6 +124,15 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // Build the app
 var app = builder.Build();
+
+// Log configuration status (for debugging)
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("=== Configuration Status ===");
+logger.LogInformation($"Environment: {app.Environment.EnvironmentName}");
+logger.LogInformation($"ACC ClientId configured: {!string.IsNullOrEmpty(builder.Configuration["ACC:ClientId"])}");
+logger.LogInformation($"ACC ClientSecret configured: {!string.IsNullOrEmpty(builder.Configuration["ACC:ClientSecret"])}");
+logger.LogInformation($"JWT Key configured: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
+logger.LogInformation("===========================");
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -144,16 +182,25 @@ app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 // Optional: Add health check endpoint
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "healthy",
+    timestamp = DateTime.UtcNow,
+    environment = app.Environment.EnvironmentName
+}));
 
 // Optional: Add SignalR hubs if using real-time features
 // app.MapHub<NotificationHub>("/hubs/notifications");
 
-// Log startup information
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Metromont CastLink v3.0 starting...");
-logger.LogInformation($"Environment: {app.Environment.EnvironmentName}");
-logger.LogInformation($"URLs: {string.Join(", ", builder.Configuration["urls"]?.Split(';') ?? new[] { "Not configured" })}");
-
 // Run the application
-app.Run();
+try
+{
+    logger.LogInformation("Metromont CastLink v3.0 starting...");
+    logger.LogInformation($"URLs: {string.Join(", ", builder.Configuration["urls"]?.Split(';') ?? new[] { "https://localhost:7050" })}");
+    app.Run();
+}
+catch (Exception ex)
+{
+    logger.LogError(ex, "Application failed to start");
+    throw;
+}

@@ -1,9 +1,12 @@
 ﻿@page "/signin-acc"
 @using System.Web
 @using MetromontCastLink.Shared.Services
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Spinner
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject IACCService ACCService
+@inject HttpClient HttpClient
 
 <PageTitle>Sign in to Autodesk Construction Cloud</PageTitle>
 
@@ -41,6 +44,14 @@
                     <p class="signin-note">
                         You'll be redirected to Autodesk's secure sign-in page
                     </p>
+
+                    <!-- Debug info -->
+                    <div style="margin-top: 2rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; text-align: left; font-size: 0.875rem;">
+                        <p><strong>Debug Info:</strong></p>
+                        <p>Page loaded: @DateTime.Now.ToString("HH:mm:ss")</p>
+                        <p>Button clicks: @ButtonClickCount</p>
+                        <button @onclick="TestButtonClick" style="padding: 0.5rem 1rem; margin-top: 0.5rem;">Test Basic Button</button>
+                    </div>
                 </div>
             }
         </div>
@@ -144,11 +155,16 @@
 @code {
     private bool IsLoading;
     private string? ErrorMessage;
+    private int ButtonClickCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine("SigninACC - OnInitializedAsync called");
+
         // Check if already authenticated
         var isAuthenticated = await ACCService.IsAuthenticatedAsync();
+        Console.WriteLine($"SigninACC - IsAuthenticated: {isAuthenticated}");
+
         if (isAuthenticated)
         {
             Navigation.NavigateTo("/");
@@ -161,26 +177,60 @@
 
         if (query["code"] != null)
         {
+            Console.WriteLine("SigninACC - Authorization code found in URL");
             await HandleAuthCallback(query["code"]!);
         }
         else if (query["error"] != null)
         {
             ErrorMessage = $"Authentication failed: {query["error_description"] ?? query["error"]}";
+            Console.WriteLine($"SigninACC - Error in URL: {ErrorMessage}");
         }
+    }
+
+    private void TestButtonClick()
+    {
+        ButtonClickCount++;
+        Console.WriteLine($"Test button clicked {ButtonClickCount} times");
+        StateHasChanged();
     }
 
     private async Task SignInToACC()
     {
         try
         {
+            ButtonClickCount++;
+            Console.WriteLine($"SigninACC - SignInToACC button clicked (count: {ButtonClickCount})");
             IsLoading = true;
             ErrorMessage = null;
             StateHasChanged();
 
+            // First test if the API is reachable
+            try
+            {
+                var testResponse = await HttpClient.GetAsync("/api/auth/test");
+
+                if (testResponse.IsSuccessStatusCode)
+                {
+                    var testData = await testResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"SigninACC - API test response: {testData}");
+                }
+                else
+                {
+                    Console.WriteLine($"SigninACC - API test failed: {testResponse.StatusCode}");
+                }
+            }
+            catch (Exception testEx)
+            {
+                Console.WriteLine($"SigninACC - API test error: {testEx.Message}");
+            }
+
+            Console.WriteLine("SigninACC - Calling InitiateAuthenticationAsync");
             await ACCService.InitiateAuthenticationAsync();
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"SigninACC - Error in SignInToACC: {ex.Message}");
+            Console.WriteLine($"SigninACC - Stack trace: {ex.StackTrace}");
             ErrorMessage = $"Failed to initiate sign-in: {ex.Message}";
             IsLoading = false;
             StateHasChanged();
@@ -191,6 +241,7 @@
     {
         try
         {
+            Console.WriteLine($"SigninACC - HandleAuthCallback called with code: {code[..10]}...");
             IsLoading = true;
             StateHasChanged();
 
@@ -201,6 +252,8 @@
 
                 // Verify authentication was successful
                 var isAuthenticated = await ACCService.IsAuthenticatedAsync();
+                Console.WriteLine($"SigninACC - After callback, IsAuthenticated: {isAuthenticated}");
+
                 if (isAuthenticated)
                 {
                     // Navigate to the main page or dashboard
@@ -218,6 +271,7 @@
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"SigninACC - Error in HandleAuthCallback: {ex.Message}");
             ErrorMessage = $"Authentication failed: {ex.Message}";
         }
         finally

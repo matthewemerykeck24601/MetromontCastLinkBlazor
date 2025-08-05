@@ -2,7 +2,9 @@
 @using MetromontCastLink.Shared.Models
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Popups
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject IACCService ACCService
@@ -20,16 +22,45 @@
                 </div>
             </div>
             <div class="header-right">
-                <div class="user-info">
-                    <span class="user-name">Matt Keck</span>
-                    <span class="user-email">mkeck@metromont.com</span>
-                </div>
-                <div class="user-avatar">MK</div>
+                @if (IsAuthenticated && CurrentUser != null)
+                {
+                    <div class="user-menu" @onclick="ToggleUserMenu">
+                        <div class="user-info">
+                            <span class="user-name">@CurrentUser.Name</span>
+                            <span class="user-email">@CurrentUser.Email</span>
+                        </div>
+                        <div class="user-avatar">@GetUserInitials()</div>
+                    </div>
+                    @if (ShowUserMenu)
+                    {
+                        <div class="user-dropdown">
+                            <div class="dropdown-item" @onclick="GoToProfile">
+                                <span class="dropdown-icon">👤</span>
+                                <span>Profile</span>
+                            </div>
+                            <div class="dropdown-item" @onclick="GoToSettings">
+                                <span class="dropdown-icon">⚙️</span>
+                                <span>Settings</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item" @onclick="SignOut">
+                                <span class="dropdown-icon">🚪</span>
+                                <span>Sign Out</span>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <SfButton CssClass="e-primary" @onclick="SignIn">
+                        Sign in to ACC
+                    </SfButton>
+                }
             </div>
         </div>
     </header>
 
-    <main class="content-area">
+    <main class="content-area" @onclick="CloseUserMenu">
         <SfToast @ref="ToastObj" Title="Notification" Icon="e-meeting">
             <ToastPosition X="Right" Y="Top" />
             <ToastAnimationSettings>
@@ -45,8 +76,153 @@
     <Footer />
 </div>
 
+<style>
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        transition: background-color 0.2s;
+        position: relative;
+    }
+
+        .user-menu:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+    .user-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 0.5rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        z-index: 1000;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+        .dropdown-item:hover {
+            background-color: #f8fafc;
+        }
+
+    .dropdown-icon {
+        font-size: 1.125rem;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background-color: #e2e8f0;
+        margin: 0.25rem 0;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+</style>
+
 @code {
     private SfToast? ToastObj;
+    private bool IsAuthenticated;
+    private UserProfile? CurrentUser;
+    private bool ShowUserMenu;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to authentication state changes
+        ACCService.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        // Check initial authentication state
+        await CheckAuthenticationState();
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        IsAuthenticated = await ACCService.IsAuthenticatedAsync();
+        if (IsAuthenticated)
+        {
+            CurrentUser = await ACCService.GetUserProfileAsync();
+        }
+        StateHasChanged();
+    }
+
+    private void OnAuthenticationStateChanged(object? sender, AuthenticationStateChangedEventArgs e)
+    {
+        InvokeAsync(async () =>
+        {
+            await CheckAuthenticationState();
+        });
+    }
+
+    private string GetUserInitials()
+    {
+        if (CurrentUser == null || string.IsNullOrEmpty(CurrentUser.Name))
+            return "??";
+
+        var parts = CurrentUser.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        else if (parts.Length == 1)
+            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+
+        return "??";
+    }
+
+    private void ToggleUserMenu()
+    {
+        ShowUserMenu = !ShowUserMenu;
+    }
+
+    private void CloseUserMenu()
+    {
+        ShowUserMenu = false;
+    }
+
+    private void GoToProfile()
+    {
+        ShowUserMenu = false;
+        Navigation.NavigateTo("/profile");
+    }
+
+    private void GoToSettings()
+    {
+        ShowUserMenu = false;
+        Navigation.NavigateTo("/settings");
+    }
+
+    private async Task SignIn()
+    {
+        Navigation.NavigateTo("/signin-acc");
+    }
+
+    private async Task SignOut()
+    {
+        ShowUserMenu = false;
+        await ACCService.SignOutAsync();
+        Navigation.NavigateTo("/");
+        await ShowNotification("You have been signed out", "info");
+    }
 
     public async Task ShowNotification(string message, string type = "info")
     {
@@ -67,5 +243,10 @@
                 Timeout = 3000
             });
         }
+    }
+
+    public void Dispose()
+    {
+        ACCService.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 }
