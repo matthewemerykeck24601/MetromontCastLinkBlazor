@@ -1,17 +1,16 @@
-﻿@namespace MetromontCastLink.Components
-@using MetromontCastLink.Client.Services
+﻿@using MetromontCastLink.Client.Services
+@using MetromontCastLink.Client.Components.Layout
 @using Microsoft.AspNetCore.Components.Authorization
 @using MetromontCastLink.Shared.Services
 
-<Router AppAssembly="typeof(Program).Assembly"
-        AdditionalAssemblies="new[] { typeof(MetromontCastLink.Client._Imports).Assembly }">
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MetromontCastLink.Client.Components.Layout.MainLayout)" />
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
         <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="typeof(MetromontCastLink.Client.Components.Layout.MainLayout)">
+        <LayoutView Layout="typeof(MainLayout)">
             <div class="not-found-container">
                 <h1>404</h1>
                 <h2>Page Not Found</h2>

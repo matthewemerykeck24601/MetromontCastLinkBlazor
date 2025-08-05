@@ -48,6 +48,32 @@ namespace MetromontCastLink.Controllers
         {
             try
             {
+                // Add this debug code at the beginning of ExchangeCodeForToken method:
+
+                // Debug configuration sources
+                _logger.LogInformation("=== Configuration Debug ===");
+                _logger.LogInformation($"Environment: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
+
+                // Check all configuration sources
+                foreach (var provider in (_configuration as IConfigurationRoot)?.Providers ?? Enumerable.Empty<IConfigurationProvider>())
+                {
+                    _logger.LogInformation($"Provider: {provider.GetType().Name}");
+                    if (provider.TryGet("ACC:ClientSecret", out var secretValue))
+                    {
+                        _logger.LogInformation($"Found ClientSecret in {provider.GetType().Name}: {(string.IsNullOrEmpty(secretValue) ? "EMPTY" : "SET")}");
+                    }
+                }
+
+                // Try different ways to get the secret
+                var secret1 = _configuration["ACC:ClientSecret"];
+                var secret2 = _configuration.GetSection("ACC")["ClientSecret"];
+                var secret3 = _configuration.GetValue<string>("ACC:ClientSecret");
+
+                _logger.LogInformation($"Method 1 - Direct key: {(string.IsNullOrEmpty(secret1) ? "NULL/EMPTY" : "HAS VALUE")}");
+                _logger.LogInformation($"Method 2 - Section: {(string.IsNullOrEmpty(secret2) ? "NULL/EMPTY" : "HAS VALUE")}");
+                _logger.LogInformation($"Method 3 - GetValue: {(string.IsNullOrEmpty(secret3) ? "NULL/EMPTY" : "HAS VALUE")}");
+                _logger.LogInformation("=== End Configuration Debug ===");
+
                 var clientId = _configuration["ACC:ClientId"];
                 var clientSecret = _configuration["ACC:ClientSecret"];
 
