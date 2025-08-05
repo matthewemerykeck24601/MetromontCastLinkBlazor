@@ -141,15 +141,20 @@ namespace MetromontCastLink.Client.Services
         {
             try
             {
+                Console.WriteLine($"HandleCallbackAsync called with code: {code}");
+
                 // Exchange the authorization code for an access token
                 var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/callback");
                 tokenRequest.Content = JsonContent.Create(new
                 {
                     code = code,
-                    redirect_uri = _callbackUrl
+                    redirectUri = _callbackUrl  // FIXED: Changed from redirecturi to redirectUri (camelCase)
                 });
 
+                Console.WriteLine($"Sending token request with redirectUri: {_callbackUrl}");
+
                 var response = await _httpClient.SendAsync(tokenRequest);
+
                 if (response.IsSuccessStatusCode)
                 {
                     var tokenData = await response.Content.ReadFromJsonAsync<TokenResponse>();
@@ -157,6 +162,8 @@ namespace MetromontCastLink.Client.Services
                     {
                         _accessToken = tokenData.AccessToken;
                         _tokenExpiry = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn);
+
+                        Console.WriteLine($"Token exchange successful, expires in {tokenData.ExpiresIn} seconds");
 
                         // Store token in session storage
                         await StoreTokenAsync(new StoredToken
@@ -177,34 +184,43 @@ namespace MetromontCastLink.Client.Services
                             UserId = null
                         });
                     }
+                    else
+                    {
+                        Console.WriteLine("Token response was successful but no access token received");
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Token exchange failed: {response.StatusCode} - {errorContent}");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error handling callback: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
             }
         }
 
-        private void LogScopeAnalysis(string? grantedScopes)
+        private void LogScopeAnalysis(string? scope)
         {
-            if (string.IsNullOrEmpty(grantedScopes)) return;
+            if (string.IsNullOrEmpty(scope))
+            {
+                Console.WriteLine("No scope information received");
+                return;
+            }
 
-            var hasDataWrite = grantedScopes.Contains("data:write");
-            var hasDataCreate = grantedScopes.Contains("data:create");
-            var hasBucketCreate = grantedScopes.Contains("bucket:create");
-            var hasBucketRead = grantedScopes.Contains("bucket:read");
-            var hasBucketUpdate = grantedScopes.Contains("bucket:update");
-            var hasBucketDelete = grantedScopes.Contains("bucket:delete");
+            Console.WriteLine($"Granted scopes: {scope}");
+            var grantedScopes = scope.Split(' ');
+            var missingScopes = _scopes.Except(grantedScopes).ToList();
 
-            Console.WriteLine("=== SCOPE ANALYSIS ===");
-            Console.WriteLine($"Granted scopes: {grantedScopes}");
-            Console.WriteLine($"Data permissions: Write={hasDataWrite}, Create={hasDataCreate}");
-            Console.WriteLine($"Bucket permissions: Create={hasBucketCreate}, Read={hasBucketRead}, Update={hasBucketUpdate}, Delete={hasBucketDelete}");
-            Console.WriteLine($"Full bucket permissions: {hasBucketCreate && hasBucketRead && hasBucketUpdate && hasBucketDelete}");
-            Console.WriteLine("======================");
+            if (missingScopes.Any())
+            {
+                Console.WriteLine($"Warning: The following requested scopes were not granted: {string.Join(", ", missingScopes)}");
+            }
         }
 
-        // Rest of the implementation...
         public async Task<UserProfile?> GetUserProfileAsync()
         {
             if (_userProfile != null)
@@ -220,7 +236,7 @@ namespace MetromontCastLink.Client.Services
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, "https://developer.api.autodesk.com/userprofile/v1/users/@me");
+                var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/userinfo");
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
                 var response = await _httpClient.SendAsync(request);
@@ -360,6 +376,7 @@ namespace MetromontCastLink.Client.Services
             public string? RefreshToken { get; set; }
             public int ExpiresIn { get; set; }
             public string? Scope { get; set; }
+            public string? TokenType { get; set; }
         }
     }
 }

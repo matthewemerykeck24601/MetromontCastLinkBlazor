@@ -34,11 +34,26 @@ namespace MetromontCastLink.Controllers
         [HttpGet("test")]
         public IActionResult TestAuth()
         {
+            // Enhanced test endpoint with more debugging info
+            var configRoot = _configuration as IConfigurationRoot;
+            var providers = new List<string>();
+
+            if (configRoot != null)
+            {
+                foreach (var provider in configRoot.Providers)
+                {
+                    providers.Add(provider.GetType().Name);
+                }
+            }
+
             return Ok(new
             {
                 status = "Auth controller is working",
+                environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
                 clientIdConfigured = !string.IsNullOrEmpty(_configuration["ACC:ClientId"]),
                 clientSecretConfigured = !string.IsNullOrEmpty(_configuration["ACC:ClientSecret"]),
+                jwtKeyConfigured = !string.IsNullOrEmpty(_configuration["Jwt:Key"]),
+                configurationProviders = providers,
                 timestamp = DateTime.UtcNow
             });
         }
@@ -48,35 +63,56 @@ namespace MetromontCastLink.Controllers
         {
             try
             {
-                // Add this debug code at the beginning of ExchangeCodeForToken method:
-
-                // Debug configuration sources
+                // Enhanced debug configuration
                 _logger.LogInformation("=== Configuration Debug ===");
                 _logger.LogInformation($"Environment: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
+                _logger.LogInformation($"UserProfile: {Environment.GetEnvironmentVariable("USERPROFILE")}");
+                _logger.LogInformation($"ContentRoot: {Directory.GetCurrentDirectory()}");
 
                 // Check all configuration sources
-                foreach (var provider in (_configuration as IConfigurationRoot)?.Providers ?? Enumerable.Empty<IConfigurationProvider>())
+                var configRoot = _configuration as IConfigurationRoot;
+                if (configRoot != null)
                 {
-                    _logger.LogInformation($"Provider: {provider.GetType().Name}");
-                    if (provider.TryGet("ACC:ClientSecret", out var secretValue))
+                    _logger.LogInformation("Configuration Providers:");
+                    foreach (var provider in configRoot.Providers)
                     {
-                        _logger.LogInformation($"Found ClientSecret in {provider.GetType().Name}: {(string.IsNullOrEmpty(secretValue) ? "EMPTY" : "SET")}");
+                        _logger.LogInformation($"  - {provider.GetType().Name}");
+
+                        // Check if this provider has our keys
+                        if (provider.TryGet("ACC:ClientId", out var clientIdValue))
+                        {
+                            _logger.LogInformation($"    Found ACC:ClientId in {provider.GetType().Name}");
+                        }
+                        if (provider.TryGet("ACC:ClientSecret", out var secretValue))
+                        {
+                            _logger.LogInformation($"    Found ACC:ClientSecret in {provider.GetType().Name}: {(string.IsNullOrEmpty(secretValue) ? "EMPTY" : "SET (length: " + secretValue.Length + ")")}");
+                        }
+                        if (provider.TryGet("Jwt:Key", out var jwtValue))
+                        {
+                            _logger.LogInformation($"    Found Jwt:Key in {provider.GetType().Name}");
+                        }
                     }
                 }
 
-                // Try different ways to get the secret
-                var secret1 = _configuration["ACC:ClientSecret"];
-                var secret2 = _configuration.GetSection("ACC")["ClientSecret"];
-                var secret3 = _configuration.GetValue<string>("ACC:ClientSecret");
-
-                _logger.LogInformation($"Method 1 - Direct key: {(string.IsNullOrEmpty(secret1) ? "NULL/EMPTY" : "HAS VALUE")}");
-                _logger.LogInformation($"Method 2 - Section: {(string.IsNullOrEmpty(secret2) ? "NULL/EMPTY" : "HAS VALUE")}");
-                _logger.LogInformation($"Method 3 - GetValue: {(string.IsNullOrEmpty(secret3) ? "NULL/EMPTY" : "HAS VALUE")}");
-                _logger.LogInformation("=== End Configuration Debug ===");
-
+                // Try different ways to get the configuration values
                 var clientId = _configuration["ACC:ClientId"];
                 var clientSecret = _configuration["ACC:ClientSecret"];
+                var jwtKey = _configuration["Jwt:Key"];
 
+                _logger.LogInformation($"ACC:ClientId: {(string.IsNullOrEmpty(clientId) ? "NOT FOUND" : "Found (starts with: " + clientId.Substring(0, Math.Min(8, clientId.Length)) + "...)")}");
+                _logger.LogInformation($"ACC:ClientSecret: {(string.IsNullOrEmpty(clientSecret) ? "NOT FOUND" : "Found (length: " + clientSecret.Length + ")")}");
+                _logger.LogInformation($"Jwt:Key: {(string.IsNullOrEmpty(jwtKey) ? "NOT FOUND" : "Found")}");
+
+                // Check user secrets specifically
+                var userSecretsId = configRoot?.GetDebugView();
+                if (!string.IsNullOrEmpty(userSecretsId) && userSecretsId.Contains("Secrets"))
+                {
+                    _logger.LogInformation("User Secrets appear to be configured");
+                }
+
+                _logger.LogInformation("=== End Configuration Debug ===");
+
+                // Validate required configuration
                 if (string.IsNullOrEmpty(clientId))
                 {
                     _logger.LogError("ACC ClientId is not configured");
@@ -93,7 +129,7 @@ namespace MetromontCastLink.Controllers
                     return StatusCode(500, new
                     {
                         error = "Server configuration error",
-                        details = "ACC ClientSecret is not configured. Please add it to user secrets."
+                        details = "ACC ClientSecret is not configured. Please add it to user secrets using: dotnet user-secrets set \"ACC:ClientSecret\" \"your-secret-here\""
                     });
                 }
 
@@ -136,8 +172,8 @@ namespace MetromontCastLink.Controllers
                             error = errorMessage,
                             details = errorDescription,
                             hint = errorMessage == "invalid_client"
-                                ? "Check your ACC ClientId and ClientSecret in user secrets"
-                                : "Check your authorization code and redirect URI"
+                                ? "Check that your ACC app credentials are correct and the app is approved"
+                                : "Check the authorization code and redirect URI"
                         });
                     }
                     catch
@@ -150,60 +186,36 @@ namespace MetromontCastLink.Controllers
                     }
                 }
 
-                var tokenData = JsonSerializer.Deserialize<TokenResponse>(responseContent,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (tokenData?.AccessToken == null)
+                // Parse the successful response
+                var tokenData = JsonSerializer.Deserialize<AutodeskTokenResponse>(responseContent);
+                if (tokenData == null)
                 {
-                    return BadRequest(new { error = "Invalid token response - no access token received" });
+                    _logger.LogError("Failed to parse token response");
+                    return StatusCode(500, new { error = "Failed to parse token response" });
                 }
 
-                _logger.LogInformation("Successfully obtained ACC access token");
-
-                // Get user profile from ACC
-                var userProfile = await GetUserProfile(tokenData.AccessToken);
+                _logger.LogInformation($"Successfully obtained Autodesk token. Expires in: {tokenData.ExpiresIn} seconds");
 
                 // Generate internal JWT token
-                var jwtKey = _configuration["Jwt:Key"];
-                if (string.IsNullOrEmpty(jwtKey))
-                {
-                    _logger.LogError("JWT Key is not configured");
-                    return StatusCode(500, new { error = "JWT signing key not configured" });
-                }
+                var jwtToken = GenerateJwtToken(tokenData.AccessToken);
 
-                var jwtToken = GenerateJwtToken(
-                    userProfile?.UserId ?? "unknown",
-                    userProfile?.Email ?? "unknown@example.com",
-                    userProfile?.Name ?? "Unknown User"
-                );
-
-                // Return both ACC tokens and internal JWT
-                return Ok(new AuthResponse
+                return Ok(new
                 {
-                    AccessToken = tokenData.AccessToken,
-                    RefreshToken = tokenData.RefreshToken,
-                    ExpiresIn = tokenData.ExpiresIn,
-                    Scope = tokenData.Scope,
-                    JwtToken = jwtToken,
-                    UserProfile = userProfile
-                });
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "Network error during token exchange");
-                return StatusCode(503, new
-                {
-                    error = "Network error",
-                    details = "Unable to reach Autodesk authentication service. Check your internet connection."
+                    token = jwtToken,
+                    autodeskToken = tokenData.AccessToken,
+                    expiresIn = tokenData.ExpiresIn,
+                    tokenType = tokenData.TokenType,
+                    refreshToken = tokenData.RefreshToken
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error during token exchange");
+                _logger.LogError(ex, "Error during token exchange");
                 return StatusCode(500, new
                 {
                     error = "Internal server error",
-                    details = ex.Message
+                    details = ex.Message,
+                    type = ex.GetType().Name
                 });
             }
         }
@@ -221,7 +233,7 @@ namespace MetromontCastLink.Controllers
                     return StatusCode(500, new { error = "Server configuration error" });
                 }
 
-                var refreshRequestBody = new FormUrlEncodedContent(new[]
+                var tokenRequestBody = new FormUrlEncodedContent(new[]
                 {
                     new KeyValuePair<string, string>("grant_type", "refresh_token"),
                     new KeyValuePair<string, string>("refresh_token", request.RefreshToken),
@@ -232,37 +244,33 @@ namespace MetromontCastLink.Controllers
                 var httpClient = _httpClientFactory.CreateClient();
                 var response = await httpClient.PostAsync(
                     "https://developer.api.autodesk.com/authentication/v2/token",
-                    refreshRequestBody);
+                    tokenRequestBody);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Token refresh failed: {errorContent}");
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Token refresh failed: {error}");
                     return StatusCode((int)response.StatusCode, new { error = "Token refresh failed" });
                 }
 
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var tokenData = JsonSerializer.Deserialize<TokenResponse>(responseContent,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var tokenData = JsonSerializer.Deserialize<AutodeskTokenResponse>(responseContent);
 
-                // Get user profile again if needed
-                var userProfile = await GetUserProfile(tokenData.AccessToken);
-
-                // Generate new JWT
-                var jwtToken = GenerateJwtToken(
-                    userProfile?.UserId ?? "unknown",
-                    userProfile?.Email ?? "unknown@example.com",
-                    userProfile?.Name ?? "Unknown User"
-                );
-
-                return Ok(new AuthResponse
+                if (tokenData == null)
                 {
-                    AccessToken = tokenData.AccessToken,
-                    RefreshToken = tokenData.RefreshToken,
-                    ExpiresIn = tokenData.ExpiresIn,
-                    Scope = tokenData.Scope,
-                    JwtToken = jwtToken,
-                    UserProfile = userProfile
+                    return StatusCode(500, new { error = "Failed to parse token response" });
+                }
+
+                // Generate new internal JWT token
+                var jwtToken = GenerateJwtToken(tokenData.AccessToken);
+
+                return Ok(new
+                {
+                    token = jwtToken,
+                    autodeskToken = tokenData.AccessToken,
+                    expiresIn = tokenData.ExpiresIn,
+                    tokenType = tokenData.TokenType,
+                    refreshToken = tokenData.RefreshToken
                 });
             }
             catch (Exception ex)
@@ -272,114 +280,122 @@ namespace MetromontCastLink.Controllers
             }
         }
 
-        private async Task<UserProfile?> GetUserProfile(string accessToken)
+        [HttpGet("userinfo")]
+        public async Task<IActionResult> GetUserInfo()
         {
             try
             {
+                // Extract Autodesk token from JWT
+                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    return Unauthorized(new { error = "No authorization header" });
+                }
+
+                var jwtToken = authHeader.Substring("Bearer ".Length);
+                var autodeskToken = ExtractAutodeskTokenFromJwt(jwtToken);
+
+                if (string.IsNullOrEmpty(autodeskToken))
+                {
+                    return Unauthorized(new { error = "Invalid token" });
+                }
+
+                // Call Autodesk userinfo endpoint
                 var httpClient = _httpClientFactory.CreateClient();
-                var request = new HttpRequestMessage(HttpMethod.Get,
-                    "https://developer.api.autodesk.com/userprofile/v1/users/@me");
-                request.Headers.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", autodeskToken);
 
-                var response = await httpClient.SendAsync(request);
-                if (response.IsSuccessStatusCode)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = JsonSerializer.Deserialize<JsonElement>(content);
+                var response = await httpClient.GetAsync("https://api.userprofile.autodesk.com/userinfo");
 
-                    return new UserProfile
-                    {
-                        UserId = data.GetProperty("userId").GetString() ?? "",
-                        Name = $"{data.GetProperty("firstName").GetString()} {data.GetProperty("lastName").GetString()}",
-                        Email = data.GetProperty("emailId").GetString() ?? "",
-                        ProfileImage = data.TryGetProperty("profileImages", out var images) &&
-                                     images.TryGetProperty("sizeX80", out var img)
-                                     ? img.GetString() : null
-                    };
-                }
-                else
+                if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning($"Failed to get user profile: {response.StatusCode}");
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Failed to get user info: {error}");
+                    return StatusCode((int)response.StatusCode, new { error = "Failed to get user info" });
                 }
+
+                var userInfo = await response.Content.ReadAsStringAsync();
+                return Ok(JsonSerializer.Deserialize<JsonElement>(userInfo));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting user profile");
+                _logger.LogError(ex, "Error getting user info");
+                return StatusCode(500, new { error = "Internal server error" });
             }
-            return null;
         }
 
-        private string GenerateJwtToken(string userId, string email, string name)
+        private string GenerateJwtToken(string autodeskToken)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
-            var tokenDescriptor = new SecurityTokenDescriptor
+            var jwtKey = _configuration["Jwt:Key"];
+            if (string.IsNullOrEmpty(jwtKey))
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, userId),
-                    new Claim(ClaimTypes.Email, email),
-                    new Claim(ClaimTypes.Name, name),
-                    new Claim("acc_authenticated", "true"),
-                    new Claim("authenticated_at", DateTime.UtcNow.ToString("O"))
-                }),
-                Expires = DateTime.UtcNow.AddDays(1),
-                Issuer = _configuration["Jwt:Issuer"] ?? "MetromontCastLink",
-                Audience = _configuration["Jwt:Audience"] ?? "MetromontCastLinkUsers",
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
+                throw new InvalidOperationException("JWT Key is not configured");
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim("autodeskToken", autodeskToken),
+                new Claim(ClaimTypes.Name, "ACC User"),
+                new Claim("timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
             };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"] ?? "MetromontCastLink",
+                audience: _configuration["Jwt:Audience"] ?? "MetromontCastLinkUsers",
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private string? ExtractAutodeskTokenFromJwt(string jwtToken)
+        {
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jsonToken = handler.ReadJwtToken(jwtToken);
+                var autodeskTokenClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "autodeskToken");
+                return autodeskTokenClaim?.Value;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
+    // Request/Response models
     public class TokenExchangeRequest
     {
+        [JsonPropertyName("code")]
         public string Code { get; set; } = string.Empty;
+
+        [JsonPropertyName("redirectUri")]
         public string RedirectUri { get; set; } = string.Empty;
     }
 
     public class RefreshTokenRequest
     {
+        [JsonPropertyName("refreshToken")]
         public string RefreshToken { get; set; } = string.Empty;
     }
 
-    public class TokenResponse
+    public class AutodeskTokenResponse
     {
         [JsonPropertyName("access_token")]
         public string AccessToken { get; set; } = string.Empty;
 
-        [JsonPropertyName("refresh_token")]
-        public string? RefreshToken { get; set; }
+        [JsonPropertyName("token_type")]
+        public string TokenType { get; set; } = string.Empty;
 
         [JsonPropertyName("expires_in")]
         public int ExpiresIn { get; set; }
 
-        [JsonPropertyName("token_type")]
-        public string TokenType { get; set; } = string.Empty;
-
-        [JsonPropertyName("scope")]
-        public string? Scope { get; set; }
-    }
-
-    public class AuthResponse
-    {
-        public string AccessToken { get; set; } = string.Empty;
+        [JsonPropertyName("refresh_token")]
         public string? RefreshToken { get; set; }
-        public int ExpiresIn { get; set; }
-        public string? Scope { get; set; }
-        public string JwtToken { get; set; } = string.Empty;
-        public UserProfile? UserProfile { get; set; }
-    }
-
-    public class UserProfile
-    {
-        public string UserId { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string? ProfileImage { get; set; }
     }
 }
