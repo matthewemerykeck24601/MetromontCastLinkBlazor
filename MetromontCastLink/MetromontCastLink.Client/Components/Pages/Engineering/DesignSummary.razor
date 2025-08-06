@@ -86,15 +86,15 @@
                 <h4>Output Format</h4>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" name="format" value="pdf" @onchange="@(() => SetOutputFormat("pdf"))" checked="@(OutputFormat == "pdf")" />
+                        <input type="radio" name="format" value="pdf" @onchange="SetOutputFormatPDF" checked="@(OutputFormat == "pdf")" />
                         <span>PDF Document</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="format" value="excel" @onchange="@(() => SetOutputFormat("excel"))" checked="@(OutputFormat == "excel")" />
+                        <input type="radio" name="format" value="excel" @onchange="SetOutputFormatExcel" checked="@(OutputFormat == "excel")" />
                         <span>Excel Spreadsheet</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="format" value="word" @onchange="@(() => SetOutputFormat("word"))" checked="@(OutputFormat == "word")" />
+                        <input type="radio" name="format" value="word" @onchange="SetOutputFormatWord" checked="@(OutputFormat == "word")" />
                         <span>Word Document</span>
                     </label>
                 </div>
@@ -123,8 +123,8 @@
                             <ul>
                                 <li>Load Calculations: Complete</li>
                                 <li>Moment Analysis: Verified</li>
-                                <li>Shear Check: Passed</li>
-                                <li>Deflection: Within limits</li>
+                                <li>Shear Capacity: Adequate</li>
+                                <li>Deflection Limits: Within tolerance</li>
                             </ul>
                         </div>
                     }
@@ -134,10 +134,10 @@
                         <div class="preview-section">
                             <h3>Specifications</h3>
                             <ul>
-                                <li>Concrete Strength: 5,000 psi @28 days</li>
+                                <li>Concrete Strength: 5,000 psi @@ 28 days</li>
                                 <li>Release Strength: 3,500 psi</li>
                                 <li>Prestressing Steel: Grade 270 Low Relaxation</li>
-                                <li>Mild Reinforcement: ASTM A615 Grade 60</li>
+                                <li>Mild Reinforcement: Grade 60</li>
                             </ul>
                         </div>
                     }
@@ -149,7 +149,7 @@
                             <table class="material-table">
                                 <thead>
                                     <tr>
-                                        <th>Item</th>
+                                        <th>Material</th>
                                         <th>Quantity</th>
                                         <th>Unit</th>
                                     </tr>
@@ -157,12 +157,12 @@
                                 <tbody>
                                     <tr>
                                         <td>Concrete</td>
-                                        <td>45.2</td>
+                                        <td>45.5</td>
                                         <td>CY</td>
                                     </tr>
                                     <tr>
-                                        <td>Prestressing Strand</td>
-                                        <td>2,480</td>
+                                        <td>Strand 1/2"</td>
+                                        <td>2,850</td>
                                         <td>LF</td>
                                     </tr>
                                     <tr>
@@ -275,6 +275,21 @@
 
         SummaryGenerated = true;
         StateHasChanged();
+    }
+
+    private void SetOutputFormatPDF()
+    {
+        OutputFormat = "pdf";
+    }
+
+    private void SetOutputFormatExcel()
+    {
+        OutputFormat = "excel";
+    }
+
+    private void SetOutputFormatWord()
+    {
+        OutputFormat = "word";
     }
 
     private void SetOutputFormat(string format)
