@@ -51,6 +51,11 @@
                         <p>Page loaded: @DateTime.Now.ToString("HH:mm:ss")</p>
                         <p>Button clicks: @ButtonClickCount</p>
                         <button @onclick="TestButtonClick" style="padding: 0.5rem 1rem; margin-top: 0.5rem;">Test Basic Button</button>
+                        <button @onclick="CheckSessionStorage" style="padding: 0.5rem 1rem; margin-top: 0.5rem; margin-left: 0.5rem;">Check Session Storage</button>
+                        @if (!string.IsNullOrEmpty(DebugInfo))
+                        {
+                            <pre style="margin-top: 1rem; padding: 0.5rem; background: white; border-radius: 0.25rem; overflow-x: auto;">@DebugInfo</pre>
+                        }
                     </div>
                 </div>
             }
@@ -156,6 +161,7 @@
     private bool IsLoading;
     private string? ErrorMessage;
     private int ButtonClickCount = 0;
+    private string? DebugInfo;
 
     protected override async Task OnInitializedAsync()
     {
@@ -192,6 +198,28 @@
         ButtonClickCount++;
         Console.WriteLine($"Test button clicked {ButtonClickCount} times");
         StateHasChanged();
+    }
+
+    private async Task CheckSessionStorage()
+    {
+        try
+        {
+            var storedData = await JSRuntime.InvokeAsync<string?>("sessionStorage.getItem", "acc_token");
+            if (!string.IsNullOrEmpty(storedData))
+            {
+                DebugInfo = $"Session Storage Data Found:\nLength: {storedData.Length} chars\nFirst 100 chars: {storedData.Substring(0, Math.Min(100, storedData.Length))}...";
+            }
+            else
+            {
+                DebugInfo = "No token found in session storage";
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            DebugInfo = $"Error checking session storage: {ex.Message}";
+            StateHasChanged();
+        }
     }
 
     private async Task SignInToACC()
@@ -248,30 +276,116 @@
             // Call the HandleCallbackAsync method in ACCService
             if (ACCService is MetromontCastLink.Client.Services.ACCService clientService)
             {
-                await clientService.HandleCallbackAsync(code);
+                Console.WriteLine("SigninACC - Calling clientService.HandleCallbackAsync");
+
+                try
+                {
+                    await clientService.HandleCallbackAsync(code);
+                    Console.WriteLine("SigninACC - HandleCallbackAsync completed without exception");
+                }
+                catch (Exception callbackEx)
+                {
+                    Console.WriteLine($"SigninACC - HandleCallbackAsync threw exception: {callbackEx.Message}");
+                    Console.WriteLine($"SigninACC - Exception type: {callbackEx.GetType().Name}");
+                    Console.WriteLine($"SigninACC - Stack trace: {callbackEx.StackTrace}");
+                    throw;
+                }
+
+                // Add a small delay to ensure token is stored
+                await Task.Delay(100);
 
                 // Verify authentication was successful
                 var isAuthenticated = await ACCService.IsAuthenticatedAsync();
                 Console.WriteLine($"SigninACC - After callback, IsAuthenticated: {isAuthenticated}");
 
+                // Debug: Check if tokens are set
+                var accessToken = await ACCService.GetAccessTokenAsync();
+                Console.WriteLine($"SigninACC - Access token retrieved: {!string.IsNullOrEmpty(accessToken)}");
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    Console.WriteLine($"SigninACC - Access token length: {accessToken.Length}");
+                }
+
+                // Try to check session storage directly
+                try
+                {
+                    var storedData = await JSRuntime.InvokeAsync<string?>("sessionStorage.getItem", "acc_token");
+                    Console.WriteLine($"SigninACC - Session storage has token data: {!string.IsNullOrEmpty(storedData)}");
+                    if (!string.IsNullOrEmpty(storedData))
+                    {
+                        Console.WriteLine($"SigninACC - Session storage data length: {storedData.Length}");
+
+                        // Try to parse and check contents
+                        try
+                        {
+                            var tokenObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(storedData);
+                            Console.WriteLine($"SigninACC - Token has AccessToken: {tokenObj.TryGetProperty("AccessToken", out var at)}");
+                            Console.WriteLine($"SigninACC - Token has JwtToken: {tokenObj.TryGetProperty("JwtToken", out var jt)}");
+                            Console.WriteLine($"SigninACC - Token has ExpiresAt: {tokenObj.TryGetProperty("ExpiresAt", out var ea)}");
+                            if (ea.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                            {
+                                Console.WriteLine($"SigninACC - ExpiresAt value: {ea.GetString()}");
+                            }
+                        }
+                        catch (Exception parseEx)
+                        {
+                            Console.WriteLine($"SigninACC - Error parsing stored token: {parseEx.Message}");
+                        }
+                    }
+                }
+                catch (Exception storageEx)
+                {
+                    Console.WriteLine($"SigninACC - Error checking session storage: {storageEx.Message}");
+                }
+
                 if (isAuthenticated)
                 {
+                    Console.WriteLine("SigninACC - Authentication successful, navigating to home");
                     // Navigate to the main page or dashboard
                     Navigation.NavigateTo("/", forceLoad: true);
                 }
                 else
                 {
+                    Console.WriteLine("SigninACC - Authentication failed, isAuthenticated is false");
+
+                    // Additional debug: Try to understand why it's false
+                    Console.WriteLine("SigninACC - Checking authentication state details...");
+
+                    // Check if token expired
+                    try
+                    {
+                        var storedData = await JSRuntime.InvokeAsync<string?>("sessionStorage.getItem", "acc_token");
+                        if (!string.IsNullOrEmpty(storedData))
+                        {
+                            var tokenObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(storedData);
+                            if (tokenObj.TryGetProperty("ExpiresAt", out var expiresAt))
+                            {
+                                var expiryTime = DateTime.Parse(expiresAt.GetString()!);
+                                var now = DateTime.UtcNow;
+                                Console.WriteLine($"SigninACC - Token expires at: {expiryTime}");
+                                Console.WriteLine($"SigninACC - Current time (UTC): {now}");
+                                Console.WriteLine($"SigninACC - Token expired: {expiryTime <= now}");
+                            }
+                        }
+                    }
+                    catch (Exception debugEx)
+                    {
+                        Console.WriteLine($"SigninACC - Debug check error: {debugEx.Message}");
+                    }
+
                     ErrorMessage = "Authentication callback failed. Please try again.";
                 }
             }
             else
             {
+                Console.WriteLine("SigninACC - ACCService is not the expected type");
                 ErrorMessage = "Service configuration error. Please contact support.";
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"SigninACC - Error in HandleAuthCallback: {ex.Message}");
+            Console.WriteLine($"SigninACC - Stack trace: {ex.StackTrace}");
             ErrorMessage = $"Authentication failed: {ex.Message}";
         }
         finally
@@ -284,6 +398,7 @@
     private async Task RetrySignIn()
     {
         ErrorMessage = null;
+        DebugInfo = null;
         await SignInToACC();
     }
 }

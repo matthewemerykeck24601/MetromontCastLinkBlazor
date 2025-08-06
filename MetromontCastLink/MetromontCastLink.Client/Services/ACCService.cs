@@ -2,6 +2,7 @@
 using MetromontCastLink.Shared.Services;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace MetromontCastLink.Client.Services
 {
@@ -216,19 +217,30 @@ namespace MetromontCastLink.Client.Services
                 var response = await _httpClient.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    var userData = await response.Content.ReadFromJsonAsync<dynamic>();
+                    // Use JsonElement instead of dynamic
+                    var userData = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+
                     _userProfile = new UserProfile
                     {
-                        Id = userData?.userId?.ToString() ?? "",
-                        Name = userData?.userName?.ToString() ?? "",
-                        Email = userData?.emailId?.ToString() ?? "",
-                        Role = userData?.jobTitle?.ToString() ?? ""  // Map jobTitle to Role
+                        Id = userData.TryGetProperty("userId", out var userId) ? userId.GetString() ?? "" : "",
+                        Name = userData.TryGetProperty("userName", out var userName) ? userName.GetString() ?? "" : "",
+                        Email = userData.TryGetProperty("emailId", out var emailId) ? emailId.GetString() ?? "" : "",
+                        Role = userData.TryGetProperty("jobTitle", out var jobTitle) ? jobTitle.GetString() ?? "" : ""
                     };
+
+                    Console.WriteLine($"User profile loaded: {_userProfile.Name} ({_userProfile.Email})");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to get user profile: {response.StatusCode}");
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error response: {errorContent}");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error getting user profile: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
             }
 
             return _userProfile;
@@ -251,40 +263,73 @@ namespace MetromontCastLink.Client.Services
                 var hubsResponse = await _httpClient.SendAsync(hubsRequest);
                 if (hubsResponse.IsSuccessStatusCode)
                 {
-                    var hubsData = await hubsResponse.Content.ReadFromJsonAsync<dynamic>();
+                    var hubsJson = await hubsResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
                     _projects = new List<ACCProject>();
 
-                    // For each hub, get projects
-                    foreach (var hub in hubsData?.data ?? new List<dynamic>())
+                    // Check if data property exists and is an array
+                    if (hubsJson.TryGetProperty("data", out var hubsData) && hubsData.ValueKind == System.Text.Json.JsonValueKind.Array)
                     {
-                        var hubId = hub?.id?.ToString();
-                        if (string.IsNullOrEmpty(hubId)) continue;
-
-                        var projectsRequest = new HttpRequestMessage(HttpMethod.Get, $"https://developer.api.autodesk.com/project/v1/hubs/{hubId}/projects");
-                        projectsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
-
-                        var projectsResponse = await _httpClient.SendAsync(projectsRequest);
-                        if (projectsResponse.IsSuccessStatusCode)
+                        // For each hub, get projects
+                        foreach (var hub in hubsData.EnumerateArray())
                         {
-                            var projectsData = await projectsResponse.Content.ReadFromJsonAsync<dynamic>();
-                            foreach (var project in projectsData?.data ?? new List<dynamic>())
+                            if (!hub.TryGetProperty("id", out var hubIdProp)) continue;
+                            var hubId = hubIdProp.GetString();
+                            if (string.IsNullOrEmpty(hubId)) continue;
+
+                            Console.WriteLine($"Getting projects for hub: {hubId}");
+
+                            var projectsRequest = new HttpRequestMessage(HttpMethod.Get, $"https://developer.api.autodesk.com/project/v1/hubs/{hubId}/projects");
+                            projectsRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+
+                            var projectsResponse = await _httpClient.SendAsync(projectsRequest);
+                            if (projectsResponse.IsSuccessStatusCode)
                             {
-                                _projects.Add(new ACCProject
+                                var projectsJson = await projectsResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+
+                                if (projectsJson.TryGetProperty("data", out var projectsData) && projectsData.ValueKind == System.Text.Json.JsonValueKind.Array)
                                 {
-                                    Id = project?.id?.ToString() ?? "",
-                                    Name = project?.attributes?.name?.ToString() ?? "",
-                                    Number = project?.attributes?.scopes?.ToString() ?? "",  // Project number might be in scopes
-                                    Location = "",  // Not typically available in basic project info
-                                    Status = "active"  // Default to active
-                                });
+                                    foreach (var project in projectsData.EnumerateArray())
+                                    {
+                                        var projectId = project.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                                        var attributes = project.TryGetProperty("attributes", out var attrProp) ? attrProp : default;
+
+                                        var projectName = attributes.ValueKind != System.Text.Json.JsonValueKind.Undefined &&
+                                                        attributes.TryGetProperty("name", out var nameProp)
+                                                        ? nameProp.GetString() ?? "" : "";
+
+                                        _projects.Add(new ACCProject
+                                        {
+                                            Id = projectId,
+                                            Name = projectName,
+                                            Number = "",  // Project number not always available
+                                            Location = "",  // Not typically available in basic project info
+                                            Status = "active"  // Default to active
+                                        });
+
+                                        Console.WriteLine($"Added project: {projectName} ({projectId})");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Failed to get projects for hub {hubId}: {projectsResponse.StatusCode}");
                             }
                         }
                     }
+
+                    Console.WriteLine($"Total projects loaded: {_projects.Count}");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to get hubs: {hubsResponse.StatusCode}");
+                    var errorContent = await hubsResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error response: {errorContent}");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error getting projects: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
             }
 
             return _projects ?? new List<ACCProject>();
