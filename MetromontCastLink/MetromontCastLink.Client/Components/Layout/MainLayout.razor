@@ -68,8 +68,8 @@
     <SfToast @ref="ToastObj" ShowCloseButton="true" Timeout="5000">
         <ToastPosition X="Right" Y="Top"></ToastPosition>
         <ToastAnimationSettings>
-            <ToastShowAnimationSettings Effect="@AnimationEffect.SlideRightIn" Duration="600"></ToastShowAnimationSettings>
-            <ToastHideAnimationSettings Effect="@AnimationEffect.SlideRightOut" Duration="600"></ToastHideAnimationSettings>
+            <ToastShowAnimationSettings Effect="@ToastEffect.SlideRightIn" Duration="600"></ToastShowAnimationSettings>
+            <ToastHideAnimationSettings Effect="@ToastEffect.SlideRightOut" Duration="600"></ToastHideAnimationSettings>
         </ToastAnimationSettings>
     </SfToast>
 </div>
@@ -200,19 +200,16 @@
         animation: slideDown 0.2s ease;
     }
 
-    @keyframes slideDown {
-        from
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
 
-    {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .dropdown-item {
@@ -248,29 +245,26 @@
     }
 
     /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .header-container
+    @@media (max-width: 768px) {
+        .header-container {
+            padding: 1rem;
+        }
 
-    {
-        padding: 1rem;
-    }
+        .app-title h1 {
+            font-size: 1.25rem;
+        }
 
-    .app-title h1 {
-        font-size: 1.25rem;
-    }
+        .subtitle {
+            display: none;
+        }
 
-    .subtitle {
-        display: none;
-    }
+        .user-info {
+            display: none;
+        }
 
-    .user-info {
-        display: none;
-    }
-
-    .main-content {
-        padding: 1rem;
-    }
-
+        .main-content {
+            padding: 1rem;
+        }
     }
 </style>
 
