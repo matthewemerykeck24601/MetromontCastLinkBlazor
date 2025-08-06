@@ -1,0 +1,325 @@
+﻿@page "/engineering"
+@using MetromontCastLink.Shared.Models
+@using MetromontCastLink.Shared.Services
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Spinner
+@inject NavigationManager Navigation
+@inject IACCService ACCService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Engineering Hub - Metromont CastLink</PageTitle>
+
+<div class="engineering-hub-page">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="page-icon">
+                    <i class="fas fa-drafting-compass"></i>
+                </div>
+                <div>
+                    <h1>Engineering Hub</h1>
+                    <p>Advanced design and analysis tools for precast concrete engineering</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="NavigateBack">Back to Dashboard</SfButton>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Selector Section -->
+    <div class="project-selector-section">
+        <div class="project-selector-card">
+            <div class="selector-header">
+                <h3>Select ACC Project</h3>
+                <p>Choose a project to access engineering tools and data</p>
+            </div>
+
+            @if (IsLoadingProjects)
+            {
+                <div class="loading-container">
+                    <SfSpinner Size="30" Label="Loading projects..." />
+                </div>
+            }
+            else if (Projects != null && Projects.Any())
+            {
+                <div class="project-dropdown-container">
+                    <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@SelectedProjectId"
+                                    DataSource="@Projects" Placeholder="Select a project..."
+                                    AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains">
+                        <DropDownListFieldSettings Text="Name" Value="Id"></DropDownListFieldSettings>
+                        <DropDownListEvents TValue="string" TItem="ACCProject" ValueChange="OnProjectChange"></DropDownListEvents>
+                    </SfDropDownList>
+                </div>
+
+                @if (!string.IsNullOrEmpty(SelectedProjectId))
+                {
+                    <div class="project-info">
+                        <div class="info-item">
+                            <span class="info-label">Project:</span>
+                            <span class="info-value">@SelectedProject?.Name</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value status-active">Active</span>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-projects-message">
+                    <p>No projects available. Please ensure you're authenticated with ACC.</p>
+                    <SfButton CssClass="e-primary" @onclick="RefreshProjects">Refresh Projects</SfButton>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Engineering Modules Grid -->
+    <div class="modules-section">
+        <div class="section-header">
+            <h2>Engineering Modules</h2>
+            <p>Select a module to begin</p>
+        </div>
+
+        <div class="modules-grid">
+            <!-- Design Calculator -->
+            <div class="module-card @(IsModuleEnabled("calculator") ? "" : "disabled")"
+                 @onclick="@(() => NavigateToModule("calculator"))">
+                <div class="module-icon calculator">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <div class="module-content">
+                    <h3>Design Calculator</h3>
+                    <p>Perform structural calculations for beams, columns, double tees, and connections per PCI standards</p>
+                    <div class="module-tags">
+                        <span class="tag">Point Loads</span>
+                        <span class="tag">Columns</span>
+                        <span class="tag">Walls</span>
+                        <span class="tag">Beams</span>
+                        <span class="tag">Double Tees</span>
+                    </div>
+                </div>
+                <div class="module-status">
+                    <span class="status-badge active">Available</span>
+                </div>
+            </div>
+
+            <!-- 3D Model Viewer -->
+            <div class="module-card @(IsModuleEnabled("viewer") ? "" : "disabled")"
+                 @onclick="@(() => NavigateToModule("viewer"))">
+                <div class="module-icon viewer">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <div class="module-content">
+                    <h3>3D Model Viewer</h3>
+                    <p>View and interact with 3D models from ACC. Analyze designs and extract dimensions</p>
+                    <div class="module-tags">
+                        <span class="tag">Forge Viewer</span>
+                        <span class="tag">BIM 360</span>
+                        <span class="tag">Model Analysis</span>
+                    </div>
+                </div>
+                <div class="module-status">
+                    <span class="status-badge active">Available</span>
+                </div>
+            </div>
+
+            <!-- Design Summary Generator -->
+            <div class="module-card @(IsModuleEnabled("summary") ? "" : "disabled")"
+                 @onclick="@(() => NavigateToModule("summary"))">
+                <div class="module-icon summary">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="module-content">
+                    <h3>Design Summary</h3>
+                    <p>Generate comprehensive design summaries with calculations, drawings, and specifications</p>
+                    <div class="module-tags">
+                        <span class="tag">Reports</span>
+                        <span class="tag">Documentation</span>
+                        <span class="tag">Export</span>
+                    </div>
+                </div>
+                <div class="module-status">
+                    <span class="status-badge active">Available</span>
+                </div>
+            </div>
+
+            <!-- Piece Issue Tickets -->
+            <div class="module-card @(IsModuleEnabled("tickets") ? "" : "disabled")"
+                 @onclick="@(() => NavigateToModule("tickets"))">
+                <div class="module-icon tickets">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <div class="module-content">
+                    <h3>Piece Issue Tickets</h3>
+                    <p>Generate and manage piece production tickets with QR codes and tracking information</p>
+                    <div class="module-tags">
+                        <span class="tag">QR Codes</span>
+                        <span class="tag">Tracking</span>
+                        <span class="tag">Production</span>
+                    </div>
+                </div>
+                <div class="module-status">
+                    <span class="status-badge development">In Development</span>
+                </div>
+            </div>
+
+            <!-- Ticketing Generation (New) -->
+            <div class="module-card @(IsModuleEnabled("ticketing") ? "" : "disabled")"
+                 @onclick="@(() => NavigateToModule("ticketing"))">
+                <div class="module-icon ticketing">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="module-content">
+                    <h3>Ticketing Generation</h3>
+                    <p>Create and manage production tickets, work orders, and scheduling tickets for manufacturing</p>
+                    <div class="module-tags">
+                        <span class="tag">Work Orders</span>
+                        <span class="tag">Scheduling</span>
+                        <span class="tag">Batch Processing</span>
+                    </div>
+                </div>
+                <div class="module-status">
+                    <span class="status-badge development">In Development</span>
+                </div>
+            </div>
+
+            <!-- Future Module Placeholder -->
+            <div class="module-card placeholder">
+                <div class="module-icon placeholder">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="module-content">
+                    <h3>Coming Soon</h3>
+                    <p>Additional engineering modules and tools are in development</p>
+                    <div class="module-tags">
+                        <span class="tag">Future Release</span>
+                    </div>
+                </div>
+                <div class="module-status">
+                    <span class="status-badge planned">Planned</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ACCProject> Projects = new List<ACCProject>();
+    private string SelectedProjectId = string.Empty;
+    private ACCProject? SelectedProject => Projects?.FirstOrDefault(p => p.Id == SelectedProjectId);
+    private bool IsLoadingProjects = true;
+    private bool IsAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    private async Task LoadProjects()
+    {
+        try
+        {
+            IsLoadingProjects = true;
+            StateHasChanged();
+
+            // Check authentication status
+            IsAuthenticated = await ACCService.IsAuthenticatedAsync();
+
+            if (IsAuthenticated)
+            {
+                // Load projects from ACC
+                Projects = await ACCService.GetProjectsAsync();
+
+                // If we have projects and no selection, select the first one
+                if (Projects.Any() && string.IsNullOrEmpty(SelectedProjectId))
+                {
+                    SelectedProjectId = Projects.First().Id;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingProjects = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshProjects()
+    {
+        await LoadProjects();
+    }
+
+    private void OnProjectChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> args)
+    {
+        SelectedProjectId = args.Value;
+        StateHasChanged();
+
+        // Store selected project in session for child pages
+        if (!string.IsNullOrEmpty(SelectedProjectId))
+        {
+            var project = Projects.FirstOrDefault(p => p.Id == SelectedProjectId);
+            if (project != null)
+            {
+                // Store project info for use in module pages
+                StoreProjectSelection(project);
+            }
+        }
+    }
+
+    private async void StoreProjectSelection(ACCProject project)
+    {
+        // Use JavaScript interop to store in sessionStorage for module pages
+        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem",
+            "selectedProject",
+            System.Text.Json.JsonSerializer.Serialize(project));
+    }
+
+    private bool IsModuleEnabled(string module)
+    {
+        // Only enable modules if a project is selected
+        if (string.IsNullOrEmpty(SelectedProjectId))
+            return false;
+
+        // Check which modules are currently available
+        return module switch
+        {
+            "calculator" => true,
+            "viewer" => true,
+            "summary" => true,
+            "tickets" => false, // In development
+            "ticketing" => false, // In development
+            _ => false
+        };
+    }
+
+    private void NavigateToModule(string module)
+    {
+        if (!IsModuleEnabled(module))
+            return;
+
+        var path = module switch
+        {
+            "calculator" => "/engineering/calculator",
+            "viewer" => "/engineering/viewer",
+            "summary" => "/engineering/summary",
+            "tickets" => "/engineering/tickets",
+            "ticketing" => "/engineering/ticketing",
+            _ => "/engineering"
+        };
+
+        Navigation.NavigateTo(path);
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

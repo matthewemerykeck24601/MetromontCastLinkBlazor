@@ -1,0 +1,191 @@
+﻿.viewer-page {
+    padding: 1rem;
+    background: #f8f9fa;
+    min-height: calc(100vh - 60px);
+}
+
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+    .header-left h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+.project-name {
+    padding: 0.25rem 0.75rem;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.viewer-container {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    height: calc(100vh - 200px);
+}
+
+.forge-viewer {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+}
+
+.viewer-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #94a3b8;
+}
+
+    .viewer-placeholder i {
+        margin-bottom: 1rem;
+    }
+
+    .viewer-placeholder h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .viewer-placeholder p {
+        margin: 0 0 1.5rem 0;
+        color: #94a3b8;
+    }
+
+.model-info-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow-y: auto;
+}
+
+    .model-info-panel h3 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+.info-section {
+    margin-bottom: 2rem;
+}
+
+    .info-section h4 {
+        margin: 0 0 1rem 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+.property-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.property-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+.property-label {
+    color: #64748b;
+}
+
+.property-value {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.element-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.view-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.no-model-message {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    padding: 2rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .viewer-container {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .forge-viewer {
+        height: 500px;
+    }
+
+    .model-info-panel {
+        display: none;
+    }
+}

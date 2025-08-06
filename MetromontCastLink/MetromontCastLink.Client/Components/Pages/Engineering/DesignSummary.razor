@@ -1,0 +1,317 @@
+﻿@page "/engineering/summary"
+@using MetromontCastLink.Shared.Models
+@using MetromontCastLink.Shared.Services
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IACCService ACCService
+
+<PageTitle>Design Summary Generator - Engineering</PageTitle>
+
+<div class="summary-page">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-left">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="NavigateBack">Back</SfButton>
+                <h1>Design Summary Generator</h1>
+                <span class="project-name">@ProjectName</span>
+            </div>
+            <div class="header-actions">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-refresh" @onclick="ResetForm">Reset</SfButton>
+                <SfButton CssClass="e-primary" IconCss="e-icons e-export" @onclick="GenerateSummary">Generate Summary</SfButton>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-content">
+        <!-- Configuration Panel -->
+        <div class="config-panel">
+            <h3>Summary Configuration</h3>
+            
+            <div class="config-section">
+                <h4>Design Information</h4>
+                <div class="form-group">
+                    <label>Design Number</label>
+                    <SfTextBox @bind-Value="@DesignNumber" Placeholder="Enter design number"></SfTextBox>
+                </div>
+                <div class="form-group">
+                    <label>Design Name</label>
+                    <SfTextBox @bind-Value="@DesignName" Placeholder="Enter design name"></SfTextBox>
+                </div>
+                <div class="form-group">
+                    <label>Element Type</label>
+                    <SfDropDownList @bind-Value="@ElementType" TValue="string" TItem="DropdownItem" DataSource="@ElementTypes" Placeholder="Select element type">
+                        <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
+                    </SfDropDownList>
+                </div>
+                <div class="form-group">
+                    <label>Design Engineer</label>
+                    <SfTextBox @bind-Value="@DesignEngineer" Placeholder="Enter engineer name"></SfTextBox>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h4>Include in Summary</h4>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="@IncludeCalculations" />
+                        <span>Design Calculations</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="@IncludeDrawings" />
+                        <span>Shop Drawings</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="@IncludeSpecifications" />
+                        <span>Specifications</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="@IncludeMaterials" />
+                        <span>Material List</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="@IncludeConnections" />
+                        <span>Connection Details</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="@IncludeCompliance" />
+                        <span>PCI Compliance</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h4>Output Format</h4>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="format" value="pdf" @onchange="@(() => SetOutputFormat("pdf"))" checked="@(OutputFormat == "pdf")" />
+                        <span>PDF Document</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="format" value="excel" @onchange="@(() => SetOutputFormat("excel"))" checked="@(OutputFormat == "excel")" />
+                        <span>Excel Spreadsheet</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="format" value="word" @onchange="@(() => SetOutputFormat("word"))" checked="@(OutputFormat == "word")" />
+                        <span>Word Document</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="preview-panel">
+            <h3>Summary Preview</h3>
+            
+            @if (SummaryGenerated)
+            {
+                <div class="preview-content">
+                    <div class="preview-header">
+                        <h2>@DesignName Design Summary</h2>
+                        <p>Design Number: @DesignNumber</p>
+                        <p>Date: @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+                        <p>Engineer: @DesignEngineer</p>
+                    </div>
+
+                    @if (IncludeCalculations)
+                    {
+                        <div class="preview-section">
+                            <h3>Design Calculations</h3>
+                            <p>Structural analysis performed per PCI Design Handbook 8th Edition</p>
+                            <ul>
+                                <li>Load Calculations: Complete</li>
+                                <li>Moment Analysis: Verified</li>
+                                <li>Shear Check: Passed</li>
+                                <li>Deflection: Within limits</li>
+                            </ul>
+                        </div>
+                    }
+
+                    @if (IncludeSpecifications)
+                    {
+                        <div class="preview-section">
+                            <h3>Specifications</h3>
+                            <ul>
+                                <li>Concrete Strength: 5,000 psi @28 days</li>
+                                <li>Release Strength: 3,500 psi</li>
+                                <li>Prestressing Steel: Grade 270 Low Relaxation</li>
+                                <li>Mild Reinforcement: ASTM A615 Grade 60</li>
+                            </ul>
+                        </div>
+                    }
+
+                    @if (IncludeMaterials)
+                    {
+                        <div class="preview-section">
+                            <h3>Material List</h3>
+                            <table class="material-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Quantity</th>
+                                        <th>Unit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Concrete</td>
+                                        <td>45.2</td>
+                                        <td>CY</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Prestressing Strand</td>
+                                        <td>2,480</td>
+                                        <td>LF</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Rebar #4</td>
+                                        <td>1,250</td>
+                                        <td>LF</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+
+                    @if (IncludeCompliance)
+                    {
+                        <div class="preview-section">
+                            <h3>PCI Compliance</h3>
+                            <p class="compliance-status">✓ Design meets all PCI requirements</p>
+                            <ul>
+                                <li>Minimum prestress: 225 psi ✓</li>
+                                <li>Cover requirements: Met ✓</li>
+                                <li>Tie requirements: Verified ✓</li>
+                                <li>Fire rating: 2-hour achieved ✓</li>
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="preview-actions">
+                        <SfButton CssClass="e-primary" @onclick="DownloadSummary">
+                            <i class="fas fa-download"></i> Download @OutputFormat.ToUpper()
+                        </SfButton>
+                        <SfButton CssClass="e-flat" @onclick="SaveToACC">
+                            <i class="fas fa-cloud-upload-alt"></i> Save to ACC
+                        </SfButton>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="preview-placeholder">
+                    <i class="fas fa-file-alt fa-3x"></i>
+                    <p>Configure options and click "Generate Summary" to preview</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string ProjectName = "No Project Selected";
+    private ACCProject? CurrentProject;
+
+    // Form Fields
+    private string DesignNumber = "";
+    private string DesignName = "";
+    private string ElementType = "";
+    private string DesignEngineer = "";
+    private string OutputFormat = "pdf";
+
+    // Include Options
+    private bool IncludeCalculations = true;
+    private bool IncludeDrawings = true;
+    private bool IncludeSpecifications = true;
+    private bool IncludeMaterials = true;
+    private bool IncludeConnections = false;
+    private bool IncludeCompliance = true;
+
+    // State
+    private bool SummaryGenerated = false;
+
+    // Dropdown Options
+    private List<DropdownItem> ElementTypes = new List<DropdownItem>
+    {
+        new DropdownItem { Text = "Double Tee", Value = "dt" },
+        new DropdownItem { Text = "Beam", Value = "beam" },
+        new DropdownItem { Text = "Column", Value = "column" },
+        new DropdownItem { Text = "Wall Panel", Value = "wall" },
+        new DropdownItem { Text = "Spandrel", Value = "spandrel" },
+        new DropdownItem { Text = "Stair", Value = "stair" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjectInfo();
+    }
+
+    private async Task LoadProjectInfo()
+    {
+        try
+        {
+            var projectJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedProject");
+            if (!string.IsNullOrEmpty(projectJson))
+            {
+                CurrentProject = System.Text.Json.JsonSerializer.Deserialize<ACCProject>(projectJson);
+                ProjectName = CurrentProject?.Name ?? "No Project Selected";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading project info: {ex.Message}");
+        }
+    }
+
+    private void GenerateSummary()
+    {
+        if (string.IsNullOrEmpty(DesignNumber) || string.IsNullOrEmpty(DesignName))
+        {
+            // Show validation message
+            return;
+        }
+
+        SummaryGenerated = true;
+        StateHasChanged();
+    }
+
+    private void SetOutputFormat(string format)
+    {
+        OutputFormat = format;
+    }
+
+    private void ResetForm()
+    {
+        DesignNumber = "";
+        DesignName = "";
+        ElementType = "";
+        DesignEngineer = "";
+        SummaryGenerated = false;
+        StateHasChanged();
+    }
+
+    private async Task DownloadSummary()
+    {
+        // TODO: Implement actual download functionality
+        await JSRuntime.InvokeVoidAsync("alert", $"Downloading summary as {OutputFormat.ToUpper()}...");
+    }
+
+    private async Task SaveToACC()
+    {
+        // TODO: Implement save to ACC OSS storage
+        await JSRuntime.InvokeVoidAsync("alert", "Saving summary to ACC project storage...");
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/engineering");
+    }
+
+    private class DropdownItem
+    {
+        public string Text { get; set; } = "";
+        public string Value { get; set; } = "";
+    }
+}

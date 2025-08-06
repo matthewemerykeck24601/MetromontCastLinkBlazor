@@ -1,0 +1,496 @@
+﻿@page "/engineering/calculator"
+@using MetromontCastLink.Shared.Models
+@using MetromontCastLink.Shared.Services
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Navigations
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IACCService ACCService
+
+<PageTitle>Design Calculator - Engineering</PageTitle>
+
+<div class="calculator-page">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-left">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="NavigateBack">Back</SfButton>
+                <h1>Design Calculator</h1>
+                <span class="project-name">@ProjectName</span>
+            </div>
+            <div class="header-actions">
+                <SfButton CssClass="e-flat" IconCss="e-icons e-refresh" @onclick="RefreshCalculator">Reset</SfButton>
+                <SfButton CssClass="e-primary" IconCss="e-icons e-save" @onclick="SaveCalculation">Save Results</SfButton>
+            </div>
+        </div>
+    </div>
+
+    <div class="calculator-content">
+        <!-- Calculation Type Selector -->
+        <div class="calc-type-selector">
+            <SfTab>
+                <TabItems>
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="Point Loads"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="calc-panel">
+                                <h3>Point Load Calculations</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Load Magnitude (kips)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@PointLoad" Placeholder="Enter load value"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Distance from Support (ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@LoadDistance" Placeholder="Enter distance"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Beam Length (ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@BeamLength" Placeholder="Enter beam length"></SfNumericTextBox>
+                                    </div>
+                                </div>
+                                <SfButton CssClass="e-primary calc-button" @onclick="CalculatePointLoad">Calculate</SfButton>
+                                @if (!string.IsNullOrEmpty(PointLoadResult))
+                                {
+                                    <div class="results-panel">
+                                        <h4>Results:</h4>
+                                        <pre>@PointLoadResult</pre>
+                                    </div>
+                                }
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="Columns"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="calc-panel">
+                                <h3>Column Design (PCI Standards)</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Axial Load (kips)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@AxialLoad" Placeholder="Enter axial load"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Moment (k-ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@Moment" Placeholder="Enter moment"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Column Width (in)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@ColumnWidth" Placeholder="Enter width"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Column Depth (in)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@ColumnDepth" Placeholder="Enter depth"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Prestress Level (psi)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@PrestressLevel" Min="225" Placeholder="Min 225 psi per PCI"></SfNumericTextBox>
+                                    </div>
+                                </div>
+                                <SfButton CssClass="e-primary calc-button" @onclick="CalculateColumn">Calculate</SfButton>
+                                @if (!string.IsNullOrEmpty(ColumnResult))
+                                {
+                                    <div class="results-panel">
+                                        <h4>Results:</h4>
+                                        <pre>@ColumnResult</pre>
+                                    </div>
+                                }
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="Walls"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="calc-panel">
+                                <h3>Wall Panel Design</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Wall Height (ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@WallHeight" Placeholder="Enter height"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Wall Thickness (in)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@WallThickness" Placeholder="Enter thickness"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Lateral Load (psf)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@LateralLoad" Placeholder="Enter lateral load"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Number of Ties</label>
+                                        <SfNumericTextBox TValue="int" @bind-Value="@NumberOfTies" Min="2" Placeholder="Min 2 per PCI"></SfNumericTextBox>
+                                    </div>
+                                </div>
+                                <SfButton CssClass="e-primary calc-button" @onclick="CalculateWall">Calculate</SfButton>
+                                @if (!string.IsNullOrEmpty(WallResult))
+                                {
+                                    <div class="results-panel">
+                                        <h4>Results:</h4>
+                                        <pre>@WallResult</pre>
+                                    </div>
+                                }
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="Beams"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="calc-panel">
+                                <h3>Beam/Spandrel Design</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Span Length (ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@SpanLength" Placeholder="Enter span"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Uniform Load (k/ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@UniformLoad" Placeholder="Enter load"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Beam Width (in)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@BeamWidth" Placeholder="Enter width"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Beam Depth (in)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@BeamDepth" Placeholder="Enter depth"></SfNumericTextBox>
+                                    </div>
+                                </div>
+                                <SfButton CssClass="e-primary calc-button" @onclick="CalculateBeam">Calculate</SfButton>
+                                @if (!string.IsNullOrEmpty(BeamResult))
+                                {
+                                    <div class="results-panel">
+                                        <h4>Results:</h4>
+                                        <pre>@BeamResult</pre>
+                                    </div>
+                                }
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="Double Tees"></TabHeader>
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="calc-panel">
+                                <h3>Double Tee Design</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>DT Width (ft)</label>
+                                        <SfDropDownList TValue="double" TItem="DropdownItem" @bind-Value="@DTWidth" DataSource="@DTWidthOptions" Placeholder="Select width">
+                                            <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
+                                        </SfDropDownList>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>DT Depth (in)</label>
+                                        <SfDropDownList TValue="double" TItem="DropdownItem" @bind-Value="@DTDepth" DataSource="@DTDepthOptions" Placeholder="Select depth">
+                                            <DropDownListFieldSettings Text="Text" Value="Value"></DropDownListFieldSettings>
+                                        </SfDropDownList>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Span (ft)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@DTSpan" Placeholder="Enter span"></SfNumericTextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Superimposed Load (psf)</label>
+                                        <SfNumericTextBox TValue="double" @bind-Value="@SuperimposedLoad" Placeholder="Enter load"></SfNumericTextBox>
+                                    </div>
+                                </div>
+                                <SfButton CssClass="e-primary calc-button" @onclick="CalculateDT">Calculate</SfButton>
+                                @if (!string.IsNullOrEmpty(DTResult))
+                                {
+                                    <div class="results-panel">
+                                        <h4>Results:</h4>
+                                        <pre>@DTResult</pre>
+                                    </div>
+                                }
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
+                </TabItems>
+            </SfTab>
+        </div>
+
+        <!-- Recent Calculations Sidebar -->
+        <div class="recent-calculations">
+            <h3>Recent Calculations</h3>
+            @if (RecentCalculations.Any())
+            {
+                <div class="recent-list">
+                    @foreach (var calc in RecentCalculations)
+                    {
+                        <div class="recent-item">
+                            <div class="calc-type">@calc.Type</div>
+                            <div class="calc-date">@calc.Date.ToString("MMM dd, HH:mm")</div>
+                            <div class="calc-summary">@calc.Summary</div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="no-calculations">No recent calculations</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Project Information
+    private string ProjectName = "No Project Selected";
+    private ACCProject? CurrentProject;
+
+    // Point Load Variables
+    private double PointLoad = 0;
+    private double LoadDistance = 0;
+    private double BeamLength = 0;
+    private string PointLoadResult = "";
+
+    // Column Variables
+    private double AxialLoad = 0;
+    private double Moment = 0;
+    private double ColumnWidth = 0;
+    private double ColumnDepth = 0;
+    private double PrestressLevel = 225; // PCI minimum
+    private string ColumnResult = "";
+
+    // Wall Variables
+    private double WallHeight = 0;
+    private double WallThickness = 0;
+    private double LateralLoad = 0;
+    private int NumberOfTies = 2; // PCI minimum
+    private string WallResult = "";
+
+    // Beam Variables
+    private double SpanLength = 0;
+    private double UniformLoad = 0;
+    private double BeamWidth = 0;
+    private double BeamDepth = 0;
+    private string BeamResult = "";
+
+    // Double Tee Variables
+    private double DTWidth = 10;
+    private double DTDepth = 24;
+    private double DTSpan = 0;
+    private double SuperimposedLoad = 0;
+    private string DTResult = "";
+
+    // Dropdown Options for Double Tees
+    private List<DropdownItem> DTWidthOptions = new List<DropdownItem>
+    {
+        new DropdownItem { Text = "8 ft", Value = 8 },
+        new DropdownItem { Text = "10 ft", Value = 10 },
+        new DropdownItem { Text = "12 ft", Value = 12 },
+        new DropdownItem { Text = "15 ft", Value = 15 }
+    };
+
+    private List<DropdownItem> DTDepthOptions = new List<DropdownItem>
+    {
+        new DropdownItem { Text = "24 in", Value = 24 },
+        new DropdownItem { Text = "28 in", Value = 28 },
+        new DropdownItem { Text = "32 in", Value = 32 },
+        new DropdownItem { Text = "34 in", Value = 34 }
+    };
+
+    // Recent Calculations
+    private List<RecentCalculation> RecentCalculations = new List<RecentCalculation>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjectInfo();
+    }
+
+    private async Task LoadProjectInfo()
+    {
+        try
+        {
+            // Get project from session storage
+            var projectJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedProject");
+            if (!string.IsNullOrEmpty(projectJson))
+            {
+                CurrentProject = System.Text.Json.JsonSerializer.Deserialize<ACCProject>(projectJson);
+                ProjectName = CurrentProject?.Name ?? "No Project Selected";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading project info: {ex.Message}");
+        }
+    }
+
+    private void CalculatePointLoad()
+    {
+        if (BeamLength > 0 && PointLoad > 0)
+        {
+            var reaction1 = PointLoad * (BeamLength - LoadDistance) / BeamLength;
+            var reaction2 = PointLoad * LoadDistance / BeamLength;
+            var maxMoment = PointLoad * LoadDistance * (BeamLength - LoadDistance) / BeamLength;
+
+            PointLoadResult = $"Reaction at Support 1: {reaction1:F2} kips\n" +
+                             $"Reaction at Support 2: {reaction2:F2} kips\n" +
+                             $"Maximum Moment: {maxMoment:F2} k-ft\n" +
+                             $"Maximum Shear: {Math.Max(reaction1, reaction2):F2} kips";
+
+            AddToRecentCalculations("Point Load", $"P={PointLoad}k, L={BeamLength}ft");
+        }
+    }
+
+    private void CalculateColumn()
+    {
+        if (ColumnWidth > 0 && ColumnDepth > 0)
+        {
+            var area = ColumnWidth * ColumnDepth;
+            var inertia = (ColumnWidth * Math.Pow(ColumnDepth, 3)) / 12;
+            var radius = Math.Sqrt(inertia / area);
+            var capacity = 0.85 * 0.8 * (0.85 * 5 * area + PrestressLevel * area / 1000);
+
+            ColumnResult = $"Gross Area: {area:F2} in²\n" +
+                          $"Moment of Inertia: {inertia:F2} in⁴\n" +
+                          $"Radius of Gyration: {radius:F2} in\n" +
+                          $"Axial Capacity (approx): {capacity:F2} kips\n" +
+                          $"Prestress Level: {PrestressLevel} psi (PCI min: 225 psi)\n" +
+                          $"Tension Tie Required: {200 * area:F0} lb (per PCI)";
+
+            AddToRecentCalculations("Column", $"b={ColumnWidth}in, d={ColumnDepth}in");
+        }
+    }
+
+    private void CalculateWall()
+    {
+        if (WallHeight > 0 && WallThickness > 0)
+        {
+            var momentArm = WallHeight / 2;
+            var moment = LateralLoad * Math.Pow(WallHeight, 2) / 8;
+            var tieCapacity = NumberOfTies * 10000; // 10,000 lb per tie (PCI minimum)
+
+            WallResult = $"Wall Height: {WallHeight} ft\n" +
+                        $"Wall Thickness: {WallThickness} in\n" +
+                        $"Lateral Moment: {moment:F2} lb-ft/ft\n" +
+                        $"Number of Ties: {NumberOfTies} (min 2 per PCI)\n" +
+                        $"Total Tie Capacity: {tieCapacity:N0} lb\n" +
+                        $"PCI Compliance: {(NumberOfTies >= 2 ? "✓ Met" : "✗ Not Met")}";
+
+            AddToRecentCalculations("Wall", $"H={WallHeight}ft, t={WallThickness}in");
+        }
+    }
+
+    private void CalculateBeam()
+    {
+        if (SpanLength > 0 && BeamWidth > 0 && BeamDepth > 0)
+        {
+            var moment = UniformLoad * Math.Pow(SpanLength, 2) / 8;
+            var shear = UniformLoad * SpanLength / 2;
+            var section = BeamWidth * Math.Pow(BeamDepth, 2) / 6;
+            var stress = moment * 12 / section;
+
+            BeamResult = $"Maximum Moment: {moment:F2} k-ft\n" +
+                        $"Maximum Shear: {shear:F2} kips\n" +
+                        $"Section Modulus: {section:F2} in³\n" +
+                        $"Bending Stress: {stress:F2} psi\n" +
+                        $"Deflection Check: L/{(SpanLength * 12 / (BeamDepth / 2)):F0}";
+
+            AddToRecentCalculations("Beam", $"L={SpanLength}ft, w={UniformLoad}k/ft");
+        }
+    }
+
+    private void CalculateDT()
+    {
+        if (DTSpan > 0)
+        {
+            var selfWeight = GetDTSelfWeight(DTWidth, DTDepth);
+            var totalLoad = selfWeight + SuperimposedLoad;
+            var moment = totalLoad * DTWidth * Math.Pow(DTSpan, 2) / 8 / 1000;
+            var shear = totalLoad * DTWidth * DTSpan / 2 / 1000;
+
+            DTResult = $"DT Size: {DTWidth}ft × {DTDepth}in\n" +
+                      $"Self Weight: {selfWeight:F0} psf\n" +
+                      $"Total Load: {totalLoad:F0} psf\n" +
+                      $"Maximum Moment: {moment:F2} k-ft\n" +
+                      $"Maximum Shear: {shear:F2} kips\n" +
+                      $"Shear Reinforcement: {(DTDepth >= 24 ? "May omit per PCI" : "Required")}";
+
+            AddToRecentCalculations("Double Tee", $"{DTWidth}×{DTDepth}, L={DTSpan}ft");
+        }
+    }
+
+    private double GetDTSelfWeight(double width, double depth)
+    {
+        // Approximate self-weight based on typical DT sections
+        return depth switch
+        {
+            24 => 45,
+            28 => 50,
+            32 => 55,
+            34 => 58,
+            _ => 50
+        };
+    }
+
+    private void AddToRecentCalculations(string type, string summary)
+    {
+        RecentCalculations.Insert(0, new RecentCalculation
+        {
+            Type = type,
+            Date = DateTime.Now,
+            Summary = summary
+        });
+
+        // Keep only last 10 calculations
+        if (RecentCalculations.Count > 10)
+        {
+            RecentCalculations = RecentCalculations.Take(10).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    private void RefreshCalculator()
+    {
+        // Reset all values
+        PointLoad = LoadDistance = BeamLength = 0;
+        AxialLoad = Moment = ColumnWidth = ColumnDepth = 0;
+        WallHeight = WallThickness = LateralLoad = 0;
+        SpanLength = UniformLoad = BeamWidth = BeamDepth = 0;
+        DTSpan = SuperimposedLoad = 0;
+
+        PointLoadResult = ColumnResult = WallResult = BeamResult = DTResult = "";
+        StateHasChanged();
+    }
+
+    private async Task SaveCalculation()
+    {
+        // TODO: Implement save to ACC OSS storage
+        await JSRuntime.InvokeVoidAsync("alert", "Calculation saved successfully!");
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/engineering");
+    }
+
+    // Helper Classes
+    private class DropdownItem
+    {
+        public string Text { get; set; } = "";
+        public double Value { get; set; }
+    }
+
+    private class RecentCalculation
+    {
+        public string Type { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string Summary { get; set; } = "";
+    }
+}
