@@ -14,7 +14,7 @@
         <div class="header-container">
             <div class="header-left">
                 <div class="logo-section" @onclick="NavigateToHome" style="cursor: pointer;">
-                    <div class="logo-icon">🏗️</div>
+                    <img src="/images/Metromont_100_Shield_White.png" alt="El Diablo" class="logo-icon-img">
                     <div class="app-title">
                         <h1>El Diablo</h1>
                         <span class="subtitle">Manufacturing Execution System</span>
@@ -124,8 +124,15 @@
         }
 
     .logo-icon {
-        font-size: 2.5rem;
-        line-height: 1;
+        width: 4rem;
+        height: 4rem;
+        object-fit: contain;
+    }
+
+    .logo-icon-img {
+        width: 4rem;
+        height: 4rem;
+        object-fit: contain;
     }
 
     .app-title h1 {

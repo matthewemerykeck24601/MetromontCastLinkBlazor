@@ -41,6 +41,7 @@
     <Folder Include="Components\Pages\QualityControl\Components\" />
     <Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\data\" />
+    <Folder Include="wwwroot\images\" />
   </ItemGroup>
 
   <ItemGroup>
