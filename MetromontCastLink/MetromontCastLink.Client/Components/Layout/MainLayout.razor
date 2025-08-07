@@ -24,37 +24,16 @@
             <div class="header-right">
                 @if (IsAuthenticated && CurrentUser != null)
                 {
-                    <div class="user-menu" @onclick="ToggleUserMenu">
-                        <div class="user-info">
-                            <span class="user-name">@CurrentUser.Name</span>
-                            <span class="user-email">@CurrentUser.Email</span>
-                        </div>
-                        <div class="user-avatar">@GetUserInitials()</div>
+                    <div class="user-info">
+                        <span class="user-name">@CurrentUser.Name</span>
+                        <span class="user-email">@CurrentUser.Email</span>
                     </div>
-                    @if (ShowUserMenu)
-                    {
-                        <div class="user-dropdown">
-                            <div class="dropdown-item" @onclick="GoToProfile">
-                                <span class="dropdown-icon">👤</span>
-                                Profile Settings
-                            </div>
-                            <div class="dropdown-item" @onclick="GoToProjects">
-                                <span class="dropdown-icon">📁</span>
-                                My Projects
-                            </div>
-                            <div class="dropdown-divider"></div>
-                            <div class="dropdown-item" @onclick="SignOut">
-                                <span class="dropdown-icon">🚪</span>
-                                Sign Out
-                            </div>
-                        </div>
-                    }
+                    <div class="user-avatar">@GetUserInitials()</div>
+                    <SfButton CssClass="e-flat e-small" @onclick="SignOut">Sign Out</SfButton>
                 }
                 else
                 {
-                    <SfButton CssClass="e-primary" @onclick="GoToSignIn">
-                        Sign In
-                    </SfButton>
+                    <SfButton CssClass="e-primary" @onclick="SignIn">Sign In</SfButton>
                 }
             </div>
         </div>
@@ -74,222 +53,48 @@
     </SfToast>
 </div>
 
-<!-- Cascade this layout instance for child components -->
-<CascadingValue Value="this">
-    @ChildContent
-</CascadingValue>
-
-<style>
-    .page {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        background: #f8fafc;
-    }
-
-    .main-header {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: white;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
-
-    .header-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
-    }
-
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-    }
-
-    .logo-section {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        transition: transform 0.2s ease;
-    }
-
-        .logo-section:hover {
-            transform: translateY(-2px);
-        }
-
-    .logo-icon {
-        width: 4rem;
-        height: 4rem;
-        object-fit: contain;
-    }
-
-    .logo-icon-img {
-        width: 4rem;
-        height: 4rem;
-        object-fit: contain;
-    }
-
-    .app-title h1 {
-        margin: 0;
-        font-size: 1.75rem;
-        font-weight: 700;
-        letter-spacing: -0.025em;
-    }
-
-    .subtitle {
-        font-size: 0.875rem;
-        opacity: 0.9;
-        font-weight: 400;
-    }
-
-    .header-right {
-        position: relative;
-    }
-
-    .user-menu {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        cursor: pointer;
-        padding: 0.5rem;
-        border-radius: 0.5rem;
-        transition: background-color 0.2s;
-    }
-
-        .user-menu:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        text-align: right;
-    }
-
-    .user-name {
-        font-weight: 600;
-        font-size: 0.875rem;
-    }
-
-    .user-email {
-        font-size: 0.75rem;
-        opacity: 0.8;
-    }
-
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 1rem;
-    }
-
-    .user-dropdown {
-        position: absolute;
-        top: calc(100% + 0.5rem);
-        right: 0;
-        background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        min-width: 200px;
-        overflow: hidden;
-        animation: slideDown 0.2s ease;
-    }
-
-    @@keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .dropdown-item {
-        padding: 0.75rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        color: #334155;
-    }
-
-        .dropdown-item:hover {
-            background-color: #f1f5f9;
-        }
-
-    .dropdown-icon {
-        font-size: 1.125rem;
-    }
-
-    .dropdown-divider {
-        height: 1px;
-        background-color: #e2e8f0;
-        margin: 0.25rem 0;
-    }
-
-    .main-content {
-        flex: 1;
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
-    }
-
-    /* Mobile Responsive */
-    @@media (max-width: 768px) {
-        .header-container {
-            padding: 1rem;
-        }
-
-        .app-title h1 {
-            font-size: 1.25rem;
-        }
-
-        .subtitle {
-            display: none;
-        }
-
-        .user-info {
-            display: none;
-        }
-
-        .main-content {
-            padding: 1rem;
-        }
-    }
-</style>
-
 @code {
     private SfToast? ToastObj;
     private bool IsAuthenticated;
     private UserProfile? CurrentUser;
-    private bool ShowUserMenu;
-    private RenderFragment? ChildContent;
 
     protected override async Task OnInitializedAsync()
     {
+        // Check for authentication callback parameters first
+        await HandleAuthCallback();
+
         await CheckAuthentication();
 
         // Subscribe to authentication state changes
         if (ACCService != null)
         {
             ACCService.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+    }
+
+    private async Task HandleAuthCallback()
+    {
+        try
+        {
+            var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+            if (query["code"] != null)
+            {
+                // We have an auth code, handle the callback
+                if (ACCService is MetromontCastLink.Client.Services.ACCService clientService)
+                {
+                    await clientService.HandleCallbackAsync(query["code"]!);
+
+                    // Remove the code from the URL to clean it up
+                    var baseUri = uri.GetLeftPart(UriPartial.Path);
+                    Navigation.NavigateTo(baseUri, replace: true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling auth callback: {ex.Message}");
         }
     }
 
@@ -305,10 +110,6 @@
                 {
                     Console.WriteLine("User authenticated but profile could not be loaded");
                 }
-            }
-            else
-            {
-                Console.WriteLine("User not authenticated");
             }
         }
         catch (Exception ex)
@@ -345,31 +146,30 @@
         Navigation.NavigateTo("/");
     }
 
-    private void ToggleUserMenu()
+    private async Task SignIn()
     {
-        ShowUserMenu = !ShowUserMenu;
-    }
-
-    private void GoToProfile()
-    {
-        ShowUserMenu = false;
-        Navigation.NavigateTo("/profile");
-    }
-
-    private void GoToProjects()
-    {
-        ShowUserMenu = false;
-        Navigation.NavigateTo("/projects");
-    }
-
-    private void GoToSignIn()
-    {
-        Navigation.NavigateTo("/signin-acc");
+        try
+        {
+            // Go directly to ACC authentication
+            await ACCService.InitiateAuthenticationAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initiating sign-in: {ex.Message}");
+            if (ToastObj != null)
+            {
+                await ToastObj.ShowAsync(new ToastModel
+                {
+                    Title = "Authentication Error",
+                    Content = "Failed to initiate sign-in. Please try again.",
+                    CssClass = "e-toast-danger"
+                });
+            }
+        }
     }
 
     private async Task SignOut()
     {
-        ShowUserMenu = false;
         await ACCService.SignOutAsync();
         Navigation.NavigateTo("/");
     }
