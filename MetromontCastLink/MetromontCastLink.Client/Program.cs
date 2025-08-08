@@ -18,6 +18,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 // Add Services
 builder.Services.AddScoped<IACCService, ACCService>();
 builder.Services.AddScoped<IStorageService, StorageService>();
+builder.Services.AddScoped<IDataManagementService, DataManagementService>();
 
 // Build and run
 await builder.Build().RunAsync();

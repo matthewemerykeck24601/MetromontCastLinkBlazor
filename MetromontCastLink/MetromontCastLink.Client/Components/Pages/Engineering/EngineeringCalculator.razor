@@ -7,675 +7,655 @@
 @using Syncfusion.Blazor.Navigations
 @using Syncfusion.Blazor.Popups
 @using Syncfusion.Blazor.Spinner
+@using Microsoft.JSInterop
+@using System.Text.Json
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject IACCService ACCService
 
 <PageTitle>Design Calculator - Engineering</PageTitle>
 
-<div class="calculator-page">
-    <div class="page-header">
-        <div class="header-content">
-            <div class="header-left">
-                <SfButton CssClass="e-flat" IconCss="e-icons e-arrow-left" @onclick="NavigateBack">Back</SfButton>
-                <h1>Design Calculator</h1>
-                <span class="project-name">@ProjectName - @ModelName</span>
-            </div>
-            <div class="header-actions">
-                <SfButton CssClass="e-flat" IconCss="e-icons e-refresh" @onclick="RefreshCalculator">Reset</SfButton>
-                <SfButton CssClass="e-primary" IconCss="e-icons e-save" @onclick="SaveCalculation" Disabled="@(!HasCalculationResults)">Save Results</SfButton>
-            </div>
-        </div>
-    </div>
-
-    <!-- Forge Viewer Section -->
-    <div class="viewer-section">
-        <div id="forgeViewer" class="forge-viewer-container">
-            @if (!IsViewerLoaded)
+<div class="design-calculator-container @(IsFloatingMode ? "floating-mode" : "")">
+    <!-- ACC-style Header -->
+    <div class="acc-header">
+        <div class="header-left">
+            <SfButton CssClass="e-flat nav-button" IconCss="e-icons e-arrow-left" @onclick="NavigateBack">
+                <span class="button-text">Back to Engineering Hub</span>
+            </SfButton>
+            <div class="header-divider"></div>
+            <h1 class="page-title">Design Calculator</h1>
+            @if (!string.IsNullOrEmpty(CurrentProject?.Name))
             {
-                <div class="viewer-loading">
-                    <SfSpinner Size="40" Label="Loading 3D Model..." />
+                <div class="project-breadcrumb">
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="project-name">@CurrentProject.Name</span>
+                    @if (!string.IsNullOrEmpty(CurrentModelName))
+                    {
+                        <span class="breadcrumb-separator">/</span>
+                        <span class="model-name">@CurrentModelName</span>
+                    }
                 </div>
             }
         </div>
-        <div class="viewer-controls">
-            <SfButton IconCss="e-icons e-home" @onclick="ResetView" Title="Reset View"></SfButton>
-            <SfButton IconCss="e-icons e-explode" @onclick="ToggleExplode" Title="Explode View"></SfButton>
-            <SfButton IconCss="e-icons e-section" @onclick="ToggleSection" Title="Section View"></SfButton>
-            <SfButton IconCss="e-icons e-measure" @onclick="ToggleMeasure" Title="Measure"></SfButton>
-            <SfButton IconCss="e-icons e-properties" @onclick="ShowProperties" Title="Properties"></SfButton>
+        <div class="header-right">
+            <!-- Model Selection Dropdown -->
+            <div class="model-selector">
+                <SfDropDownList TValue="string" TItem="CloudModel"
+                                @bind-Value="@SelectedModelUrn"
+                                DataSource="@CloudModels"
+                                Placeholder="Select Cloud Model"
+                                CssClass="model-dropdown"
+                                Enabled="@(!IsLoadingModels)"
+                                Width="300px">
+                    <DropDownListFieldSettings Text="Name" Value="Urn"></DropDownListFieldSettings>
+                    <DropDownListEvents TValue="string" TItem="CloudModel"
+                                        ValueChange="@OnModelSelected"></DropDownListEvents>
+                    <DropDownListTemplates TItem="CloudModel">
+                        <ItemTemplate>
+                            <div class="model-item">
+                                <i class="fas fa-cube model-icon"></i>
+                                <div class="model-details">
+                                    <span class="model-name">@context.Name</span>
+                                    <span class="model-info">@context.LastModified.ToString("MMM dd, yyyy")</span>
+                                </div>
+                            </div>
+                        </ItemTemplate>
+                    </DropDownListTemplates>
+                </SfDropDownList>
+                @if (IsLoadingModels)
+                {
+                    <div class="loading-indicator">
+                        <SfSpinner Size="20" />
+                    </div>
+                }
+            </div>
+
+            <!-- View Controls -->
+            <div class="view-controls-group">
+                <SfButton CssClass="e-flat view-control" IconCss="fas fa-expand"
+                          @onclick="ToggleFloatingMode" Title="@(IsFloatingMode ? "Dock Calculator" : "Float Calculator")">
+                </SfButton>
+                <SfButton CssClass="e-flat view-control" IconCss="fas fa-redo"
+                          @onclick="RefreshViewer" Title="Refresh Viewer">
+                </SfButton>
+                <SfButton CssClass="e-primary save-button" IconCss="fas fa-save"
+                          @onclick="SaveCalculation" Disabled="@(!HasCalculationResults)">
+                    Save Results
+                </SfButton>
+            </div>
         </div>
     </div>
 
-    <!-- Calculator Section -->
-    <div class="calculator-section">
-        <SfTab @bind-SelectedItem="@SelectedTabIndex">
-            <TabItems>
-                <!-- Point Loads Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Point Loads"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderPointLoadsTab()
-                    </ContentTemplate>
-                </TabItem>
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Forge Viewer Section -->
+        <div class="viewer-section">
+            <div id="forgeViewer" class="forge-viewer-container">
+                @if (IsLoadingViewer)
+                {
+                    <div class="viewer-loading-state">
+                        <SfSpinner Size="50" Label="Initializing 3D Viewer..." />
+                    </div>
+                }
+            </div>
 
-                <!-- Columns Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Columns"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderColumnsTab()
-                    </ContentTemplate>
-                </TabItem>
+            <!-- ACC-style Viewer Toolbar -->
+            <div class="viewer-toolbar">
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Navigation</span>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-home"
+                              @onclick="ResetView" Title="Home View" Disabled="@(!IsModelLoaded)"></SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-arrows-alt"
+                              @onclick="FitToView" Title="Fit to View" Disabled="@(!IsModelLoaded)"></SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-cube"
+                              @onclick="Toggle3DView" Title="3D View" Disabled="@(!IsModelLoaded)"></SfButton>
+                </div>
 
-                <!-- Double Tees Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Double Tees"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderDoubleTeesTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-divider"></div>
 
-                <!-- Flat Slabs Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Flat Slabs"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderFlatSlabsTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Display</span>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-expand-arrows-alt"
+                              @onclick="ToggleExplode" Title="Explode View" Disabled="@(!IsModelLoaded)"></SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-cut"
+                              @onclick="ToggleSection" Title="Section Box" Disabled="@(!IsModelLoaded)"></SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-eye-slash"
+                              @onclick="ToggleGhosting" Title="Ghost Hidden" Disabled="@(!IsModelLoaded)"></SfButton>
+                </div>
 
-                <!-- H-Frame Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="H-Frame"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderHFrameTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-divider"></div>
 
-                <!-- Hollow Core Slabs Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Hollow Core Slabs"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderHollowCoreTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Tools</span>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-ruler"
+                              @onclick="ToggleMeasure" Title="Measure" Disabled="@(!IsModelLoaded)"></SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-info-circle"
+                              @onclick="ShowProperties" Title="Properties" Disabled="@(!IsModelLoaded)"></SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-search"
+                              @onclick="ShowSearch" Title="Search" Disabled="@(!IsModelLoaded)"></SfButton>
+                </div>
 
-                <!-- L-Girders Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="L-Girders"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderLGirdersTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-divider"></div>
 
-                <!-- Metrodeck Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Metrodeck"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderMetrodeckTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Selection</span>
+                    <SfButton CssClass="@GetSelectionButtonClass("single")"
+                              @onclick="SetSingleSelectionMode" Title="Single Selection" Disabled="@(!IsModelLoaded)">
+                        <i class="fas fa-mouse-pointer"></i>
+                    </SfButton>
+                    <SfButton CssClass="@GetSelectionButtonClass("multiple")"
+                              @onclick="SetMultipleSelectionMode" Title="Multiple Selection" Disabled="@(!IsModelLoaded)">
+                        <i class="fas fa-object-group"></i>
+                    </SfButton>
+                    <SfButton CssClass="e-flat toolbar-btn" IconCss="fas fa-times-circle"
+                              @onclick="ClearSelection" Title="Clear Selection" Disabled="@(!IsModelLoaded)"></SfButton>
+                </div>
 
-                <!-- Metrowalls Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Metrowalls"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderMetrowallsTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-spacer"></div>
 
-                <!-- R-Beams Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="R-Beams"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderRBeamsTab()
-                    </ContentTemplate>
-                </TabItem>
+                <div class="toolbar-group">
+                    <span class="selection-count">@SelectedElements.Count selected</span>
+                </div>
+            </div>
+        </div>
 
-                <!-- Shearwalls Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Shearwalls"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderShearwallsTab()
-                    </ContentTemplate>
-                </TabItem>
+        <!-- Calculator Panel (Floating or Docked) -->
+        <div class="@GetCalculatorClass()" @ref="calculatorPanel">
+            @if (IsFloatingMode)
+            {
+                <!-- Draggable Header for Floating Mode -->
+                <div class="calculator-drag-handle" @onmousedown="StartDrag">
+                    <span class="drag-title">Design Calculator</span>
+                    <div class="drag-controls">
+                        <SfButton CssClass="e-flat minimize-btn" IconCss="fas fa-minus"
+                                  @onclick="MinimizeCalculator"></SfButton>
+                        <SfButton CssClass="e-flat dock-btn" IconCss="fas fa-compress"
+                                  @onclick="ToggleFloatingMode"></SfButton>
+                    </div>
+                </div>
+            }
 
-                <!-- Spandrels Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Spandrels"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderSpandrelsTab()
-                    </ContentTemplate>
-                </TabItem>
+            <div class="calculator-content @(IsMinimized ? "minimized" : "")">
+                <!-- Calculation Tabs -->
+                <SfTab CssClass="calculator-tabs" @bind-SelectedItem="@SelectedTabIndex">
+                    <TabItems>
+                        <TabItem>
+                            <HeaderTemplate>Point Loads</HeaderTemplate>
+                            <ContentTemplate>
+                                <div class="calculation-panel">
+                                    <h3>Point Load Calculations</h3>
 
-                <!-- Stairs Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Stairs"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderStairsTab()
-                    </ContentTemplate>
-                </TabItem>
+                                    <!-- Selected Elements -->
+                                    <div class="selected-elements-section">
+                                        <label>Selected Bearing Element:</label>
+                                        <div class="element-selector">
+                                            @if (BearingElement != null)
+                                            {
+                                                <div class="selected-element">
+                                                    <span>@BearingElement.Name</span>
+                                                    <SfButton CssClass="e-flat remove-btn" IconCss="e-icons e-close"
+                                                              @onclick="() => RemoveBearingElement()"></SfButton>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <SfButton CssClass="e-outline select-btn" @onclick="SelectBearingElement">
+                                                    Click to Select from Model
+                                                </SfButton>
+                                            }
+                                        </div>
+                                    </div>
 
-                <!-- T-Girders Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="T-Girders"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderTGirdersTab()
-                    </ContentTemplate>
-                </TabItem>
+                                    <div class="selected-elements-section">
+                                        <label>Contributing Elements:</label>
+                                        <div class="element-selector">
+                                            @if (ContributingElements.Any())
+                                            {
+                                                @foreach (var element in ContributingElements)
+                                                {
+                                                    <div class="selected-element">
+                                                        <span>@element.Name</span>
+                                                        <SfButton CssClass="e-flat remove-btn" IconCss="e-icons e-close"
+                                                                  @onclick="() => RemoveContributingElement(element)"></SfButton>
+                                                    </div>
+                                                }
+                                            }
+                                            <SfButton CssClass="e-outline select-btn" @onclick="SelectContributingElements">
+                                                Click to Select from Model
+                                            </SfButton>
+                                        </div>
+                                    </div>
 
-                <!-- Wall Panels Tab -->
-                <TabItem>
-                    <ChildContent>
-                        <TabHeader Text="Wall Panels"></TabHeader>
-                    </ChildContent>
-                    <ContentTemplate>
-                        @RenderWallPanelsTab()
-                    </ContentTemplate>
-                </TabItem>
-            </TabItems>
-        </SfTab>
+                                    <!-- Input Fields -->
+                                    <div class="input-group">
+                                        <label>Load Magnitude (kips):</label>
+                                        <SfNumericTextBox @bind-Value="@LoadMagnitude" Format="n2" Min="0" />
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label>Distance from Support (ft):</label>
+                                        <SfNumericTextBox @bind-Value="@DistanceFromSupport" Format="n2" Min="0" />
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label>Beam Length (ft):</label>
+                                        <SfNumericTextBox @bind-Value="@BeamLength" Format="n2" Min="0" />
+                                    </div>
+
+                                    <!-- Calculate Button -->
+                                    <div class="calculation-actions">
+                                        <SfButton CssClass="e-primary calculate-btn" @onclick="CalculatePointLoads">
+                                            Calculate
+                                        </SfButton>
+                                    </div>
+
+                                    <!-- Results Display -->
+                                    @if (PointLoadResults != null)
+                                    {
+                                        <div class="results-panel">
+                                            <h4>Calculation Results</h4>
+                                            <div class="result-item">
+                                                <span class="result-label">Reaction at Support A:</span>
+                                                <span class="result-value">@PointLoadResults.ReactionA.ToString("F2") kips</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Reaction at Support B:</span>
+                                                <span class="result-value">@PointLoadResults.ReactionB.ToString("F2") kips</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Maximum Moment:</span>
+                                                <span class="result-value">@PointLoadResults.MaxMoment.ToString("F2") kip-ft</span>
+                                            </div>
+                                            <div class="result-item">
+                                                <span class="result-label">Maximum Shear:</span>
+                                                <span class="result-value">@PointLoadResults.MaxShear.ToString("F2") kips</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </ContentTemplate>
+                        </TabItem>
+
+                        <TabItem>
+                            <HeaderTemplate>Columns</HeaderTemplate>
+                            <ContentTemplate>
+                                <div class="calculation-panel">
+                                    <h3>Column Design</h3>
+                                    <p>Column design calculations per PCI standards...</p>
+                                </div>
+                            </ContentTemplate>
+                        </TabItem>
+
+                        <TabItem>
+                            <HeaderTemplate>Double Tees</HeaderTemplate>
+                            <ContentTemplate>
+                                <div class="calculation-panel">
+                                    <h3>Double Tee Design</h3>
+                                    <p>Double tee calculations...</p>
+                                </div>
+                            </ContentTemplate>
+                        </TabItem>
+
+                        <TabItem>
+                            <HeaderTemplate>Flat Slabs</HeaderTemplate>
+                            <ContentTemplate>
+                                <div class="calculation-panel">
+                                    <h3>Flat Slab Design</h3>
+                                    <p>Flat slab calculations...</p>
+                                </div>
+                            </ContentTemplate>
+                        </TabItem>
+
+                        <TabItem>
+                            <HeaderTemplate>H-Frame</HeaderTemplate>
+                            <ContentTemplate>
+                                <div class="calculation-panel">
+                                    <h3>H-Frame Design</h3>
+                                    <p>H-Frame calculations...</p>
+                                </div>
+                            </ContentTemplate>
+                        </TabItem>
+                    </TabItems>
+                </SfTab>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Element Selection Dialog -->
-<SfDialog @bind-Visible="@ShowElementSelector" Width="600px" Height="400px" ShowCloseIcon="true">
-    <DialogTemplates>
-        <Header>Select BIM Elements</Header>
-        <Content>
-            <div class="element-selector">
-                <p>Click on elements in the 3D model or use the list below:</p>
-                <div class="selected-elements-list">
-                    @if (SelectedElements.Any())
-                    {
-                        <h4>Selected Elements (@SelectedElements.Count)</h4>
-                        @foreach (var element in SelectedElements)
-                        {
-                            <div class="element-item">
-                                <span>@element.Name (@element.Category)</span>
-                                <SfButton IconCss="e-icons e-close" @onclick="() => RemoveElement(element)"></SfButton>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p>No elements selected. Click on elements in the model.</p>
-                    }
-                </div>
-            </div>
-        </Content>
-        <FooterTemplate>
-            <SfButton CssClass="e-primary" @onclick="ApplyElementSelection">Apply Selection</SfButton>
-            <SfButton @onclick="CancelElementSelection">Cancel</SfButton>
-        </FooterTemplate>
-    </DialogTemplates>
-</SfDialog>
-
 @code {
-    // Component State
-    private string ProjectName = "Project";
-    private string ModelName = "Model";
+    // Project and Model Management
     private ACCProject? CurrentProject;
-    private bool IsViewerLoaded = false;
-    private bool ShowElementSelector = false;
+    private string SelectedModelUrn = string.Empty;
+    private string CurrentModelName = string.Empty;
+    private List<CloudModel> CloudModels = new List<CloudModel>();
+    private bool IsLoadingModels = false;
+    private bool IsLoadingViewer = false;
+    private bool IsModelLoaded = false;
+
+    // UI State
+    private bool IsFloatingMode = false;
+    private bool IsMinimized = false;
+    private string CurrentSelectionMode = "single";
     private int SelectedTabIndex = 0;
-    private bool HasCalculationResults = false;
+    private ElementReference calculatorPanel;
 
-    // Selected Elements from BIM
+    // Viewer State
+    private DotNetObjectReference<EngineeringCalculator>? objRef;
+    private bool IsViewerInitialized = false;
+
+    // Selected Elements
     private List<BIMElement> SelectedElements = new List<BIMElement>();
-    private BIMElement? BearingElement = null;
+    private BIMElement? BearingElement;
+    private List<BIMElement> ContributingElements = new List<BIMElement>();
 
-    // Current Calculation Result (using existing model)
-    private CalculationResult? CurrentResult = null;
+    // Calculation Inputs
+    private double LoadMagnitude = 0.0;
+    private double DistanceFromSupport = 0.0;
+    private double BeamLength = 0.0;
 
-    // Calculation Models for each product type
-    private PointLoadCalculation PointLoadCalc = new();
-    private PCIColumnCalculation ColumnCalc = new();
-    private PCIDoubleTeeCalculation DoubleTeeCalc = new();
-    private FlatSlabCalculation FlatSlabCalc = new();
-    private HFrameCalculation HFrameCalc = new();
-    private HollowCoreCalculation HollowCoreCalc = new();
-    private LGirderCalculation LGirderCalc = new();
-    private MetrodeckCalculation MetrodeckCalc = new();
-    private MetrowallCalculation MetrowallCalc = new();
-    private RBeamCalculation RBeamCalc = new();
-    private ShearwallCalculation ShearwallCalc = new();
-    private SpandrelCalculation SpandrelCalc = new();
-    private StairCalculation StairCalc = new();
-    private TGirderCalculation TGirderCalc = new();
-    private WallPanelCalculation WallPanelCalc = new();
+    // Calculation Results
+    private PointLoadResult? PointLoadResults;
+    private bool HasCalculationResults => PointLoadResults != null;
 
     protected override async Task OnInitializedAsync()
     {
+        objRef = DotNetObjectReference.Create(this);
         await LoadProjectInfo();
-        await InitializeForgeViewer();
+        await LoadCloudModels();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsLoadingViewer = true;
+            StateHasChanged();
+
+            // Initialize empty Forge Viewer
+            await InitializeEmptyViewer();
+
+            IsLoadingViewer = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadProjectInfo()
     {
-        // Get current project from ACC service
-        CurrentProject = await ACCService.GetCurrentProjectAsync();
-        if (CurrentProject != null)
-        {
-            ProjectName = CurrentProject.Name;
-        }
-
-        // Get model info from session
-        var modelJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedModel");
-        if (!string.IsNullOrEmpty(modelJson))
-        {
-            var model = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(modelJson);
-            ModelName = model?.GetValueOrDefault("name")?.ToString() ?? "Model";
-        }
-    }
-
-    private async Task InitializeForgeViewer()
-    {
         try
         {
-            // Get model URN from session
-            var modelUrn = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "modelUrn");
-            var accessToken = await ACCService.GetAccessTokenAsync();
-
-            if (!string.IsNullOrEmpty(modelUrn) && !string.IsNullOrEmpty(accessToken))
+            var projectJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedProject");
+            if (!string.IsNullOrEmpty(projectJson))
             {
-                // Initialize Forge viewer with callbacks
-                await JSRuntime.InvokeVoidAsync("ForgeViewer.initialize",
-                    "forgeViewer",
-                    modelUrn,
-                    accessToken,
-                    DotNetObjectReference.Create(this));
-
-                IsViewerLoaded = true;
+                CurrentProject = JsonSerializer.Deserialize<ACCProject>(projectJson);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error initializing Forge viewer: {ex.Message}");
+            Console.WriteLine($"Error loading project info: {ex.Message}");
         }
     }
 
-    // Viewer Controls
-    private async Task ResetView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
-    private async Task ToggleExplode() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleExplode");
-    private async Task ToggleSection() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleSection");
-    private async Task ToggleMeasure() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleMeasure");
-    private async Task ShowProperties() => await JSRuntime.InvokeVoidAsync("ForgeViewer.showProperties");
-
-    // Element Selection
-    [JSInvokable]
-    public void OnElementSelected(string elementData)
+    private async Task LoadCloudModels()
     {
-        var element = System.Text.Json.JsonSerializer.Deserialize<BIMElement>(elementData);
-        if (element != null && !SelectedElements.Any(e => e.Id == element.Id))
+        if (CurrentProject == null) return;
+
+        IsLoadingModels = true;
+        StateHasChanged();
+
+        try
         {
-            SelectedElements.Add(element);
+            // For now, provide empty list since we don't have Data Management API implemented yet
+            // TODO: Implement actual Data Management API to fetch models
+            CloudModels = new List<CloudModel>();
+
+            // When you have real models in your ACC project, you'll need to implement
+            // the Data Management API calls here to fetch them
+
+            Console.WriteLine($"Project selected: {CurrentProject.Name}");
+            Console.WriteLine("Data Management API not yet implemented - no models loaded");
+            Console.WriteLine("To load models, you need to:");
+            Console.WriteLine("1. Implement Data Management API service");
+            Console.WriteLine("2. Fetch folders and files from ACC project");
+            Console.WriteLine("3. Filter for Revit models and get their URNs");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading cloud models: {ex.Message}");
+            CloudModels = new List<CloudModel>();
+        }
+        finally
+        {
+            IsLoadingModels = false;
             StateHasChanged();
         }
     }
 
-    private void RemoveElement(BIMElement element)
+    private async Task InitializeEmptyViewer()
     {
-        SelectedElements.Remove(element);
+        try
+        {
+            var accessToken = await ACCService.GetAccessTokenAsync();
+
+            // Initialize empty viewer
+            await JSRuntime.InvokeVoidAsync("ForgeViewer.initializeEmpty",
+                "forgeViewer",
+                accessToken,
+                objRef);
+
+            IsViewerInitialized = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing viewer: {ex.Message}");
+        }
+    }
+
+    private async Task OnModelSelected(ChangeEventArgs<string, CloudModel> args)
+    {
+        if (string.IsNullOrEmpty(args.Value) || !IsViewerInitialized) return;
+
+        IsLoadingViewer = true;
+        StateHasChanged();
+
+        try
+        {
+            var accessToken = await ACCService.GetAccessTokenAsync();
+
+            // Load the selected model
+            await JSRuntime.InvokeVoidAsync("ForgeViewer.loadModel",
+                args.Value,
+                accessToken);
+
+            var model = CloudModels.FirstOrDefault(m => m.Urn == args.Value);
+            CurrentModelName = model?.Name ?? "";
+            IsModelLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading model: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingViewer = false;
+            StateHasChanged();
+        }
+    }
+
+    // Viewer Control Methods
+    private async Task ResetView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
+    private async Task FitToView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
+    private async Task Toggle3DView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
+    private async Task ToggleExplode() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleExplode");
+    private async Task ToggleSection() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleSection");
+    private async Task ToggleGhosting() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleGhosting");
+    private async Task ToggleMeasure() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleMeasure");
+    private async Task ShowProperties() => await JSRuntime.InvokeVoidAsync("ForgeViewer.showProperties");
+    private async Task ShowSearch() => await JSRuntime.InvokeVoidAsync("ForgeViewer.showSearch");
+    private async Task ClearSelection() => await JSRuntime.InvokeVoidAsync("ForgeViewer.clearSelection");
+
+    // Selection mode helper methods
+    private async Task SetSingleSelectionMode()
+    {
+        CurrentSelectionMode = "single";
+        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", "single");
+    }
+
+    private async Task SetMultipleSelectionMode()
+    {
+        CurrentSelectionMode = "multiple";
+        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", "multiple");
+    }
+
+    private async Task SetSelectionMode(string mode)
+    {
+        CurrentSelectionMode = mode;
+        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", mode);
+    }
+
+    private async Task RefreshViewer()
+    {
+        if (!string.IsNullOrEmpty(SelectedModelUrn))
+        {
+            await OnModelSelected(new ChangeEventArgs<string, CloudModel> { Value = SelectedModelUrn });
+        }
+    }
+
+    // Element Selection Callbacks
+    [JSInvokable]
+    public void OnModelLoaded(string modelName)
+    {
+        Console.WriteLine($"Model loaded: {modelName}");
         StateHasChanged();
     }
 
+    [JSInvokable]
+    public void OnElementSelected(string elementJson)
+    {
+        try
+        {
+            var element = JsonSerializer.Deserialize<BIMElement>(elementJson);
+            if (element != null)
+            {
+                SelectedElements.Clear();
+                SelectedElements.Add(element);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing selected element: {ex.Message}");
+        }
+    }
+
+    [JSInvokable]
+    public void OnMultipleElementsSelected(string elementsJson)
+    {
+        try
+        {
+            var elements = JsonSerializer.Deserialize<List<BIMElement>>(elementsJson);
+            if (elements != null)
+            {
+                SelectedElements = elements;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing selected elements: {ex.Message}");
+        }
+    }
+
+    [JSInvokable]
+    public void OnSelectionCleared()
+    {
+        SelectedElements.Clear();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnModelStatisticsReady(int elementCount)
+    {
+        Console.WriteLine($"Model contains {elementCount} elements");
+    }
+
+    // Element Selection for Calculations
     private async Task SelectBearingElement()
     {
-        ShowElementSelector = true;
-        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", "single");
+        await SetSelectionMode("single");
+        // Wait for user selection
+        // The OnElementSelected callback will handle the selection
     }
 
     private async Task SelectContributingElements()
     {
-        ShowElementSelector = true;
-        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", "multiple");
+        await SetSelectionMode("multiple");
+        // Wait for user selection
+        // The OnMultipleElementsSelected callback will handle the selection
     }
 
-    private void ApplyElementSelection()
+    private void RemoveBearingElement()
     {
-        if (SelectedTabIndex == 0) // Point Loads
-        {
-            if (SelectedElements.Any())
-            {
-                BearingElement = SelectedElements.First();
-                PointLoadCalc.ContributingElements = SelectedElements.Skip(1).ToList();
-                CalculatePointLoads();
-            }
-        }
-        // Apply to other tabs as needed
-
-        ShowElementSelector = false;
-        StateHasChanged();
+        BearingElement = null;
     }
 
-    private void CancelElementSelection()
+    private void RemoveContributingElement(BIMElement element)
     {
-        ShowElementSelector = false;
-        SelectedElements.Clear();
+        ContributingElements.Remove(element);
     }
 
-    // Calculation Methods using existing CalculationResult model
+    // Calculation Methods
     private async Task CalculatePointLoads()
     {
-        if (BearingElement != null && PointLoadCalc.ContributingElements.Any())
+        if (LoadMagnitude <= 0 || BeamLength <= 0) return;
+
+        // Perform point load calculations
+        var reactionA = LoadMagnitude * (BeamLength - DistanceFromSupport) / BeamLength;
+        var reactionB = LoadMagnitude * DistanceFromSupport / BeamLength;
+        var maxMoment = LoadMagnitude * DistanceFromSupport * (BeamLength - DistanceFromSupport) / BeamLength;
+        var maxShear = Math.Max(reactionA, reactionB);
+
+        PointLoadResults = new PointLoadResult
         {
-            // Extract properties from BIM elements
-            PointLoadCalc.BearingPiece = BearingElement.Name;
-
-            // Calculate total load from contributing elements
-            double totalLoad = 0;
-            foreach (var element in PointLoadCalc.ContributingElements)
-            {
-                // Get volume and material density from element properties
-                var volume = Convert.ToDouble(element.Properties.GetValueOrDefault("Volume", 0.0));
-                var density = GetMaterialDensity(element.Properties.GetValueOrDefault("Material", "Concrete")?.ToString() ?? "Concrete");
-                totalLoad += volume * density;
-            }
-
-            PointLoadCalc.LoadMagnitude = totalLoad;
-
-            // Create result using existing CalculationResult model
-            CurrentResult = new CalculationResult
-            {
-                CalculationType = "Point Load Analysis",
-                Status = "Pass",
-                DesignCode = "PCI",
-                SafetyFactor = 1.4,
-                Utilization = 0.75,
-                Details = new List<ResultDetail>
-                {
-                    new ResultDetail { Label = "Total Load", Value = totalLoad.ToString("F2"), Unit = "kips" },
-                    new ResultDetail { Label = "Design Load", Value = (totalLoad * 1.4).ToString("F2"), Unit = "kips" },
-                    new ResultDetail { Label = "Bearing Piece", Value = PointLoadCalc.BearingPiece, Unit = "" }
-                },
-                Warnings = new List<string>()
-            };
-
-            HasCalculationResults = true;
-            StateHasChanged();
-        }
-    }
-
-    private double GetMaterialDensity(string material)
-    {
-        return material switch
-        {
-            "Concrete" => 150.0, // PCF
-            "Steel" => 490.0,
-            "Wood" => 35.0,
-            _ => 150.0
-        };
-    }
-
-    private async Task CalculateColumn()
-    {
-        // Implement PCI-compliant column calculations
-        var Ag = ColumnCalc.Width * ColumnCalc.Depth;
-        var minTensionTieCapacity = PCIDesignParameters.MinimumColumnTieFactor * Ag;
-
-        CurrentResult = new CalculationResult
-        {
-            CalculationType = "Column Design",
-            Status = "Pass",
-            DesignCode = "PCI",
-            SafetyFactor = 1.5,
-            Utilization = 0.85,
-            IsPCICompliant = true,
-            Details = new List<ResultDetail>
-            {
-                new ResultDetail { Label = "Gross Area", Value = Ag.ToString("F2"), Unit = "in²" },
-                new ResultDetail { Label = "Min Tension Tie Capacity", Value = minTensionTieCapacity.ToString("F0"), Unit = "lb" },
-                new ResultDetail { Label = "Prestress Level", Value = ColumnCalc.PrestressLevel.ToString(), Unit = "psi" },
-                new ResultDetail { Label = "P-M Interaction", Value = "Within limits", Unit = "" }
-            },
-            Warnings = new List<string>()
+            ReactionA = reactionA,
+            ReactionB = reactionB,
+            MaxMoment = maxMoment,
+            MaxShear = maxShear
         };
 
-        HasCalculationResults = true;
         StateHasChanged();
-    }
-
-    private async Task CalculateDoubleTee()
-    {
-        // Check shear reinforcement requirements per PCI
-        var shearStress = (DoubleTeeCalc.LiveLoad + DoubleTeeCalc.SuperimposedLoad) * DoubleTeeCalc.Length / 8;
-        DoubleTeeCalc.RequiresShearReinforcement = shearStress > 50; // Simplified check
-
-        CurrentResult = new CalculationResult
-        {
-            CalculationType = "Double Tee Design",
-            Status = "Pass",
-            DesignCode = "PCI",
-            SafetyFactor = 1.4,
-            Utilization = 0.78,
-            IsPCICompliant = true,
-            Details = new List<ResultDetail>
-            {
-                new ResultDetail { Label = "Self Weight", Value = GetDTSelfWeight(DoubleTeeCalc.Width, DoubleTeeCalc.StemDepth).ToString("F2"), Unit = "psf" },
-                new ResultDetail { Label = "Total Load", Value = (DoubleTeeCalc.LiveLoad + DoubleTeeCalc.SuperimposedLoad).ToString("F2"), Unit = "psf" },
-                new ResultDetail { Label = "Shear Reinforcement", Value = DoubleTeeCalc.RequiresShearReinforcement ? "Required" : "May omit per PCI", Unit = "" },
-                new ResultDetail { Label = "Deflection", Value = "L/360 satisfied", Unit = "" }
-            },
-            Warnings = new List<string>()
-        };
-
-        HasCalculationResults = true;
-        StateHasChanged();
-    }
-
-    private async Task CalculateWallPanel()
-    {
-        var panelArea = WallPanelCalc.Height * WallPanelCalc.Width;
-        var totalLateralLoad = WallPanelCalc.LateralLoad * panelArea;
-        var totalTieCapacity = WallPanelCalc.NumberOfTies * WallPanelCalc.TieCapacity;
-
-        CurrentResult = new CalculationResult
-        {
-            CalculationType = "Wall Panel Design",
-            Status = totalTieCapacity > totalLateralLoad ? "Pass" : "Fail",
-            DesignCode = "PCI",
-            SafetyFactor = totalTieCapacity / totalLateralLoad,
-            Utilization = totalLateralLoad / totalTieCapacity,
-            IsPCICompliant = totalTieCapacity >= PCIDesignParameters.MinimumWallTieCapacity * PCIDesignParameters.MinimumWallTies,
-            Details = new List<ResultDetail>
-            {
-                new ResultDetail { Label = "Panel Area", Value = panelArea.ToString("F2"), Unit = "ft²" },
-                new ResultDetail { Label = "Total Lateral Load", Value = totalLateralLoad.ToString("F0"), Unit = "lb" },
-                new ResultDetail { Label = "Total Tie Capacity", Value = totalTieCapacity.ToString("F0"), Unit = "lb" },
-                new ResultDetail { Label = "Safety Factor", Value = (totalTieCapacity / totalLateralLoad).ToString("F2"), Unit = "" }
-            },
-            Warnings = totalTieCapacity < 20000 ? new List<string> { "Increase ties to meet PCI requirements" } : new List<string>()
-        };
-
-        HasCalculationResults = true;
-        StateHasChanged();
-    }
-
-    private double GetDTSelfWeight(double width, double depth)
-    {
-        // Approximate self-weight based on typical DT sections
-        return depth switch
-        {
-            24 => 45,
-            28 => 50,
-            32 => 55,
-            34 => 58,
-            _ => 50
-        };
     }
 
     private async Task SaveCalculation()
     {
-        try
-        {
-            // Create DesignCalculation using existing model
-            var calculation = new DesignCalculation
-            {
-                Id = Guid.NewGuid().ToString(),
-                ProjectId = CurrentProject?.Id ?? "",
-                CalculationType = GetCurrentCalculationType(),
-                ElementType = GetCurrentProductType(),
-                ElementId = BearingElement?.ExternalId ?? "",
-                CreatedDate = DateTime.UtcNow,
-                CreatedBy = (await ACCService.GetUserProfileAsync())?.Email ?? "Unknown",
-                Status = CurrentResult?.Status ?? "Draft",
-                Inputs = GetCurrentInputData(),
-                Results = ConvertResultToDict(CurrentResult),
-                Warnings = CurrentResult?.Warnings ?? new List<string>(),
-                Errors = new List<string>(),
-                IsValid = CurrentResult?.Status == "Pass",
-                Notes = $"BIM Elements: {SelectedElements.Count}"
-            };
-
-            // Save to session storage for now
-            var json = System.Text.Json.JsonSerializer.Serialize(calculation);
-            await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", $"calculation_{calculation.Id}", json);
-
-            // Show success notification
-            await JSRuntime.InvokeVoidAsync("alert", "Calculation saved successfully!");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving calculation: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", "Error saving calculation. Please try again.");
-        }
+        // Save calculation results to ACC OSS
+        // Implementation would go here
     }
 
-    private Dictionary<string, object> ConvertResultToDict(CalculationResult? result)
+    // UI Helper Methods
+    private void ToggleFloatingMode()
     {
-        if (result == null) return new Dictionary<string, object>();
-
-        var dict = new Dictionary<string, object>
-        {
-            ["Status"] = result.Status,
-            ["DesignCode"] = result.DesignCode,
-            ["SafetyFactor"] = result.SafetyFactor,
-            ["Utilization"] = result.Utilization,
-            ["IsPCICompliant"] = result.IsPCICompliant
-        };
-
-        foreach (var detail in result.Details)
-        {
-            dict[detail.Label] = $"{detail.Value} {detail.Unit}".Trim();
-        }
-
-        return dict;
+        IsFloatingMode = !IsFloatingMode;
     }
 
-    private string GetCurrentCalculationType()
+    private void MinimizeCalculator()
     {
-        return SelectedTabIndex switch
-        {
-            0 => "Point Load Analysis",
-            1 => "Column Design",
-            2 => "Double Tee Design",
-            3 => "Flat Slab Design",
-            4 => "H-Frame Design",
-            5 => "Hollow Core Design",
-            6 => "L-Girder Design",
-            7 => "Metrodeck Design",
-            8 => "Metrowall Design",
-            9 => "R-Beam Design",
-            10 => "Shearwall Design",
-            11 => "Spandrel Design",
-            12 => "Stair Design",
-            13 => "T-Girder Design",
-            14 => "Wall Panel Design",
-            _ => "Unknown"
-        };
+        IsMinimized = !IsMinimized;
     }
 
-    private string GetCurrentProductType()
+    private void StartDrag(MouseEventArgs e)
     {
-        return SelectedTabIndex switch
-        {
-            0 => "POINT_LOADS",
-            1 => "COLUMNS",
-            2 => "DOUBLE_TEES",
-            3 => "FLAT_SLABS",
-            4 => "H_FRAME",
-            5 => "HOLLOW_CORE_SLABS",
-            6 => "L_GIRDERS",
-            7 => "METRODECK",
-            8 => "METROWALLS",
-            9 => "R_BEAMS",
-            10 => "SHEARWALLS",
-            11 => "SPANDRELS",
-            12 => "STAIRS",
-            13 => "T_GIRDERS",
-            14 => "WALL_PANELS",
-            _ => "UNKNOWN"
-        };
+        // Implement drag functionality for floating calculator
+        // This would require JavaScript interop for proper dragging
     }
 
-    private Dictionary<string, object> GetCurrentInputData()
+    private string GetCalculatorClass()
     {
-        // Gather input data based on current tab
-        return SelectedTabIndex switch
-        {
-            0 => new Dictionary<string, object>
-            {
-                ["BearingPiece"] = PointLoadCalc.BearingPiece,
-                ["LoadMagnitude"] = PointLoadCalc.LoadMagnitude,
-                ["LoadDistance"] = PointLoadCalc.LoadDistance,
-                ["BeamLength"] = PointLoadCalc.BeamLength,
-                ["BIMElements"] = SelectedElements.Select(e => e.Name).ToList()
-            },
-            1 => new Dictionary<string, object>
-            {
-                ["Width"] = ColumnCalc.Width,
-                ["Depth"] = ColumnCalc.Depth,
-                ["Height"] = ColumnCalc.Height,
-                ["AxialLoad"] = ColumnCalc.AxialLoad,
-                ["PrestressLevel"] = ColumnCalc.PrestressLevel,
-                ["NumberOfTies"] = ColumnCalc.NumberOfTies
-            },
-            // Add other product types...
-            _ => new Dictionary<string, object>()
-        };
+        return IsFloatingMode ? "calculator-panel floating" : "calculator-panel docked";
     }
 
-    private void RefreshCalculator()
+    private string GetSelectionButtonClass(string mode)
     {
-        // Reset all calculations
-        PointLoadCalc = new();
-        ColumnCalc = new();
-        DoubleTeeCalc = new();
-        // Reset all other calculation models...
-
-        SelectedElements.Clear();
-        BearingElement = null;
-        CurrentResult = null;
-        HasCalculationResults = false;
-        StateHasChanged();
+        return CurrentSelectionMode == mode ? "e-primary toolbar-btn active" : "e-flat toolbar-btn";
     }
 
     private void NavigateBack()
@@ -683,282 +663,46 @@
         Navigation.NavigateTo("/engineering");
     }
 
-    // Render methods for each tab
-    private RenderFragment RenderPointLoadsTab() => @<div class="calc-panel">
-    <h3>Point Load Calculations</h3>
-    <div class="form-section">
-        <div class="form-group">
-            <label>Select Bearing Element</label>
-            <SfButton @onclick="SelectBearingElement">
-                @(BearingElement != null ? BearingElement.Name : "Click to Select from Model")
-            </SfButton>
-        </div>
-        <div class="form-group">
-            <label>Select Contributing Elements</label>
-            <SfButton @onclick="SelectContributingElements">
-                @(PointLoadCalc.ContributingElements.Any() ? $"{PointLoadCalc.ContributingElements.Count} Elements Selected" : "Click to Select from Model")
-            </SfButton>
-        </div>
-        <div class="form-group">
-            <label>Load Magnitude (kips)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@PointLoadCalc.LoadMagnitude"
-                              Placeholder="Auto-calculated from BIM" ReadOnly="true"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Distance from Support (ft)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@PointLoadCalc.LoadDistance"
-                              Placeholder="Enter distance"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Beam Length (ft)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@PointLoadCalc.BeamLength"
-                              Placeholder="Enter beam length"></SfNumericTextBox>
-        </div>
-    </div>
-    <div class="form-actions">
-        <SfButton CssClass="e-primary" @onclick="CalculatePointLoads">Calculate</SfButton>
-    </div>
-@if (CurrentResult != null && SelectedTabIndex == 0)
+    public void Dispose()
     {
-    <div class="results-panel">
-        <h4>Results</h4>
-        <p>Status: @CurrentResult.Status</p>
-        @foreach (var detail in CurrentResult.Details)
-                {
-        <div class="result-item">
-            <span class="result-label">@detail.Label:</span>
-            <span class="result-value">@detail.Value @detail.Unit</span>
-        </div>
-                }
-    </div>
+        objRef?.Dispose();
+        JSRuntime.InvokeVoidAsync("ForgeViewer.destroy");
     }
-</div>;
 
-private RenderFragment RenderColumnsTab() => @<div class="calc-panel">
-    <h3>Column Design (PCI Standards)</h3>
-    <div class="form-section">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Width (in)</label>
-                <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.Width" Min="12" Max="48"></SfNumericTextBox>
-            </div>
-            <div class="form-group">
-                <label>Depth (in)</label>
-                <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.Depth" Min="12" Max="48"></SfNumericTextBox>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Height (ft)</label>
-                <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.Height" Min="8" Max="40"></SfNumericTextBox>
-            </div>
-            <div class="form-group">
-                <label>Concrete Strength (psi)</label>
-                <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.ConcreteStrength" Min="3000" Max="8000"></SfNumericTextBox>
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Axial Load (kips)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.AxialLoad"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Moment X (kip-ft)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.MomentX"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Prestress Level (psi) - PCI Min: 225</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@ColumnCalc.PrestressLevel" Min="225"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Number of Tension Ties (PCI Min: 2)</label>
-            <SfNumericTextBox TValue="int" @bind-Value="@ColumnCalc.NumberOfTies" Min="2"></SfNumericTextBox>
-        </div>
-    </div>
-    <div class="form-actions">
-        <SfButton CssClass="e-primary" @onclick="CalculateColumn">Calculate</SfButton>
-    </div>
-@if (CurrentResult != null && SelectedTabIndex == 1)
-{
-        <div class="results-panel">
-            <h4>Column Design Results</h4>
-            <p>Status: @CurrentResult.Status @(CurrentResult.IsPCICompliant ? "(PCI Compliant)" : "")</p>
-            @foreach (var detail in CurrentResult.Details)
-            {
-                <div class="result-item">
-                    <span class="result-label">@detail.Label:</span>
-                    <span class="result-value">@detail.Value @detail.Unit</span>
-                </div>
-            }
-        </div>
-}
-</div>;
+    // Models
+    public class CloudModel
+    {
+        public string Urn { get; set; } = "";
+        public string Name { get; set; } = "";
+        public DateTime LastModified { get; set; }
+        public string Version { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string MimeType { get; set; } = "";
+    }
 
-private RenderFragment RenderDoubleTeesTab() => @<div class="calc-panel">
-    <h3>Double Tee Design</h3>
-    <div class="form-section">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Width (ft)</label>
-                <SfDropDownList TValue="double" TItem="double" @bind-Value="@DoubleTeeCalc.Width"
-                                DataSource="@(new[] { 8.0, 10.0, 12.0, 15.0 })"
-                                Placeholder="Select width">
-                </SfDropDownList>
-            </div>
-            <div class="form-group">
-                <label>Stem Depth (in)</label>
-                <SfDropDownList TValue="double" TItem="double" @bind-Value="@DoubleTeeCalc.StemDepth"
-                                DataSource="@(new[] { 24.0, 28.0, 32.0, 34.0 })"
-                                Placeholder="Select depth">
-                </SfDropDownList>
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Span Length (ft)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@DoubleTeeCalc.Length" Min="20" Max="80"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Superimposed Dead Load (psf)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@DoubleTeeCalc.SuperimposedLoad"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Live Load (psf)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@DoubleTeeCalc.LiveLoad"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Topping Thickness (in)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@DoubleTeeCalc.ToppingThickness" Min="0" Max="4"></SfNumericTextBox>
-        </div>
-    </div>
-    <div class="form-actions">
-        <SfButton CssClass="e-primary" @onclick="CalculateDoubleTee">Calculate</SfButton>
-    </div>
-@if (CurrentResult != null && SelectedTabIndex == 2)
-{
-        <div class="results-panel">
-            <h4>Double Tee Design Results</h4>
-            <p>Status: @CurrentResult.Status @(CurrentResult.IsPCICompliant ? "(PCI Compliant)" : "")</p>
-            @foreach (var detail in CurrentResult.Details)
-            {
-                <div class="result-item">
-                    <span class="result-label">@detail.Label:</span>
-                    <span class="result-value">@detail.Value @detail.Unit</span>
-                </div>
-            }
-        </div>
-}
-</div>;
+    public class BIMElement
+    {
+        public int Id { get; set; }
+        public string ExternalId { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string Family { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Level { get; set; } = "";
+        public string Mark { get; set; } = "";
+        public double Length { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double Volume { get; set; }
+        public double Area { get; set; }
+        public double Weight { get; set; }
+    }
 
-// Continue with remaining tabs - simplified for now
-private RenderFragment RenderFlatSlabsTab() => @<div class="calc-panel">
-    <h3>Flat Slab Design</h3>
-    <p>Flat slab calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderHFrameTab() => @<div class="calc-panel">
-    <h3>H-Frame Design</h3>
-    <p>H-Frame calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderHollowCoreTab() => @<div class="calc-panel">
-    <h3>Hollow Core Slab Design</h3>
-    <p>Hollow core calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderLGirdersTab() => @<div class="calc-panel">
-    <h3>L-Girder Design</h3>
-    <p>L-Girder calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderMetrodeckTab() => @<div class="calc-panel">
-    <h3>Metrodeck Design</h3>
-    <p>Metrodeck calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderMetrowallsTab() => @<div class="calc-panel">
-    <h3>Metrowall Design</h3>
-    <p>Metrowall calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderRBeamsTab() => @<div class="calc-panel">
-    <h3>R-Beam Design</h3>
-    <p>R-Beam calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderShearwallsTab() => @<div class="calc-panel">
-    <h3>Shearwall Design</h3>
-    <p>Shearwall calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderSpandrelsTab() => @<div class="calc-panel">
-    <h3>Spandrel Design</h3>
-    <p>Spandrel calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderStairsTab() => @<div class="calc-panel">
-    <h3>Stair Design</h3>
-    <p>Stair calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderTGirdersTab() => @<div class="calc-panel">
-    <h3>T-Girder Design</h3>
-    <p>T-Girder calculations - Implementation pending</p>
-</div>;
-
-private RenderFragment RenderWallPanelsTab() => @<div class="calc-panel">
-    <h3>Wall Panel Design</h3>
-    <div class="form-section">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Panel Height (ft)</label>
-                <SfNumericTextBox TValue="double" @bind-Value="@WallPanelCalc.Height" Min="8" Max="30"></SfNumericTextBox>
-            </div>
-            <div class="form-group">
-                <label>Panel Width (ft)</label>
-                <SfNumericTextBox TValue="double" @bind-Value="@WallPanelCalc.Width" Min="4" Max="20"></SfNumericTextBox>
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Thickness (in)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@WallPanelCalc.Thickness" Min="4" Max="12"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Lateral Load (psf)</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@WallPanelCalc.LateralLoad"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Number of Ties (PCI Min: 2)</label>
-            <SfNumericTextBox TValue="int" @bind-Value="@WallPanelCalc.NumberOfTies" Min="2"></SfNumericTextBox>
-        </div>
-        <div class="form-group">
-            <label>Tie Capacity (lb) - PCI Min: 10,000</label>
-            <SfNumericTextBox TValue="double" @bind-Value="@WallPanelCalc.TieCapacity" Min="10000"></SfNumericTextBox>
-        </div>
-    </div>
-    <div class="form-actions">
-        <SfButton CssClass="e-primary" @onclick="CalculateWallPanel">Calculate</SfButton>
-    </div>
-@if (CurrentResult != null && SelectedTabIndex == 14)
-{
-        <div class="results-panel">
-            <h4>Wall Panel Design Results</h4>
-            <p>Status: @CurrentResult.Status @(CurrentResult.IsPCICompliant ? "(PCI Compliant)" : "")</p>
-            @foreach (var detail in CurrentResult.Details)
-            {
-                <div class="result-item">
-                    <span class="result-label">@detail.Label:</span>
-                    <span class="result-value">@detail.Value @detail.Unit</span>
-                </div>
-            }
-            @if (CurrentResult.Warnings.Any())
-            {
-                <div class="warnings">
-                    @foreach (var warning in CurrentResult.Warnings)
-                    {
-                        <p class="warning-text">⚠️ @warning</p>
-                    }
-                </div>
-            }
-        </div>
-}
-</div>;
+    public class PointLoadResult
+    {
+        public double ReactionA { get; set; }
+        public double ReactionB { get; set; }
+        public double MaxMoment { get; set; }
+        public double MaxShear { get; set; }
+    }
 }

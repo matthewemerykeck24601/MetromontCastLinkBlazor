@@ -25,6 +25,52 @@ namespace MetromontCastLink.Client.Services
             _httpClient = httpClient;
         }
 
+        // NEW METHOD - This is the missing implementation
+        public async Task<StorageResult> SaveFileAsync(string fileName, string content)
+        {
+            try
+            {
+                var token = await _accService.GetAccessTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                {
+                    return new StorageResult { Success = false, Message = "Not authenticated" };
+                }
+
+                // Save to local storage first as backup
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"file_{fileName}", content);
+
+                // Create request for OSS storage
+                var request = new
+                {
+                    action = "save-file",
+                    fileName = fileName,
+                    content = content
+                };
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/oss-storage");
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                httpRequest.Content = JsonContent.Create(request);
+
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<StorageResult>();
+                    return result ?? new StorageResult { Success = false, Message = "Invalid response" };
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    return new StorageResult { Success = false, Message = $"Error: {error}" };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving file: {ex.Message}");
+                return new StorageResult { Success = false, Message = ex.Message };
+            }
+        }
+
         public async Task<StorageResult> SaveReportAsync(QCReport report)
         {
             try
@@ -103,12 +149,12 @@ namespace MetromontCastLink.Client.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<OSSReportsResponse>();
-                    return result?.Reports ?? reports;
+                    return result?.Reports ?? new List<QCReportListItem>();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading reports: {ex.Message}");
+                Console.WriteLine($"Error getting reports: {ex.Message}");
             }
 
             return reports;
@@ -126,7 +172,7 @@ namespace MetromontCastLink.Client.Services
 
                 var request = new
                 {
-                    action = "load-report",
+                    action = "get-report",
                     bucketKey = bucketKey,
                     objectKey = objectKey
                 };
@@ -139,13 +185,13 @@ namespace MetromontCastLink.Client.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<OSSReportResponse>();
-                    return result?.ReportContent;
+                    var reportData = await response.Content.ReadFromJsonAsync<QCReport>();
+                    return reportData;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading report: {ex.Message}");
+                Console.WriteLine($"Error getting report: {ex.Message}");
             }
 
             return null;
@@ -251,14 +297,22 @@ namespace MetromontCastLink.Client.Services
                     return history;
                 }
 
-                var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/oss-storage/calculations/{projectId}");
+                var request = new
+                {
+                    action = "get-calculations",
+                    projectId = projectId
+                };
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/oss-storage");
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                httpRequest.Content = JsonContent.Create(request);
 
                 var response = await _httpClient.SendAsync(httpRequest);
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var calculations = await response.Content.ReadFromJsonAsync<List<CalculationHistory>>();
-                    return calculations ?? history;
+                    var result = await response.Content.ReadFromJsonAsync<List<CalculationHistory>>();
+                    return result ?? new List<CalculationHistory>();
                 }
             }
             catch (Exception ex)
@@ -273,28 +327,28 @@ namespace MetromontCastLink.Client.Services
         {
             try
             {
-                // First try local storage
-                var json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", $"calculation_{calculationId}");
-                if (!string.IsNullOrEmpty(json))
-                {
-                    var data = JsonSerializer.Deserialize<CalculationData>(json);
-                    return data?.Calculation;
-                }
-
-                // If not in local storage, try OSS
                 var token = await _accService.GetAccessTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
                     return null;
                 }
 
-                var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/oss-storage/calculation/{calculationId}");
+                var request = new
+                {
+                    action = "get-calculation",
+                    calculationId = calculationId
+                };
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/oss-storage");
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                httpRequest.Content = JsonContent.Create(request);
 
                 var response = await _httpClient.SendAsync(httpRequest);
+
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<CalculationResult>();
+                    var result = await response.Content.ReadFromJsonAsync<CalculationResult>();
+                    return result;
                 }
             }
             catch (Exception ex)
@@ -305,31 +359,25 @@ namespace MetromontCastLink.Client.Services
             return null;
         }
 
-        private async Task<string?> GetCurrentProjectId()
+        private async Task<string> GetCurrentProjectId()
         {
-            var currentProject = await _accService.GetCurrentProjectAsync();
-            return currentProject?.Id;
+            // This would retrieve the current project ID from your project context
+            // For now, returning a placeholder
+            try
+            {
+                var projectIdJson = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "selectedProjectId");
+                return projectIdJson ?? "default-project";
+            }
+            catch
+            {
+                return "default-project";
+            }
         }
 
-        // Helper classes for JSON deserialization
+        // Supporting response class
         private class OSSReportsResponse
         {
-            public bool Success { get; set; }
             public List<QCReportListItem> Reports { get; set; } = new();
-        }
-
-        private class OSSReportResponse
-        {
-            public bool Success { get; set; }
-            public QCReport? ReportContent { get; set; }
-        }
-
-        private class CalculationData
-        {
-            public string Id { get; set; } = "";
-            public CalculationResult? Calculation { get; set; }
-            public DateTime Timestamp { get; set; }
-            public string? ProjectId { get; set; }
         }
     }
 }

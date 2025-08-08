@@ -1,96 +1,268 @@
 ﻿// Forge Viewer Integration for Metromont CastLink
+// Complete rewrite with proper initialization and error handling
+
 window.ForgeViewer = {
     viewer: null,
     viewerDocument: null,
     dotNetHelper: null,
     selectedElements: [],
     selectionMode: 'single',
+    isInitialized: false,
+    currentModelUrn: null,
+    viewerContainer: null,
+    currentAccessToken: null,
 
-    // Initialize the Forge viewer
-    initialize: async function (containerId, modelUrn, accessToken, dotNetReference) {
+    // Initialize empty viewer (no model loaded)
+    initializeEmpty: async function (containerId, accessToken, dotNetReference) {
         this.dotNetHelper = dotNetReference;
+        this.viewerContainer = containerId;
+        this.currentAccessToken = accessToken; // Store the token for later use
 
         const options = {
-            env: 'AutodeskProduction',
-            api: 'derivativeV2',
+            env: 'AutodeskProduction2',  // Use Production2 for ACC/BIM360 models
+            api: 'streamingV2',          // Use streamingV2 for better performance
             getAccessToken: (callback) => {
-                callback(accessToken, 3600);
+                // Use the stored token or get a fresh one if needed
+                callback(this.currentAccessToken, 3600);
             }
         };
 
         return new Promise((resolve, reject) => {
+            // Check if Autodesk namespace exists
+            if (typeof Autodesk === 'undefined') {
+                reject('Forge Viewer SDK not loaded');
+                return;
+            }
+
             Autodesk.Viewing.Initializer(options, () => {
                 const container = document.getElementById(containerId);
+                if (!container) {
+                    reject('Container element not found');
+                    return;
+                }
 
-                // Create viewer
+                // Create viewer with ACC-like configuration
                 this.viewer = new Autodesk.Viewing.GuiViewer3D(container, {
-                    extensions: [
-                        'Autodesk.DocumentBrowser',
-                        'Autodesk.Viewing.MarkupsCore',
-                        'Autodesk.Measure'
-                    ]
+                    theme: 'light-theme',
+                    disableSelection: false
                 });
 
                 // Start the viewer
                 const startedCode = this.viewer.start();
                 if (startedCode > 0) {
-                    reject('Failed to start viewer');
+                    reject('Failed to start viewer: ' + startedCode);
                     return;
                 }
 
-                // Load the model
-                Autodesk.Viewing.Document.load(
-                    `urn:${modelUrn}`,
-                    (doc) => this.onDocumentLoadSuccess(doc, resolve),
-                    (error) => this.onDocumentLoadFailure(error, reject)
-                );
+                // Viewer started successfully - set initialized flag
+                this.isInitialized = true;
 
-                // Set up event listeners
-                this.setupEventListeners();
+                // Show empty viewer message
+                this.showEmptyState();
+
+                // Set up base event listeners (without model-specific ones)
+                this.setupBaseEventListeners();
+
+                resolve(true);
             });
+        });
+    },
+
+    // Load a model into the initialized viewer
+    loadModel: async function (modelUrn, accessToken) {
+        if (!this.isInitialized || !this.viewer) {
+            throw new Error('Viewer not initialized. Call initializeEmpty first.');
+        }
+
+        console.log('Loading model with URN:', modelUrn);
+        console.log('Access token provided:', accessToken ? 'Yes' : 'No');
+
+        // Clear any existing model
+        if (this.viewerDocument) {
+            this.viewer.unloadModel(this.viewer.model);
+            this.viewerDocument = null;
+        }
+
+        this.currentModelUrn = modelUrn;
+
+        // Update the stored access token if provided
+        if (accessToken) {
+            this.currentAccessToken = accessToken;
+        }
+
+        return new Promise((resolve, reject) => {
+            // Hide empty state
+            this.hideEmptyState();
+
+            // Load the document with the access token callback
+            const documentId = `urn:${modelUrn}`;
+
+            console.log('Loading document:', documentId);
+
+            Autodesk.Viewing.Document.load(
+                documentId,
+                (doc) => {
+                    console.log('Document loaded successfully');
+                    this.viewerDocument = doc;
+                    this.onDocumentLoadSuccess(doc, resolve);
+                },
+                (errorCode, errorMsg, statusCode, statusText) => {
+                    console.error('Document load error details:');
+                    console.error('Error Code:', errorCode);
+                    console.error('Error Message:', errorMsg);
+                    console.error('Status Code:', statusCode);
+                    console.error('Status Text:', statusText);
+
+                    if (errorCode === 4 || statusCode === 401) {
+                        console.error('Authentication Error (401): Check that the model URN exists and token is valid');
+                    } else if (errorCode === 5) {
+                        console.error('Network Error: Could not reach Autodesk servers');
+                    } else if (errorCode === 6) {
+                        console.error('Model Translation Error: The model may not be viewable yet');
+                    }
+
+                    this.onDocumentLoadFailure(errorCode, reject);
+                },
+                {
+                    getAccessToken: (callback) => {
+                        if (!this.currentAccessToken) {
+                            console.error('No access token available!');
+                            callback('', 0);
+                        } else {
+                            callback(this.currentAccessToken, 3600);
+                        }
+                    }
+                }
+            );
         });
     },
 
     // Document load success handler
     onDocumentLoadSuccess: function (doc, resolve) {
-        this.viewerDocument = doc;
-
         // Get the default geometry
         const defaultModel = doc.getRoot().getDefaultGeometry();
+        if (!defaultModel) {
+            this.showEmptyState();
+            resolve(false);
+            return;
+        }
 
-        // Load the model
+        // Load the model into viewer
         this.viewer.loadDocumentNode(doc, defaultModel).then(() => {
             console.log('Model loaded successfully');
 
-            // Set up selection handling
-            this.setupSelectionHandling();
+            // Wait for geometry to be fully loaded before setting up selection
+            this.viewer.addEventListener(
+                Autodesk.Viewing.GEOMETRY_LOADED_EVENT,
+                () => {
+                    // Now safe to set up selection handling
+                    this.setupSelectionHandling();
 
-            // Set default view
-            this.viewer.setTheme('light-theme');
-            this.viewer.setQualityLevel(true, true);
+                    // Set up model-specific event listeners
+                    this.setupModelEventListeners();
 
-            resolve();
+                    // Set default view settings
+                    this.viewer.setTheme('light-theme');
+                    this.viewer.setQualityLevel(true, true);
+                    this.viewer.setGroundShadow(false);
+                    this.viewer.setGroundReflection(false);
+                    this.viewer.setGhosting(true);
+                    this.viewer.setEnvMapBackground(false);
+
+                    // Fit to view
+                    this.viewer.fitToView();
+
+                    // Notify .NET that model is loaded
+                    if (this.dotNetHelper) {
+                        this.dotNetHelper.invokeMethodAsync('OnModelLoaded', doc.getRoot().data.name);
+                    }
+
+                    resolve(true);
+                },
+                { once: true }
+            );
+        }).catch(error => {
+            console.error('Error loading model node:', error);
+            this.showEmptyState();
+            resolve(false);
         });
     },
 
     // Document load failure handler
     onDocumentLoadFailure: function (error, reject) {
         console.error('Failed to load document:', error);
+        this.showEmptyState();
         reject(error);
     },
 
-    // Set up event listeners
-    setupEventListeners: function () {
+    // Show empty state message
+    showEmptyState: function () {
+        const container = document.getElementById(this.viewerContainer);
+        if (!container) return;
+
+        // Remove existing empty state if any
+        const existing = container.querySelector('.viewer-empty-state');
+        if (existing) existing.remove();
+
+        // Create empty state UI
+        const emptyState = document.createElement('div');
+        emptyState.className = 'viewer-empty-state';
+        emptyState.innerHTML = `
+            <div class="empty-state-content">
+                <svg class="empty-state-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <h3>No Model Loaded</h3>
+                <p>Select a model from the dropdown above to begin</p>
+            </div>
+        `;
+        container.appendChild(emptyState);
+    },
+
+    // Hide empty state message
+    hideEmptyState: function () {
+        const container = document.getElementById(this.viewerContainer);
+        if (!container) return;
+
+        const emptyState = container.querySelector('.viewer-empty-state');
+        if (emptyState) {
+            emptyState.remove();
+        }
+    },
+
+    // Set up base event listeners (viewer-level, not model-specific)
+    setupBaseEventListeners: function () {
+        if (!this.viewer) return;
+
+        // Viewer resize event
+        window.addEventListener('resize', () => {
+            if (this.viewer) {
+                this.viewer.resize();
+            }
+        });
+
+        // Escape key handler
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.viewer) {
+                this.viewer.clearSelection();
+                this.selectedElements = [];
+                if (this.dotNetHelper) {
+                    this.dotNetHelper.invokeMethodAsync('OnSelectionCleared');
+                }
+            }
+        });
+    },
+
+    // Set up model-specific event listeners
+    setupModelEventListeners: function () {
+        if (!this.viewer || !this.viewer.model) return;
+
         // Selection changed event
         this.viewer.addEventListener(
             Autodesk.Viewing.SELECTION_CHANGED_EVENT,
             this.onSelectionChanged.bind(this)
-        );
-
-        // Model loaded event
-        this.viewer.addEventListener(
-            Autodesk.Viewing.GEOMETRY_LOADED_EVENT,
-            this.onGeometryLoaded.bind(this)
         );
 
         // Object tree created event
@@ -98,13 +270,26 @@ window.ForgeViewer = {
             Autodesk.Viewing.OBJECT_TREE_CREATED_EVENT,
             this.onObjectTreeCreated.bind(this)
         );
+
+        // Camera changed event for view state tracking
+        this.viewer.addEventListener(
+            Autodesk.Viewing.CAMERA_CHANGE_EVENT,
+            this.onCameraChanged.bind(this)
+        );
     },
 
-    // Set up selection handling
+    // Set up selection handling - ONLY call after model is loaded
     setupSelectionHandling: function () {
-        const selectionExtension = this.viewer.getExtension('Autodesk.Viewing.SelectionManager');
-        if (selectionExtension) {
-            selectionExtension.setSelectionMode(Autodesk.Viewing.SelectionMode.LEAF_OBJECT);
+        if (!this.viewer || !this.viewer.impl || !this.viewer.impl.selector) {
+            console.warn('Viewer not ready for selection setup');
+            return;
+        }
+
+        try {
+            // Use the viewer's selection mode directly
+            this.viewer.impl.selector.setSelectionMode(Autodesk.Viewing.SelectionMode.LEAF_OBJECT);
+        } catch (error) {
+            console.warn('Could not set selection mode:', error);
         }
     },
 
@@ -112,356 +297,347 @@ window.ForgeViewer = {
     onSelectionChanged: function (event) {
         const dbIds = event.dbIdArray;
 
-        if (dbIds && dbIds.length > 0) {
-            // Get properties for selected elements
-            dbIds.forEach(dbId => {
-                this.viewer.model.getProperties(dbId, (props) => {
-                    const elementData = this.extractElementData(props);
-
-                    // Send to Blazor component
-                    if (this.dotNetHelper) {
-                        this.dotNetHelper.invokeMethodAsync('OnElementSelected', JSON.stringify(elementData));
-                    }
-                });
-            });
+        if (!dbIds || dbIds.length === 0) {
+            this.selectedElements = [];
+            if (this.dotNetHelper) {
+                this.dotNetHelper.invokeMethodAsync('OnSelectionCleared');
+            }
+            return;
         }
+
+        // Get properties for selected elements
+        const promises = dbIds.map(dbId => this.getElementProperties(dbId));
+
+        Promise.all(promises).then(elements => {
+            this.selectedElements = elements.filter(e => e !== null);
+
+            // Send to Blazor
+            if (this.dotNetHelper && this.selectedElements.length > 0) {
+                if (this.selectionMode === 'single' && this.selectedElements.length > 0) {
+                    this.dotNetHelper.invokeMethodAsync('OnElementSelected',
+                        JSON.stringify(this.selectedElements[0]));
+                } else {
+                    this.dotNetHelper.invokeMethodAsync('OnMultipleElementsSelected',
+                        JSON.stringify(this.selectedElements));
+                }
+            }
+        });
+    },
+
+    // Get element properties
+    getElementProperties: function (dbId) {
+        return new Promise((resolve) => {
+            if (!this.viewer || !this.viewer.model) {
+                resolve(null);
+                return;
+            }
+
+            this.viewer.model.getProperties(dbId, (props) => {
+                resolve(this.extractElementData(props));
+            }, (error) => {
+                console.warn('Error getting properties for dbId ' + dbId, error);
+                resolve(null);
+            });
+        });
     },
 
     // Extract element data from properties
     extractElementData: function (props) {
-        const data = {
-            Id: props.dbId,
-            ExternalId: props.externalId,
-            Name: props.name,
-            Category: '',
-            Properties: {}
+        if (!props) return null;
+
+        const findProperty = (name) => {
+            const prop = props.properties.find(p =>
+                p.displayName === name || p.attributeName === name
+            );
+            return prop ? prop.displayValue : null;
         };
 
-        // Extract relevant properties
-        props.properties.forEach(prop => {
-            if (prop.displayCategory === 'Identity Data' ||
-                prop.displayCategory === 'Dimensions' ||
-                prop.displayCategory === 'Structural' ||
-                prop.displayCategory === 'Materials and Finishes') {
-
-                if (prop.displayCategory === 'Identity Data' && prop.displayName === 'Category') {
-                    data.Category = prop.displayValue;
-                }
-
-                data.Properties[prop.displayName] = prop.displayValue;
-            }
-        });
-
-        // Extract geometry data
-        const bbox = this.viewer.model.getBoundingBox();
-        if (bbox) {
-            data.Properties['BoundingBox'] = {
-                min: bbox.min,
-                max: bbox.max
-            };
-        }
-
-        // Get volume if available
-        this.getElementVolume(props.dbId).then(volume => {
-            if (volume) {
-                data.Properties['Volume'] = volume;
-            }
-        });
-
-        return data;
-    },
-
-    // Get element volume
-    getElementVolume: async function (dbId) {
-        return new Promise((resolve) => {
-            this.viewer.model.getProperties(dbId, (props) => {
-                const volumeProp = props.properties.find(p =>
-                    p.displayName === 'Volume' || p.attributeName === 'Volume'
-                );
-                resolve(volumeProp ? parseFloat(volumeProp.displayValue) : null);
-            });
-        });
-    },
-
-    // Geometry loaded handler
-    onGeometryLoaded: function () {
-        console.log('Geometry loaded');
-        this.viewer.fitToView();
+        return {
+            id: props.dbId,
+            externalId: props.externalId,
+            name: props.name,
+            category: findProperty('Category'),
+            family: findProperty('Family'),
+            type: findProperty('Type'),
+            level: findProperty('Level'),
+            mark: findProperty('Mark'),
+            length: parseFloat(findProperty('Length')) || 0,
+            width: parseFloat(findProperty('Width')) || 0,
+            height: parseFloat(findProperty('Height')) || 0,
+            volume: parseFloat(findProperty('Volume')) || 0,
+            area: parseFloat(findProperty('Area')) || 0,
+            weight: parseFloat(findProperty('Weight')) || 0,
+            allProperties: props.properties
+        };
     },
 
     // Object tree created handler
     onObjectTreeCreated: function () {
         console.log('Object tree created');
+
+        // Get model statistics
+        if (this.viewer && this.viewer.model) {
+            const tree = this.viewer.model.getInstanceTree();
+            if (tree) {
+                let count = 0;
+                tree.enumNodeChildren(tree.getRootId(), () => count++, true);
+
+                if (this.dotNetHelper) {
+                    this.dotNetHelper.invokeMethodAsync('OnModelStatisticsReady', count);
+                }
+            }
+        }
+    },
+
+    // Camera changed handler
+    onCameraChanged: function () {
+        // Could be used to save view state
     },
 
     // Enable selection mode
     enableSelection: function (mode) {
+        if (!this.viewer || !this.viewer.impl || !this.viewer.impl.selector) {
+            console.warn('Viewer not ready for selection mode change');
+            return;
+        }
+
         this.selectionMode = mode;
 
-        if (mode === 'multiple') {
-            this.viewer.setSelectionMode(Autodesk.Viewing.SelectionMode.MIXED);
-        } else {
-            this.viewer.setSelectionMode(Autodesk.Viewing.SelectionMode.LEAF_OBJECT);
+        try {
+            if (mode === 'multiple') {
+                this.viewer.impl.selector.setSelectionMode(Autodesk.Viewing.SelectionMode.MIXED);
+            } else {
+                this.viewer.impl.selector.setSelectionMode(Autodesk.Viewing.SelectionMode.LEAF_OBJECT);
+            }
+        } catch (error) {
+            console.warn('Error setting selection mode:', error);
         }
     },
 
-    // Filter elements by category
-    filterByCategory: function (category) {
-        const tree = this.viewer.model.getInstanceTree();
-        const dbIds = [];
+    // Filter Cloud Central models only
+    filterCloudModels: function (models) {
+        if (!models || !Array.isArray(models)) return [];
 
-        tree.enumNodeChildren(tree.getRootId(), (dbId) => {
-            this.viewer.model.getProperties(dbId, (props) => {
-                const categoryProp = props.properties.find(p =>
-                    p.displayName === 'Category' && p.displayValue.includes(category)
-                );
+        // Filter for Cloud Central models (not static/local copies)
+        return models.filter(model => {
+            // Check if it's a cloud model by looking for specific attributes
+            const isCloudModel = model.attributes &&
+                model.attributes.extension &&
+                model.attributes.extension.type === 'items:autodesk.bim360:C4RModel';
 
-                if (categoryProp) {
-                    dbIds.push(dbId);
-                }
-            });
-        }, true);
+            // Also check for Revit cloud models
+            const isRevitCloud = model.attributes &&
+                model.attributes.extension &&
+                model.attributes.extension.type === 'items:autodesk.core:File' &&
+                model.attributes.mimeType === 'application/vnd.autodesk.revit';
 
-        // Isolate filtered elements
-        if (dbIds.length > 0) {
-            this.viewer.isolate(dbIds);
-        }
+            return isCloudModel || isRevitCloud;
+        });
     },
 
-    // Get properties for elements
-    getElementProperties: function (dbIds) {
-        const properties = [];
+    // Get available views in the model
+    getAvailableViews: function () {
+        if (!this.viewerDocument) return [];
 
-        return Promise.all(dbIds.map(dbId =>
-            new Promise((resolve) => {
-                this.viewer.model.getProperties(dbId, (props) => {
-                    properties.push(this.extractElementData(props));
-                    resolve();
-                });
-            })
-        )).then(() => properties);
+        const viewables = this.viewerDocument.getRoot().search({
+            'type': 'geometry'
+        });
+
+        return viewables.map(view => ({
+            guid: view.guid,
+            name: view.name || 'Unnamed View',
+            role: view.role,
+            is2D: view.is2D(),
+            is3D: view.is3D()
+        }));
+    },
+
+    // Load a specific view
+    loadView: function (viewGuid) {
+        if (!this.viewerDocument || !this.viewer) return;
+
+        const viewables = this.viewerDocument.getRoot().search({
+            'guid': viewGuid
+        });
+
+        if (viewables.length > 0) {
+            this.viewer.loadDocumentNode(this.viewerDocument, viewables[0]);
+        }
     },
 
     // Viewer control methods
     resetView: function () {
-        this.viewer.navigation.setRequestHomeView(true);
-        this.viewer.fitToView();
+        if (this.viewer) {
+            this.viewer.navigation.setRequestHomeView(true);
+            this.viewer.fitToView();
+        }
     },
 
     toggleExplode: function () {
-        const explodeExtension = this.viewer.getExtension('Autodesk.Explode');
-        if (explodeExtension) {
-            const scale = explodeExtension.getExplodeScale();
-            explodeExtension.setExplodeScale(scale === 0 ? 0.5 : 0);
+        if (!this.viewer) return;
+
+        try {
+            // Try to load and use the explode extension
+            this.viewer.loadExtension('Autodesk.Explode').then((explodeExtension) => {
+                const scale = explodeExtension.getExplodeScale();
+                explodeExtension.setExplodeScale(scale === 0 ? 0.5 : 0);
+            }).catch(err => {
+                console.warn('Explode extension not available');
+            });
+        } catch (error) {
+            console.warn('Error toggling explode:', error);
         }
     },
 
     toggleSection: function () {
-        const sectionExtension = this.viewer.getExtension('Autodesk.Section');
-        if (sectionExtension) {
-            sectionExtension.toggleSection();
+        if (!this.viewer) return;
+
+        try {
+            // For section, use the built-in section tool
+            const ext = this.viewer.getExtension('Autodesk.Section');
+            if (ext) {
+                ext.toggleSection();
+            } else {
+                console.warn('Section extension not available');
+            }
+        } catch (error) {
+            console.warn('Error toggling section:', error);
         }
     },
 
     toggleMeasure: function () {
-        const measureExtension = this.viewer.getExtension('Autodesk.Measure');
-        if (measureExtension) {
-            measureExtension.activate('distance');
+        if (!this.viewer) return;
+
+        try {
+            // Try to load and use the measure extension
+            this.viewer.loadExtension('Autodesk.Measure').then((measureExtension) => {
+                if (measureExtension.isActive()) {
+                    measureExtension.deactivate();
+                } else {
+                    measureExtension.activate();
+                }
+            }).catch(err => {
+                console.warn('Measure extension not available');
+            });
+        } catch (error) {
+            console.warn('Error toggling measure:', error);
         }
     },
 
     showProperties: function () {
-        const propertyPanel = this.viewer.getPropertyPanel();
-        if (propertyPanel) {
-            propertyPanel.setVisible(!propertyPanel.isVisible());
+        if (!this.viewer) return;
+
+        try {
+            // Use the built-in property panel
+            if (this.viewer.getPropertyPanel) {
+                const panel = this.viewer.getPropertyPanel(true);
+                panel.setVisible(!panel.isVisible());
+            }
+        } catch (error) {
+            console.warn('Error showing properties:', error);
         }
     },
 
-    // Isolate elements
-    isolateElements: function (dbIds) {
-        this.viewer.isolate(dbIds);
+    toggleGhosting: function () {
+        if (!this.viewer) return;
+
+        try {
+            // Toggle ghosting for hidden objects
+            const ghosting = this.viewer.getGhosting();
+            this.viewer.setGhosting(!ghosting);
+        } catch (error) {
+            console.warn('Error toggling ghosting:', error);
+        }
     },
 
-    // Highlight elements
-    highlightElements: function (dbIds, color) {
-        const material = new THREE.MeshPhongMaterial({
-            color: color || 0xff0000,
-            opacity: 0.5,
-            transparent: true
-        });
+    showSearch: function () {
+        if (!this.viewer) return;
 
-        dbIds.forEach(dbId => {
-            this.viewer.impl.highlightObjectNode(this.viewer.model, dbId, true, material);
-        });
+        try {
+            // Try to load search extension
+            this.viewer.loadExtension('Autodesk.Search').then((searchExtension) => {
+                searchExtension.showSearchWindow();
+            }).catch(err => {
+                console.warn('Search extension not available');
+            });
+        } catch (error) {
+            console.warn('Error showing search:', error);
+        }
+    },
+
+    // Isolate selected elements
+    isolateSelected: function () {
+        if (this.viewer && this.selectedElements.length > 0) {
+            const dbIds = this.selectedElements.map(e => e.id);
+            this.viewer.isolate(dbIds);
+        }
+    },
+
+    // Hide selected elements
+    hideSelected: function () {
+        if (this.viewer && this.selectedElements.length > 0) {
+            const dbIds = this.selectedElements.map(e => e.id);
+            this.viewer.hide(dbIds);
+        }
+    },
+
+    // Show all elements
+    showAll: function () {
+        if (this.viewer) {
+            this.viewer.isolate([]);
+            this.viewer.showAll();
+        }
     },
 
     // Clear selection
     clearSelection: function () {
-        this.viewer.clearSelection();
-        this.selectedElements = [];
-    },
-
-    // Get model metadata
-    getModelMetadata: function () {
-        const metadata = this.viewerDocument.getRoot();
-        return {
-            name: metadata.name,
-            guid: metadata.guid,
-            role: metadata.role,
-            properties: metadata.properties
-        };
-    },
-
-    // Extract BIM data for calculations
-    extractBIMDataForCalculation: async function (elementIds) {
-        const data = {
-            elements: [],
-            totalVolume: 0,
-            totalArea: 0,
-            materials: {},
-            loads: {}
-        };
-
-        for (const dbId of elementIds) {
-            await new Promise((resolve) => {
-                this.viewer.model.getProperties(dbId, (props) => {
-                    const elementData = {
-                        id: dbId,
-                        name: props.name,
-                        properties: {}
-                    };
-
-                    // Extract calculation-relevant properties
-                    props.properties.forEach(prop => {
-                        const name = prop.displayName;
-                        const value = prop.displayValue;
-
-                        // Volume and area
-                        if (name === 'Volume') {
-                            const volume = parseFloat(value);
-                            elementData.properties.volume = volume;
-                            data.totalVolume += volume;
-                        } else if (name === 'Area') {
-                            const area = parseFloat(value);
-                            elementData.properties.area = area;
-                            data.totalArea += area;
-                        }
-
-                        // Dimensions
-                        else if (name === 'Length' || name === 'Width' || name === 'Height' ||
-                            name === 'Thickness' || name === 'Depth') {
-                            elementData.properties[name.toLowerCase()] = parseFloat(value);
-                        }
-
-                        // Material
-                        else if (name === 'Material' || name === 'Structural Material') {
-                            elementData.properties.material = value;
-                            data.materials[value] = (data.materials[value] || 0) + 1;
-                        }
-
-                        // Structural properties
-                        else if (name === 'Structural Usage' || name === 'Load Bearing') {
-                            elementData.properties.structuralUsage = value;
-                        }
-
-                        // Concrete properties
-                        else if (name.includes('Concrete') || name.includes('Strength')) {
-                            elementData.properties[name.replace(/\s+/g, '_').toLowerCase()] = value;
-                        }
-
-                        // Reinforcement
-                        else if (name.includes('Rebar') || name.includes('Reinforcement')) {
-                            elementData.properties[name.replace(/\s+/g, '_').toLowerCase()] = value;
-                        }
-                    });
-
-                    data.elements.push(elementData);
-                    resolve();
-                });
-            });
+        if (this.viewer) {
+            this.viewer.clearSelection();
+            this.selectedElements = [];
         }
-
-        // Calculate loads based on material densities
-        data.loads = this.calculateLoads(data);
-
-        return data;
     },
 
-    // Calculate loads from BIM data
-    calculateLoads: function (data) {
-        const materialDensities = {
-            'Concrete': 150, // PCF
-            'Concrete, Precast': 150,
-            'Concrete, Lightweight': 110,
-            'Steel': 490,
-            'Wood': 35,
-            'Masonry': 125
-        };
+    // Get current view state
+    getViewState: function () {
+        if (!this.viewer) return null;
 
-        let totalDeadLoad = 0;
-
-        data.elements.forEach(element => {
-            const volume = element.properties.volume || 0;
-            const material = element.properties.material || 'Concrete';
-
-            // Find matching density
-            let density = 150; // Default to concrete
-            for (const [mat, dens] of Object.entries(materialDensities)) {
-                if (material.includes(mat)) {
-                    density = dens;
-                    break;
-                }
-            }
-
-            const weight = volume * density;
-            totalDeadLoad += weight;
-
-            element.properties.weight = weight;
-            element.properties.density = density;
-        });
-
-        return {
-            deadLoad: totalDeadLoad,
-            liveLoad: 0, // To be specified by user
-            windLoad: 0, // To be specified by user
-            seismicLoad: 0 // To be specified by user
-        };
+        const viewState = this.viewer.getState();
+        return JSON.stringify(viewState);
     },
 
-    // Get Revit parameters mapping
-    getRevitParameterMapping: function () {
-        return {
-            // Dimensions
-            'Length': ['Length', 'L', 'Span'],
-            'Width': ['Width', 'W', 'b'],
-            'Height': ['Height', 'H', 'h'],
-            'Depth': ['Depth', 'D', 'd'],
-            'Thickness': ['Thickness', 't', 'Thk'],
+    // Restore view state
+    restoreViewState: function (viewStateJson) {
+        if (!this.viewer) return;
 
-            // Structural
-            'ConcreteStrength': ['f\'c', 'Concrete Strength', 'fc'],
-            'RebarYield': ['fy', 'Rebar Yield', 'Yield Strength'],
-            'PrestressForce': ['P', 'Prestress', 'Prestressing Force'],
+        try {
+            const viewState = JSON.parse(viewStateJson);
+            this.viewer.restoreState(viewState);
+        } catch (error) {
+            console.error('Error restoring view state:', error);
+        }
+    },
 
-            // Loads
-            'DeadLoad': ['DL', 'Dead Load', 'D'],
-            'LiveLoad': ['LL', 'Live Load', 'L'],
-            'WindLoad': ['WL', 'Wind Load', 'W'],
+    // Take screenshot
+    takeScreenshot: function () {
+        if (!this.viewer) return null;
 
-            // Material
-            'Material': ['Material', 'Structural Material', 'Mat'],
-            'Weight': ['Weight', 'Unit Weight', 'w']
-        };
+        return this.viewer.getScreenShot(1920, 1080);
     },
 
     // Clean up
-    dispose: function () {
+    destroy: function () {
         if (this.viewer) {
             this.viewer.finish();
             this.viewer = null;
         }
         this.viewerDocument = null;
-        this.dotNetHelper = null;
         this.selectedElements = [];
+        this.isInitialized = false;
+        this.currentModelUrn = null;
     }
 };
+
+// Export for module usage if needed
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ForgeViewer;
+}
