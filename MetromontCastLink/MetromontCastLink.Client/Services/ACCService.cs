@@ -2,6 +2,8 @@
 using MetromontCastLink.Shared.Services;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace MetromontCastLink.Client.Services
@@ -20,6 +22,10 @@ namespace MetromontCastLink.Client.Services
         private UserProfile? _userProfile;
         private List<ACCProject>? _projects;
         private ACCProject? _currentProject;
+
+        // PKCE parameters
+        private string? _codeVerifier;
+        private string? _codeChallenge;
 
         public event EventHandler<AuthenticationStateChangedEventArgs>? AuthenticationStateChanged;
 
@@ -75,6 +81,13 @@ namespace MetromontCastLink.Client.Services
             try
             {
                 Console.WriteLine("InitiateAuthenticationAsync called");
+
+                // Generate PKCE parameters
+                GeneratePKCEParameters();
+
+                // Store code verifier in session storage for later use
+                await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "code_verifier", _codeVerifier);
+
                 var authUrl = BuildAuthorizationUrl();
                 Console.WriteLine($"Redirecting to: {authUrl}");
 
@@ -107,6 +120,32 @@ namespace MetromontCastLink.Client.Services
             }
         }
 
+        private void GeneratePKCEParameters()
+        {
+            // Generate code verifier (43-128 characters)
+            var bytes = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(bytes);
+            }
+            _codeVerifier = Convert.ToBase64String(bytes)
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+
+            // Generate code challenge (SHA256 hash of verifier)
+            using (var sha256 = SHA256.Create())
+            {
+                var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(_codeVerifier));
+                _codeChallenge = Convert.ToBase64String(challengeBytes)
+                    .TrimEnd('=')
+                    .Replace('+', '-')
+                    .Replace('/', '_');
+            }
+
+            Console.WriteLine($"Generated PKCE - Verifier length: {_codeVerifier.Length}, Challenge: {_codeChallenge}");
+        }
+
         private string BuildAuthorizationUrl()
         {
             var scope = string.Join(" ", _scopes);
@@ -114,12 +153,15 @@ namespace MetromontCastLink.Client.Services
                          $"?response_type=code" +
                          $"&client_id={Uri.EscapeDataString(_clientId)}" +
                          $"&redirect_uri={Uri.EscapeDataString(_callbackUrl)}" +
-                         $"&scope={Uri.EscapeDataString(scope)}";
+                         $"&scope={Uri.EscapeDataString(scope)}" +
+                         $"&code_challenge={Uri.EscapeDataString(_codeChallenge!)}" +
+                         $"&code_challenge_method=S256";
 
-            Console.WriteLine($"Built auth URL: {authUrl}");
+            Console.WriteLine($"Built auth URL with PKCE");
             Console.WriteLine($"Client ID: {_clientId}");
             Console.WriteLine($"Callback URL: {_callbackUrl}");
             Console.WriteLine($"Scopes: {scope}");
+            Console.WriteLine($"Code Challenge: {_codeChallenge}");
 
             return authUrl;
         }
@@ -139,13 +181,24 @@ namespace MetromontCastLink.Client.Services
             {
                 Console.WriteLine($"HandleCallbackAsync called with code: {code}");
 
+                // Retrieve the code verifier from session storage
+                var storedVerifier = await _jsRuntime.InvokeAsync<string>("sessionStorage.getItem", "code_verifier");
+                if (string.IsNullOrEmpty(storedVerifier))
+                {
+                    Console.WriteLine("Warning: No code verifier found in session storage, using current one");
+                    storedVerifier = _codeVerifier;
+                }
+
+                Console.WriteLine($"Using code verifier: {storedVerifier?.Substring(0, Math.Min(10, storedVerifier?.Length ?? 0))}... (length: {storedVerifier?.Length})");
+
                 // Exchange the authorization code for an access token
                 var tokenRequest = new FormUrlEncodedContent(new[]
                 {
                     new KeyValuePair<string, string>("grant_type", "authorization_code"),
                     new KeyValuePair<string, string>("code", code),
                     new KeyValuePair<string, string>("client_id", _clientId),
-                    new KeyValuePair<string, string>("redirect_uri", _callbackUrl)
+                    new KeyValuePair<string, string>("redirect_uri", _callbackUrl),
+                    new KeyValuePair<string, string>("code_verifier", storedVerifier!)
                 });
 
                 var tokenResponse = await _httpClient.PostAsync("https://developer.api.autodesk.com/authentication/v2/token", tokenRequest);
@@ -157,6 +210,9 @@ namespace MetromontCastLink.Client.Services
                     _accessToken = tokenJson.GetProperty("access_token").GetString();
                     var expiresIn = tokenJson.GetProperty("expires_in").GetInt32();
                     _tokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn);
+
+                    // Clear the code verifier from session storage
+                    await _jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "code_verifier");
 
                     // Store token info
                     await StoreTokenAsync(_accessToken!, _tokenExpiry);
@@ -395,6 +451,8 @@ namespace MetromontCastLink.Client.Services
             _userProfile = null;
             _projects = null;
             _currentProject = null;
+            _codeVerifier = null;
+            _codeChallenge = null;
 
             // Clear session storage
             await _jsRuntime.InvokeVoidAsync("sessionStorage.clear");
