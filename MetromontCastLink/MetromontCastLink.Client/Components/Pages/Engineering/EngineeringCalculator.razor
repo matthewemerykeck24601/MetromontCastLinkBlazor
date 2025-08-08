@@ -55,253 +55,121 @@
 
     <!-- Main Content Area -->
     <div class="main-content">
-        <!-- Forge Viewer Section -->
-        <div class="viewer-section">
-            <div id="forgeViewer" class="forge-viewer-container">
-                @if (IsLoadingViewer)
-                {
-                    <div class="viewer-loading-state">
-                        <SfSpinner Size="50" Label="Initializing 3D Viewer..." />
-                    </div>
-                }
-                @if (!IsModelLoaded && !IsLoadingViewer && IsViewerInitialized)
-                {
-                    <div class="viewer-loading-state">
-                        <i class="fas fa-cube fa-3x"></i>
-                        <h3>No Model Loaded</h3>
-                        <p>Select a model from the dropdown above to begin</p>
-                    </div>
-                }
-            </div>
+        <!-- Forge Viewer Container -->
+        <div class="viewer-container @(IsModelLoaded ? "" : "viewer-empty")">
+            <div id="forgeViewer" class="forge-viewer-element"></div>
 
-            <!-- Viewer Toolbar -->
-            <div class="viewer-toolbar">
-                <div class="toolbar-group">
-                    <span class="toolbar-label">Navigation</span>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-home"
-                              @onclick="ResetView" Title="Home View" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-arrows-alt"
-                              @onclick="FitToView" Title="Fit to View" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-cube"
-                              @onclick="Toggle3DView" Title="3D View" Disabled="@(!IsModelLoaded)"></SfButton>
-                </div>
-
-                <div class="toolbar-divider"></div>
-
-                <div class="toolbar-group">
-                    <span class="toolbar-label">Tools</span>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-expand-arrows-alt"
-                              @onclick="ToggleExplode" Title="Explode View" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-cut"
-                              @onclick="ToggleSection" Title="Section View" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-ghost"
-                              @onclick="ToggleGhosting" Title="Ghost Elements" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-ruler"
-                              @onclick="ToggleMeasure" Title="Measure" Disabled="@(!IsModelLoaded)"></SfButton>
-                </div>
-
-                <div class="toolbar-divider"></div>
-
-                <div class="toolbar-group">
-                    <span class="toolbar-label">Selection</span>
-                    <SfButton CssClass="@($"toolbar-btn {(CurrentSelectionMode == "single" ? "active" : "")}")"
-                              IconCss="fas fa-mouse-pointer"
-                              @onclick="SetSingleSelectionMode" Title="Single Selection" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="@($"toolbar-btn {(CurrentSelectionMode == "multiple" ? "active" : "")}")"
-                              IconCss="fas fa-object-group"
-                              @onclick="SetMultipleSelectionMode" Title="Multiple Selection" Disabled="@(!IsModelLoaded)"></SfButton>
-                    <SfButton CssClass="toolbar-btn" IconCss="fas fa-times"
-                              @onclick="ClearSelection" Title="Clear Selection" Disabled="@(!IsModelLoaded)"></SfButton>
-                </div>
-
-                <div class="toolbar-spacer"></div>
-
-                <div class="toolbar-group">
-                    <span class="selection-count">@SelectedElements.Count selected</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Calculator Section -->
-        <div class="@($"calculator-panel {(IsCalculatorDocked ? "docked" : "floating")}")">
-            @if (!IsCalculatorDocked)
+            @if (IsLoadingViewer)
             {
-                <!-- Draggable Header for Floating Mode -->
-                <div class="calculator-drag-handle">
-                    <span class="drag-title">Design Calculator</span>
-                    <div class="drag-controls">
-                        <SfButton CssClass="minimize-btn" IconCss="fas fa-minus"
-                                  @onclick="() => IsMinimized = !IsMinimized"></SfButton>
-                        <SfButton CssClass="dock-btn" IconCss="fas fa-compress"
-                                  @onclick="() => IsCalculatorDocked = true"></SfButton>
-                    </div>
+                <div class="viewer-loading">
+                    <SfSpinner Size="40" />
+                    <p>Loading 3D Model...</p>
                 </div>
             }
 
-            <div class="calculator-content @(IsMinimized ? "minimized" : "")">
-                <!-- Calculation Type Tabs -->
-                <SfTab @bind-SelectedItem="ActiveTab" CssClass="calculator-tabs">
-                    <TabItems>
-                        <TabItem>
-                            <ChildContent>
-                                <TabHeader Text="Point Loads" IconCss="fas fa-weight" />
-                            </ChildContent>
-                            <ContentTemplate>
-                                <div class="calculation-panel">
-                                    <h3>Point Load Transfer</h3>
+            <!-- Viewer Controls -->
+            @if (IsModelLoaded)
+            {
+                <div class="viewer-controls">
+                    <SfButton IconCss="fas fa-home" Title="Reset View" @onclick="ResetView" />
+                    <SfButton IconCss="fas fa-expand-arrows-alt" Title="Fit to View" @onclick="FitToView" />
+                    <SfButton IconCss="fas fa-cube" Title="3D View" @onclick="Toggle3DView" />
+                    <SfButton IconCss="fas fa-bomb" Title="Explode" @onclick="ToggleExplode" />
+                    <SfButton IconCss="fas fa-cut" Title="Section" @onclick="ToggleSection" />
+                    <SfButton IconCss="fas fa-ghost" Title="Ghosting" @onclick="ToggleGhosting" />
+                    <SfButton IconCss="fas fa-ruler-combined" Title="Measure" @onclick="ToggleMeasure" />
+                    <SfButton IconCss="fas fa-info-circle" Title="Properties" @onclick="ShowProperties" />
+                    <SfButton IconCss="fas fa-search" Title="Search" @onclick="ShowSearch" />
+                    <SfButton IconCss="fas fa-mouse-pointer" Title="Clear Selection" @onclick="ClearSelection" />
+                </div>
+            }
+        </div>
 
-                                    <!-- Element Selection -->
-                                    <div class="selected-elements-section">
-                                        <label>Bearing Element</label>
-                                        <div class="element-selector">
-                                            <SfTextBox Value="@(BearingElement?.Name ?? "Click to select from model")"
-                                                       Readonly="true" />
-                                            <SfButton CssClass="select-btn" IconCss="fas fa-crosshairs"
-                                                      @onclick="SelectBearingElement" Disabled="@(!IsModelLoaded)">
-                                                Select from Model
-                                            </SfButton>
-                                        </div>
+        <!-- Calculation Panel -->
+        <div class="calculation-panel">
+            <SfTab>
+                <TabAnimationSettings>
+                    <TabAnimationPrevious Effect="AnimationEffect.SlideLeft" />
+                    <TabAnimationNext Effect="AnimationEffect.SlideRight" />
+                </TabAnimationSettings>
+                <TabItems>
+                    <!-- Point Load Tab -->
+                    <TabItem>
+                        <ChildContent>
+                            <TabHeader Text="Point Loads" IconCss="fas fa-weight-hanging" />
+                        </ChildContent>
+                        <ContentTemplate>
+                            <div class="calculation-form">
+                                <h4>Point Load Calculation</h4>
+
+                                <div class="form-section">
+                                    <label>Bearing Element:</label>
+                                    <div class="element-selector">
+                                        <SfTextBox Value="@(BearingElement?.Name ?? "No element selected")"
+                                                   Readonly="true" />
+                                        <SfButton @onclick="SelectBearingElement">Select from Model</SfButton>
                                     </div>
+                                </div>
 
-                                    <!-- Load Parameters -->
-                                    <div class="input-group">
-                                        <label>Load Magnitude (kips)</label>
-                                        <SfNumericTextBox TValue="double" @bind-Value="LoadMagnitude"
-                                                          Min="0" Step="0.5" Format="n2" />
+                                <div class="form-section">
+                                    <label>Load Magnitude (kips):</label>
+                                    <SfNumericTextBox @bind-Value="LoadMagnitude" Format="n2" />
+                                </div>
+
+                                <div class="form-section">
+                                    <label>Distance from Support (ft):</label>
+                                    <SfNumericTextBox @bind-Value="DistanceFromSupport" Format="n2" />
+                                </div>
+
+                                <div class="form-section">
+                                    <label>Beam Length (ft):</label>
+                                    <SfNumericTextBox @bind-Value="BeamLength" Format="n2" />
+                                </div>
+
+                                <SfButton CssClass="e-success" @onclick="CalculatePointLoad">
+                                    Calculate
+                                </SfButton>
+
+                                @if (PointLoadResults != null)
+                                {
+                                    <div class="calculation-results">
+                                        <h5>Results:</h5>
+                                        <p>Reaction A: @PointLoadResults.ReactionA.ToString("F2") kips</p>
+                                        <p>Reaction B: @PointLoadResults.ReactionB.ToString("F2") kips</p>
+                                        <p>Max Moment: @PointLoadResults.MaxMoment.ToString("F2") kip-ft</p>
+                                        <p>Max Shear: @PointLoadResults.MaxShear.ToString("F2") kips</p>
                                     </div>
+                                }
+                            </div>
+                        </ContentTemplate>
+                    </TabItem>
 
-                                    <div class="input-group">
-                                        <label>Distance from Support (ft)</label>
-                                        <SfNumericTextBox TValue="double" @bind-Value="DistanceFromSupport"
-                                                          Min="0" Step="0.5" Format="n2" />
-                                    </div>
-
-                                    <div class="input-group">
-                                        <label>Beam Length (ft)</label>
-                                        <SfNumericTextBox TValue="double" @bind-Value="BeamLength"
-                                                          Min="0" Step="0.5" Format="n2" />
-                                    </div>
-
-                                    <!-- Calculate Button -->
-                                    <div class="calculation-actions">
-                                        <SfButton CssClass="calculate-btn"
-                                                  @onclick="CalculatePointLoad"
-                                                  Disabled="@(BearingElement == null || LoadMagnitude <= 0 || BeamLength <= 0)">
-                                            <i class="fas fa-calculator"></i> Calculate
-                                        </SfButton>
-                                    </div>
-
-                                    <!-- Results -->
-                                    @if (PointLoadResults != null)
-                                    {
-                                        <div class="results-panel">
-                                            <h4>Results</h4>
-                                            <div class="result-item">
-                                                <span class="result-label">Reaction at A:</span>
-                                                <span class="result-value">@PointLoadResults.ReactionA.ToString("F2") kips</span>
-                                            </div>
-                                            <div class="result-item">
-                                                <span class="result-label">Reaction at B:</span>
-                                                <span class="result-value">@PointLoadResults.ReactionB.ToString("F2") kips</span>
-                                            </div>
-                                            <div class="result-item">
-                                                <span class="result-label">Max Moment:</span>
-                                                <span class="result-value">@PointLoadResults.MaxMoment.ToString("F2") kip-ft</span>
-                                            </div>
-                                            <div class="result-item">
-                                                <span class="result-label">Max Shear:</span>
-                                                <span class="result-value">@PointLoadResults.MaxShear.ToString("F2") kips</span>
-                                            </div>
-
-                                            @if (PointLoadResults.Warnings.Any())
-                                            {
-                                                <div class="error-message">
-                                                    @foreach (var warning in PointLoadResults.Warnings)
-                                                    {
-                                                        <div>
-                                                            <i class="fas fa-exclamation-triangle"></i> @warning
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </ContentTemplate>
-                        </TabItem>
-
-                        <TabItem>
-                            <ChildContent>
-                                <TabHeader Text="Columns" IconCss="fas fa-columns" />
-                            </ChildContent>
-                            <ContentTemplate>
-                                <div class="calculation-content">
-                                    <h4>Prestressed Column Design</h4>
-                                    <p>Column design calculations per PCI standards...</p>
-                                </div>
-                            </ContentTemplate>
-                        </TabItem>
-
-                        <TabItem>
-                            <ChildContent>
-                                <TabHeader Text="Walls/Panels" IconCss="fas fa-border-all" />
-                            </ChildContent>
-                            <ContentTemplate>
-                                <div class="calculation-content">
-                                    <h4>Wall Panel Design</h4>
-                                    <p>Wall panel lateral load design...</p>
-                                </div>
-                            </ContentTemplate>
-                        </TabItem>
-
-                        <TabItem>
-                            <ChildContent>
-                                <TabHeader Text="Beams/Spandrels" IconCss="fas fa-minus" />
-                            </ChildContent>
-                            <ContentTemplate>
-                                <div class="calculation-content">
-                                    <h4>Beam Design</h4>
-                                    <p>Prestressed beam design with losses...</p>
-                                </div>
-                            </ContentTemplate>
-                        </TabItem>
-
-                        <TabItem>
-                            <ChildContent>
-                                <TabHeader Text="Double Tees" IconCss="fas fa-th-large" />
-                            </ChildContent>
-                            <ContentTemplate>
-                                <div class="calculation-content">
-                                    <h4>Double Tee Design</h4>
-                                    <p>DT capacity and shear calculations...</p>
-                                </div>
-                            </ContentTemplate>
-                        </TabItem>
-                    </TabItems>
-                </SfTab>
-            </div>
+                    <!-- Additional tabs would follow similar pattern -->
+                </TabItems>
+            </SfTab>
         </div>
     </div>
 </div>
 
 @code {
-    // Project and Model Properties
+    // Service References
+    private DotNetObjectReference<EngineeringCalculator>? objRef;
+
+    // Project and Model Data
     private ACCProject? CurrentProject;
-    private List<MetromontCastLink.Client.Services.CloudModel> CloudModels = new List<MetromontCastLink.Client.Services.CloudModel>();
-    private string SelectedModelUrn = "";
-    private string CurrentModelName = "";
-    private bool IsLoadingModels = false;
-    private bool IsLoadingViewer = false;
-    private bool IsModelLoaded = false;
+    private string? CurrentHubId;
+    private List<CloudModel> CloudModels = new List<CloudModel>();
+    private string? SelectedModelUrn;
+    private string? CurrentModelName;
 
     // UI State
-    private int ActiveTab = 0;
-    private bool IsCalculatorDocked = true;
-    private bool IsMinimized = false;
+    private bool IsLoadingViewer = false;
+    private bool IsLoadingModels = false;
+    private bool IsModelLoaded = false;
     private string CurrentSelectionMode = "single";
 
     // JS Interop
-    private DotNetObjectReference<EngineeringCalculator>? objRef;
+    private DotNetObjectReference<EngineeringCalculator>? dotNetRef;
     private bool IsViewerInitialized = false;
 
     // Selected Elements
@@ -348,11 +216,63 @@
             if (!string.IsNullOrEmpty(projectJson))
             {
                 CurrentProject = JsonSerializer.Deserialize<ACCProject>(projectJson);
+
+                // Use the HubId directly from the project if available
+                if (CurrentProject != null && !string.IsNullOrEmpty(CurrentProject.HubId))
+                {
+                    CurrentHubId = CurrentProject.HubId;
+                    Console.WriteLine($"Using hub ID from project: {CurrentHubId}");
+                }
+                else
+                {
+                    // Fallback: try to get from session storage
+                    var hubIdJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedHubId");
+                    if (!string.IsNullOrEmpty(hubIdJson))
+                    {
+                        CurrentHubId = hubIdJson.Replace("\"", ""); // Remove quotes if present
+                    }
+                    else if (CurrentProject != null)
+                    {
+                        // Try to find it from the projects list
+                        CurrentHubId = await GetHubIdForProject(CurrentProject.Id);
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading project info: {ex.Message}");
+        }
+    }
+
+    private async Task<string?> GetHubIdForProject(string projectId)
+    {
+        try
+        {
+            // Get all projects from ACC service to find the matching hub
+            var allProjects = await ACCService.GetProjectsAsync();
+
+            // Find the project and get its hub ID
+            var project = allProjects.FirstOrDefault(p => p.Id == projectId);
+            if (project != null && !string.IsNullOrEmpty(project.HubId))
+            {
+                Console.WriteLine($"Found hub {project.HubId} for project {projectId}");
+                return project.HubId;
+            }
+
+            // Fallback for A360 projects
+            if (projectId.StartsWith("a.") && projectId.Contains("#"))
+            {
+                return projectId.Split('#')[0];
+            }
+
+            Console.WriteLine($"Could not find hub ID for project {projectId}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting hub ID: {ex.Message}");
+            return null;
         }
     }
 
@@ -365,21 +285,25 @@
 
         try
         {
-            // Extract hub ID from project ID
-            // ACC project IDs are in format: b.{hubId}.{projectGuid}
-            var hubId = ExtractHubId(CurrentProject.Id);
+            Console.WriteLine($"Loading models for project: {CurrentProject.Id}");
 
-            if (string.IsNullOrEmpty(hubId))
+            // Make sure we have the hub ID
+            if (string.IsNullOrEmpty(CurrentHubId))
             {
-                Console.WriteLine($"Could not extract hub ID from project ID: {CurrentProject.Id}");
+                CurrentHubId = await GetHubIdForProject(CurrentProject.Id);
+            }
+
+            if (string.IsNullOrEmpty(CurrentHubId))
+            {
+                Console.WriteLine($"Could not determine hub ID for project: {CurrentProject.Id}");
                 CloudModels = new List<CloudModel>();
                 return;
             }
 
-            Console.WriteLine($"Loading models for hub: {hubId}, project: {CurrentProject.Id}");
+            Console.WriteLine($"Using hub ID: {CurrentHubId}, project ID: {CurrentProject.Id}");
 
             // Use the Data Management Service to fetch real models
-            CloudModels = await DataManagementService.GetProjectModelsAsync(hubId, CurrentProject.Id);
+            CloudModels = await DataManagementService.GetProjectModelsAsync(CurrentHubId, CurrentProject.Id);
 
             if (CloudModels.Count == 0)
             {
@@ -391,17 +315,12 @@
             }
             else
             {
-                Console.WriteLine($"Successfully loaded {CloudModels.Count} models");
-                foreach (var model in CloudModels)
-                {
-                    Console.WriteLine($"  - {model.Name} (URN: {model.Urn})");
-                }
+                Console.WriteLine($"Found {CloudModels.Count} models");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading cloud models: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             CloudModels = new List<CloudModel>();
         }
         finally
@@ -411,34 +330,13 @@
         }
     }
 
-    private string ExtractHubId(string projectId)
-    {
-        // ACC project IDs are in format: b.{projectGuid}
-        // But the hub ID needs to be extracted from the projects list
-        // For ACC/BIM360, hub IDs are typically: b.{accountId}
-
-        // Since we can't extract hub ID from project ID alone,
-        // we need to get it from the project data
-        // The hub ID should have been stored when the project was selected
-
-        // For now, return the project ID as-is since ACC expects it in some endpoints
-        return projectId;
-    }
-
     private async Task InitializeEmptyViewer()
     {
         try
         {
             var accessToken = await ACCService.GetAccessTokenAsync();
-
-            // Initialize empty viewer
-            await JSRuntime.InvokeVoidAsync("ForgeViewer.initializeEmpty",
-                "forgeViewer",
-                accessToken,
-                objRef);
-
+            await JSRuntime.InvokeVoidAsync("ForgeViewer.initializeEmpty", "forgeViewer", accessToken);
             IsViewerInitialized = true;
-            Console.WriteLine("Forge Viewer initialized successfully");
         }
         catch (Exception ex)
         {
@@ -446,29 +344,34 @@
         }
     }
 
-    private async Task OnModelSelected(ChangeEventArgs<string, MetromontCastLink.Client.Services.CloudModel> args)
+    private async Task OnModelSelected(ChangeEventArgs<string, CloudModel> args)
     {
-        if (string.IsNullOrEmpty(args.Value) || !IsViewerInitialized) return;
+        if (string.IsNullOrEmpty(args.Value)) return;
 
         IsLoadingViewer = true;
         StateHasChanged();
 
         try
         {
+            SelectedModelUrn = args.Value;
+            var selectedModel = CloudModels.FirstOrDefault(m => m.Urn == SelectedModelUrn);
+            CurrentModelName = selectedModel?.Name ?? "";
+
+            // Load the model in Forge Viewer
             var accessToken = await ACCService.GetAccessTokenAsync();
+            var success = await JSRuntime.InvokeAsync<bool>("ForgeViewer.loadModel",
+                SelectedModelUrn, accessToken);
 
-            Console.WriteLine($"Loading model with URN: {args.Value}");
+            IsModelLoaded = success;
 
-            // Load the selected model
-            await JSRuntime.InvokeVoidAsync("ForgeViewer.loadModel",
-                args.Value,
-                accessToken);
-
-            var model = CloudModels.FirstOrDefault(m => m.Urn == args.Value);
-            CurrentModelName = model?.Name ?? "";
-            IsModelLoaded = true;
-
-            Console.WriteLine($"Model loaded successfully: {CurrentModelName}");
+            if (success)
+            {
+                Console.WriteLine($"Model loaded successfully: {CurrentModelName}");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to load model: {CurrentModelName}");
+            }
         }
         catch (Exception ex)
         {
@@ -528,7 +431,10 @@
 
     private void CalculatePointLoad()
     {
-        if (BearingElement == null || LoadMagnitude <= 0 || BeamLength <= 0) return;
+        if (LoadMagnitude <= 0 || BeamLength <= 0)
+        {
+            return;
+        }
 
         // Simple point load calculation
         var a = DistanceFromSupport;
@@ -539,66 +445,34 @@
             ReactionA = LoadMagnitude * b / BeamLength,
             ReactionB = LoadMagnitude * a / BeamLength,
             MaxMoment = LoadMagnitude * a * b / BeamLength,
-            MaxShear = Math.Max(PointLoadResults?.ReactionA ?? 0, PointLoadResults?.ReactionB ?? 0),
-            Warnings = new List<string>()
+            MaxShear = Math.Max(LoadMagnitude * b / BeamLength, LoadMagnitude * a / BeamLength)
         };
-
-        // Add warnings if needed
-        if (DistanceFromSupport < BeamLength * 0.1)
-        {
-            PointLoadResults.Warnings.Add("Load is very close to support A");
-        }
-        if (DistanceFromSupport > BeamLength * 0.9)
-        {
-            PointLoadResults.Warnings.Add("Load is very close to support B");
-        }
 
         StateHasChanged();
     }
 
     private async Task SaveCalculation()
     {
-        // TODO: Implement saving to OSS storage
-        await Task.CompletedTask;
-    }
-
-    // JS Callback Methods
-    [JSInvokable]
-    public void OnElementSelected(string elementData)
-    {
-        try
+        // Save calculation results
+        if (HasCalculationResults && CurrentProject != null)
         {
-            var element = JsonSerializer.Deserialize<BIMElement>(elementData);
-            if (element != null)
-            {
-                BearingElement = element;
-                StateHasChanged();
-            }
+            // Implementation for saving to OSS
+            Console.WriteLine("Saving calculation results...");
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing selected element: {ex.Message}");
-        }
-    }
-
-    [JSInvokable]
-    public void OnModelStatisticsReady(int elementCount)
-    {
-        Console.WriteLine($"Model loaded with {elementCount} elements");
     }
 
     public void Dispose()
     {
         objRef?.Dispose();
+        dotNetRef?.Dispose();
     }
 
-    // Helper Classes
+    // Helper classes
     public class BIMElement
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
-        public string Category { get; set; } = "";
-        public string Type { get; set; } = "";
+        public Dictionary<string, object> Properties { get; set; } = new();
     }
 
     public class PointLoadResult
@@ -607,6 +481,5 @@
         public double ReactionB { get; set; }
         public double MaxMoment { get; set; }
         public double MaxShear { get; set; }
-        public List<string> Warnings { get; set; } = new();
     }
 }

@@ -140,63 +140,74 @@ namespace MetromontCastLink.Client.Services
                 Console.WriteLine($"HandleCallbackAsync called with code: {code}");
 
                 // Exchange the authorization code for an access token
-                var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/callback");
-                tokenRequest.Content = JsonContent.Create(new
+                var tokenRequest = new FormUrlEncodedContent(new[]
                 {
-                    code = code,
-                    redirectUri = _callbackUrl
+                    new KeyValuePair<string, string>("grant_type", "authorization_code"),
+                    new KeyValuePair<string, string>("code", code),
+                    new KeyValuePair<string, string>("client_id", _clientId),
+                    new KeyValuePair<string, string>("redirect_uri", _callbackUrl)
                 });
 
-                Console.WriteLine($"Sending token request with redirectUri: {_callbackUrl}");
+                var tokenResponse = await _httpClient.PostAsync("https://developer.api.autodesk.com/authentication/v2/token", tokenRequest);
 
-                var response = await _httpClient.SendAsync(tokenRequest);
-
-                if (response.IsSuccessStatusCode)
+                if (tokenResponse.IsSuccessStatusCode)
                 {
-                    var tokenData = await response.Content.ReadFromJsonAsync<TokenResponse>();
-                    if (tokenData != null && !string.IsNullOrEmpty(tokenData.AutodeskToken))
+                    var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+                    _accessToken = tokenJson.GetProperty("access_token").GetString();
+                    var expiresIn = tokenJson.GetProperty("expires_in").GetInt32();
+                    _tokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn);
+
+                    // Store token info
+                    await StoreTokenAsync(_accessToken!, _tokenExpiry);
+
+                    // Get JWT token from your server
+                    await GetJwtTokenAsync();
+
+                    // Load user profile
+                    await GetUserProfileAsync();
+
+                    // Load projects
+                    await GetProjectsAsync();
+
+                    // Notify authentication state changed
+                    AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs
                     {
-                        _accessToken = tokenData.AutodeskToken;  // Use the Autodesk token
-                        _jwtToken = tokenData.Token;             // Store the JWT token
-                        _tokenExpiry = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn);
+                        IsAuthenticated = true,
+                        UserId = _userProfile?.Id
+                    });
 
-                        Console.WriteLine($"Token exchange successful, expires in {tokenData.ExpiresIn} seconds");
-                        Console.WriteLine($"Autodesk Token received: {!string.IsNullOrEmpty(_accessToken)}");
-                        Console.WriteLine($"JWT Token received: {!string.IsNullOrEmpty(_jwtToken)}");
-
-                        // Store token in session storage
-                        await StoreTokenAsync(new StoredToken
-                        {
-                            AccessToken = _accessToken,
-                            JwtToken = _jwtToken,
-                            ExpiresAt = _tokenExpiry,
-                            RefreshToken = tokenData.RefreshToken
-                        });
-
-                        // Notify listeners
-                        AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs
-                        {
-                            IsAuthenticated = true,
-                            UserId = null
-                        });
-                    }
-                    else
-                    {
-                        Console.WriteLine("Token response was successful but no access token received");
-                        Console.WriteLine($"Response data: Token={tokenData?.Token != null}, AutodeskToken={tokenData?.AutodeskToken != null}");
-                    }
+                    Console.WriteLine("Authentication successful");
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Token exchange failed: {response.StatusCode} - {errorContent}");
+                    var error = await tokenResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Token exchange failed: {error}");
+                    throw new Exception($"Failed to exchange authorization code: {error}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error handling callback: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                Console.WriteLine($"Error in HandleCallbackAsync: {ex.Message}");
                 throw;
+            }
+        }
+
+        private async Task GetJwtTokenAsync()
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync("/api/auth/token", new StringContent(""));
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+                    _jwtToken = result.GetProperty("token").GetString();
+                    await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "jwtToken", _jwtToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting JWT token: {ex.Message}");
             }
         }
 
@@ -210,14 +221,12 @@ namespace MetromontCastLink.Client.Services
 
             try
             {
-                // Call the User Info endpoint with the access token
                 var request = new HttpRequestMessage(HttpMethod.Get, "https://developer.api.autodesk.com/userprofile/v1/users/@me");
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
 
                 var response = await _httpClient.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    // Use JsonElement instead of dynamic
                     var userData = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
 
                     _userProfile = new UserProfile
@@ -301,12 +310,13 @@ namespace MetromontCastLink.Client.Services
                                         {
                                             Id = projectId,
                                             Name = projectName,
-                                            Number = "",  // Project number not always available
-                                            Location = "",  // Not typically available in basic project info
-                                            Status = "active"  // Default to active
+                                            HubId = hubId,      // STORE THE HUB ID HERE!
+                                            Number = "",        // Project number not always available
+                                            Location = "",      // Not typically available in basic project info
+                                            Status = "active"   // Default to active
                                         });
 
-                                        Console.WriteLine($"Added project: {projectName} ({projectId})");
+                                        Console.WriteLine($"Added project: {projectName} ({projectId}) in hub {hubId}");
                                     }
                                 }
                             }
@@ -335,26 +345,50 @@ namespace MetromontCastLink.Client.Services
             return _projects ?? new List<ACCProject>();
         }
 
-        public Task<ACCProject?> GetCurrentProjectAsync()
+        public async Task<ACCProject?> GetCurrentProjectAsync()
         {
-            return Task.FromResult(_currentProject);
+            return _currentProject;
         }
 
-        public Task<bool> SetCurrentProjectAsync(string projectId)
+        public async Task<bool> SetCurrentProjectAsync(string projectId)
         {
-            // Find the project by ID and set it as current
+            if (_projects == null)
+            {
+                await GetProjectsAsync();
+            }
+
             _currentProject = _projects?.FirstOrDefault(p => p.Id == projectId);
-            return Task.FromResult(_currentProject != null);
+
+            // Store in session storage for persistence
+            if (_currentProject != null)
+            {
+                var projectJson = JsonSerializer.Serialize(_currentProject);
+                await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "selectedProject", projectJson);
+
+                // Also store the hub ID separately for easy access
+                await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "selectedHubId", _currentProject.HubId);
+
+                return true;
+            }
+
+            return false;
         }
 
-        public Task<List<ProjectMember>> GetProjectMembersAsync(string projectId)
+        public async Task<List<ProjectMember>> GetProjectMembersAsync(string projectId)
         {
-            // TODO: Implement actual member retrieval
-            return Task.FromResult(new List<ProjectMember>());
+            // This would typically call the ACC API to get project members
+            // For now, return a mock list
+            return new List<ProjectMember>
+            {
+                new ProjectMember { Id = "1", Name = "Project Manager", Email = "pm@metromont.com", Role = "Manager" },
+                new ProjectMember { Id = "2", Name = "Engineer", Email = "engineer@metromont.com", Role = "Engineer" },
+                new ProjectMember { Id = "3", Name = "QC Inspector", Email = "qc@metromont.com", Role = "Quality Control" }
+            };
         }
 
         public async Task SignOutAsync()
         {
+            // Clear tokens
             _accessToken = null;
             _jwtToken = null;
             _tokenExpiry = DateTime.MinValue;
@@ -362,25 +396,25 @@ namespace MetromontCastLink.Client.Services
             _projects = null;
             _currentProject = null;
 
-            // Clear stored token
-            await ClearStoredTokenAsync();
+            // Clear session storage
+            await _jsRuntime.InvokeVoidAsync("sessionStorage.clear");
 
+            // Notify authentication state changed
             AuthenticationStateChanged?.Invoke(this, new AuthenticationStateChangedEventArgs
             {
-                IsAuthenticated = false,
-                UserId = null
+                IsAuthenticated = false
             });
         }
 
-        // Helper methods for token storage
+        // Helper methods
         private async Task<StoredToken?> GetStoredTokenAsync()
         {
             try
             {
-                var json = await _jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "acc_token");
-                if (!string.IsNullOrEmpty(json))
+                var tokenJson = await _jsRuntime.InvokeAsync<string>("sessionStorage.getItem", "accToken");
+                if (!string.IsNullOrEmpty(tokenJson))
                 {
-                    return System.Text.Json.JsonSerializer.Deserialize<StoredToken>(json);
+                    return JsonSerializer.Deserialize<StoredToken>(tokenJson);
                 }
             }
             catch (Exception ex)
@@ -390,12 +424,18 @@ namespace MetromontCastLink.Client.Services
             return null;
         }
 
-        private async Task StoreTokenAsync(StoredToken token)
+        private async Task StoreTokenAsync(string accessToken, DateTime expiresAt)
         {
             try
             {
-                var json = System.Text.Json.JsonSerializer.Serialize(token);
-                await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "acc_token", json);
+                var token = new StoredToken
+                {
+                    AccessToken = accessToken,
+                    JwtToken = _jwtToken ?? "",
+                    ExpiresAt = expiresAt
+                };
+                var tokenJson = JsonSerializer.Serialize(token);
+                await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "accToken", tokenJson);
             }
             catch (Exception ex)
             {
@@ -403,40 +443,16 @@ namespace MetromontCastLink.Client.Services
             }
         }
 
-        private async Task ClearStoredTokenAsync()
-        {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "acc_token");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error clearing stored token: {ex.Message}");
-            }
-        }
-
         private bool IsTokenExpired(StoredToken token)
         {
-            return token.ExpiresAt <= DateTime.UtcNow.AddMinutes(-5); // 5 minute buffer
+            return token.ExpiresAt <= DateTime.UtcNow.AddMinutes(-5); // Refresh 5 minutes before expiry
         }
 
-        // Internal classes - Updated to match backend response
         private class StoredToken
         {
-            public string AccessToken { get; set; } = string.Empty;
-            public string? JwtToken { get; set; }
+            public string AccessToken { get; set; } = "";
+            public string JwtToken { get; set; } = "";
             public DateTime ExpiresAt { get; set; }
-            public string? RefreshToken { get; set; }
-        }
-
-        private class TokenResponse
-        {
-            // These property names must match exactly what the backend sends
-            public string Token { get; set; } = string.Empty;           // Internal JWT token
-            public string AutodeskToken { get; set; } = string.Empty;   // Autodesk access token
-            public string? RefreshToken { get; set; }
-            public int ExpiresIn { get; set; }
-            public string? TokenType { get; set; }
         }
     }
 }
