@@ -39,7 +39,6 @@
     <Folder Include="Components\Pages\Engineering\Components\" />
     <Folder Include="Components\Pages\Production\Components\" />
     <Folder Include="Components\Pages\QualityControl\Components\" />
-    <Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\data\" />
     <Folder Include="wwwroot\images\" />
   </ItemGroup>

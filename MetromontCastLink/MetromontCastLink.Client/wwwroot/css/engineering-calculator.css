@@ -1,0 +1,443 @@
+﻿/* Engineering Calculator Styles */
+/* File: wwwroot/css/engineering-calculator.css */
+
+.calculator-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f5f6fa;
+    overflow: hidden;
+}
+
+/* Page Header */
+.page-header {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+    .header-left h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+.project-name {
+    color: #64748b;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.75rem;
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Forge Viewer Section */
+.viewer-section {
+    position: relative;
+    height: 50vh;
+    background: #1e293b;
+    border-bottom: 2px solid #334155;
+}
+
+.forge-viewer-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.viewer-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.viewer-controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+    .viewer-controls .e-btn {
+        min-width: 40px;
+        height: 40px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+/* Calculator Section */
+.calculator-section {
+    flex: 1;
+    overflow-y: auto;
+    background: white;
+    padding: 1rem;
+}
+
+    /* Syncfusion Tab Customization */
+    .calculator-section .e-tab {
+        border: none;
+        background: transparent;
+    }
+
+    .calculator-section .e-tab-header {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .calculator-section .e-toolbar-item {
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .calculator-section .e-tab-text {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+    }
+
+    .calculator-section .e-active .e-tab-text {
+        color: #3b82f6;
+        font-weight: 600;
+    }
+
+    .calculator-section .e-tab-content {
+        padding: 1.5rem;
+        background: white;
+    }
+
+/* Calculation Panel */
+.calc-panel {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+    .calc-panel h3 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+    .form-group label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .form-group .e-float-input {
+        margin-top: 0;
+    }
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Results Panel */
+.results-panel {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+}
+
+    .results-panel h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0369a1;
+    }
+
+    .results-panel p {
+        margin: 0 0 1rem 0;
+        color: #0c4a6e;
+    }
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e0f2fe;
+}
+
+    .result-item:last-child {
+        border-bottom: none;
+    }
+
+.result-label {
+    font-weight: 500;
+    color: #0369a1;
+}
+
+.result-value {
+    font-weight: 600;
+    color: #0c4a6e;
+}
+
+/* Element Selection Dialog */
+.element-selector {
+    padding: 1rem;
+}
+
+    .element-selector p {
+        margin: 0 0 1rem 0;
+        color: #64748b;
+    }
+
+.selected-elements-list {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+    .selected-elements-list h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+.element-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+}
+
+    .element-item span {
+        flex: 1;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+
+    .element-item .e-btn {
+        min-width: 30px;
+        height: 30px;
+        padding: 0;
+    }
+
+/* BIM Integration Highlights */
+.bim-integrated {
+    position: relative;
+}
+
+    .bim-integrated::before {
+        content: "BIM";
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #10b981;
+        color: white;
+        font-size: 0.625rem;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+/* Product Type Specific Styles */
+.product-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .viewer-section {
+        height: 40vh;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .header-left {
+        width: 100%;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .viewer-section {
+        height: 35vh;
+    }
+
+    .viewer-controls {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+
+    .calculator-section .e-toolbar-item {
+        min-width: 80px;
+        font-size: 0.75rem;
+    }
+}
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Animation Effects */
+.calc-panel {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.results-panel {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* PCI Compliance Indicators */
+.pci-compliant {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: #10b981;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+.pci-warning {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: #f59e0b;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+.pci-error {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+/* Print Styles */
+@media print {
+    .page-header,
+    .viewer-section,
+    .viewer-controls,
+    .form-actions {
+        display: none;
+    }
+
+    .calculator-section {
+        height: auto;
+        overflow: visible;
+    }
+
+    .results-panel {
+        break-inside: avoid;
+        border: 2px solid #000;
+        margin: 1rem 0;
+    }
+}

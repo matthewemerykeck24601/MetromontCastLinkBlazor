@@ -6,6 +6,7 @@ namespace MetromontCastLink.Client.Services
 {
     public interface IStorageService
     {
+        Task<StorageResult> SaveFileAsync(string fileName, string content);
         Task<StorageResult> SaveReportAsync(QCReport report);
         Task<StorageResult> SaveQCReportAsync(QCReport report);
         Task<List<QCReportListItem>> GetReportsAsync(string projectId);
