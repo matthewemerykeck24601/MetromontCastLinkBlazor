@@ -45,11 +45,23 @@
             else if (Projects != null && Projects.Any())
             {
                 <div class="project-dropdown-container">
-                    <SfDropDownList TValue="string" TItem="ACCProject" @bind-Value="@SelectedProjectId"
-                                    DataSource="@Projects" Placeholder="Select a project..."
-                                    AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains">
-                        <DropDownListFieldSettings Text="Name" Value="Id"></DropDownListFieldSettings>
-                        <DropDownListEvents TValue="string" TItem="ACCProject" ValueChange="OnProjectChange"></DropDownListEvents>
+                    <SfDropDownList TValue="string"
+                                    TItem="ACCProject"
+                                    @bind-Value="@SelectedProjectId"
+                                    DataSource="@Projects"
+                                    Placeholder="Select a project..."
+                                    PopupHeight="400px"
+                                    PopupWidth="100%"
+                                    ZIndex="1000"
+                                    AllowFiltering="false"
+                                    ShowClearButton="true"
+                                    FloatLabelType="Syncfusion.Blazor.Inputs.FloatLabelType.Never">
+                        <DropDownListFieldSettings Text="Name" Value="Id" />
+                        <DropDownListEvents TValue="string"
+                                            TItem="ACCProject"
+                                            ValueChange="OnProjectChange"
+                                            OnOpen="@OnProjectDropdownOpen"
+                                            Opened="@OnProjectDropdownOpened" />
                     </SfDropDownList>
                 </div>
 
@@ -115,11 +127,11 @@
                 </div>
                 <div class="module-content">
                     <h3>3D Model Viewer</h3>
-                    <p>View and interact with 3D models from ACC. Analyze designs and extract dimensions</p>
+                    <p>View and analyze 3D models from ACC with full Forge Viewer capabilities</p>
                     <div class="module-tags">
-                        <span class="tag">Forge Viewer</span>
-                        <span class="tag">BIM 360</span>
-                        <span class="tag">Model Analysis</span>
+                        <span class="tag">BIM Models</span>
+                        <span class="tag">Properties</span>
+                        <span class="tag">Markup</span>
                     </div>
                 </div>
                 <div class="module-status">
@@ -134,12 +146,12 @@
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div class="module-content">
-                    <h3>Design Summary</h3>
-                    <p>Generate comprehensive design summaries with calculations, drawings, and specifications</p>
+                    <h3>Design Summary Generator</h3>
+                    <p>Generate comprehensive design summaries and reports</p>
                     <div class="module-tags">
                         <span class="tag">Reports</span>
-                        <span class="tag">Documentation</span>
                         <span class="tag">Export</span>
+                        <span class="tag">Documentation</span>
                     </div>
                 </div>
                 <div class="module-status">
@@ -147,60 +159,21 @@
                 </div>
             </div>
 
-            <!-- Piece Issue Tickets -->
-            <div class="module-card @(IsModuleEnabled("tickets") ? "" : "disabled")"
-                 @onclick="@(() => NavigateToModule("tickets"))">
+            <!-- Future Module Placeholders -->
+            <div class="module-card disabled">
                 <div class="module-icon tickets">
                     <i class="fas fa-ticket-alt"></i>
                 </div>
                 <div class="module-content">
-                    <h3>Piece Issue Tickets</h3>
-                    <p>Generate and manage piece production tickets with QR codes and tracking information</p>
+                    <h3>Shop Tickets</h3>
+                    <p>Generate and manage production shop tickets</p>
                     <div class="module-tags">
-                        <span class="tag">QR Codes</span>
-                        <span class="tag">Tracking</span>
                         <span class="tag">Production</span>
+                        <span class="tag">Tracking</span>
                     </div>
                 </div>
                 <div class="module-status">
-                    <span class="status-badge development">In Development</span>
-                </div>
-            </div>
-
-            <!-- Ticketing Generation (New) -->
-            <div class="module-card @(IsModuleEnabled("ticketing") ? "" : "disabled")"
-                 @onclick="@(() => NavigateToModule("ticketing"))">
-                <div class="module-icon ticketing">
-                    <i class="fas fa-tags"></i>
-                </div>
-                <div class="module-content">
-                    <h3>Ticketing Generation</h3>
-                    <p>Create and manage production tickets, work orders, and scheduling tickets for manufacturing</p>
-                    <div class="module-tags">
-                        <span class="tag">Work Orders</span>
-                        <span class="tag">Scheduling</span>
-                        <span class="tag">Batch Processing</span>
-                    </div>
-                </div>
-                <div class="module-status">
-                    <span class="status-badge development">In Development</span>
-                </div>
-            </div>
-
-            <!-- Future Module Placeholder -->
-            <div class="module-card placeholder">
-                <div class="module-icon placeholder">
-                    <i class="fas fa-plus-circle"></i>
-                </div>
-                <div class="module-content">
-                    <h3>Coming Soon</h3>
-                    <p>Additional engineering modules and tools are in development</p>
-                    <div class="module-tags">
-                        <span class="tag">Future Release</span>
-                    </div>
-                </div>
-                <div class="module-status">
-                    <span class="status-badge planned">Planned</span>
+                    <span class="status-badge">Coming Soon</span>
                 </div>
             </div>
         </div>
@@ -209,14 +182,27 @@
 
 @code {
     private List<ACCProject> Projects = new List<ACCProject>();
-    private string SelectedProjectId = string.Empty;
+    private string? SelectedProjectId;
     private ACCProject? SelectedProject => Projects?.FirstOrDefault(p => p.Id == SelectedProjectId);
-    private bool IsLoadingProjects = true;
-    private bool IsAuthenticated = false;
+    private bool IsLoadingProjects = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadProjects();
+        if (firstRender)
+        {
+            // Fix dropdown behavior after first render
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                setTimeout(() => {
+                    const dropdown = document.querySelector('.project-dropdown-container .e-ddl');
+                    if (dropdown) {
+                        dropdown.addEventListener('click', function() {
+                            const input = this.querySelector('.e-input');
+                            if (input) input.focus();
+                        });
+                    }
+                }, 500);
+            ");
+        }
     }
 
     private async Task LoadProjects()
@@ -226,24 +212,17 @@
             IsLoadingProjects = true;
             StateHasChanged();
 
-            // Check authentication status
-            IsAuthenticated = await ACCService.IsAuthenticatedAsync();
+            Projects = await ACCService.GetProjectsAsync();
 
-            if (IsAuthenticated)
+            if (!Projects.Any())
             {
-                // Load projects from ACC
-                Projects = await ACCService.GetProjectsAsync();
-
-                // If we have projects and no selection, select the first one
-                if (Projects.Any() && string.IsNullOrEmpty(SelectedProjectId))
-                {
-                    SelectedProjectId = Projects.First().Id;
-                }
+                Console.WriteLine("No projects found. Make sure you're authenticated with ACC.");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading projects: {ex.Message}");
+            Projects = new List<ACCProject>();
         }
         finally
         {
@@ -255,6 +234,22 @@
     private async Task RefreshProjects()
     {
         await LoadProjects();
+    }
+
+    private async Task OnProjectDropdownOpen(Syncfusion.Blazor.DropDowns.BeforeOpenEventArgs args)
+    {
+        // Ensure dropdown opens properly
+        args.Cancel = false;
+
+        // Small delay to ensure proper focus
+        await Task.Delay(50);
+        StateHasChanged();
+    }
+
+    private void OnProjectDropdownOpened(Syncfusion.Blazor.DropDowns.PopupEventArgs args)
+    {
+        // Force the dropdown to stay visible
+        StateHasChanged();
     }
 
     private void OnProjectChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> args)

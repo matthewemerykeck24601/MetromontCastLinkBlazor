@@ -307,3 +307,89 @@
         gap: 0.5rem;
     }
 }
+/* Add these rules to EngineeringHub.razor.css to fix the project dropdown */
+
+/* Project Dropdown Specific Fixes */
+.project-dropdown-container {
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 100;
+}
+
+    /* Fix the dropdown input to respond to single click */
+    .project-dropdown-container .e-ddl.e-input-group {
+        cursor: pointer !important;
+        position: relative !important;
+    }
+
+    .project-dropdown-container .e-ddl .e-input {
+        cursor: pointer !important;
+        user-select: none !important;
+        background: #fff !important;
+    }
+
+    /* Ensure dropdown icon is clickable */
+    .project-dropdown-container .e-ddl .e-input-group-icon {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
+
+    /* Fix dropdown popup positioning and visibility */
+    .project-dropdown-container .e-dropdown-popup,
+    .e-dropdown-popup.e-popup {
+        z-index: 10000 !important;
+        position: absolute !important;
+        display: block !important;
+    }
+
+        .project-dropdown-container .e-dropdown-popup.e-popup-open {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        /* Ensure dropdown list is scrollable */
+        .project-dropdown-container .e-dropdown-popup .e-content {
+            max-height: 400px !important;
+            overflow-y: auto !important;
+        }
+
+        /* Style dropdown items */
+        .project-dropdown-container .e-dropdown-popup .e-list-item {
+            padding: 10px 15px !important;
+            cursor: pointer !important;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+            .project-dropdown-container .e-dropdown-popup .e-list-item:hover {
+                background-color: #f8f9fa !important;
+            }
+
+            .project-dropdown-container .e-dropdown-popup .e-list-item.e-active {
+                background-color: #e7f3ff !important;
+                font-weight: 500;
+            }
+
+    /* Fix focus states */
+    .project-dropdown-container .e-ddl.e-input-focus .e-input-group {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1) !important;
+    }
+
+/* Animation for dropdown */
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.project-dropdown-container .e-dropdown-popup.e-popup-open {
+    animation: dropdownSlide 0.2s ease-out;
+}
