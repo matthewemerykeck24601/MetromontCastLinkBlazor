@@ -42,26 +42,54 @@
                     <SfSpinner Size="30" Label="Loading projects..." />
                 </div>
             }
-            else if (Projects != null && Projects.Any())
+            else if (SortedProjects != null && SortedProjects.Any())
             {
                 <div class="project-dropdown-container">
                     <SfDropDownList TValue="string"
                                     TItem="ACCProject"
                                     @bind-Value="@SelectedProjectId"
-                                    DataSource="@Projects"
-                                    Placeholder="Select a project..."
+                                    DataSource="@SortedProjects"
+                                    Placeholder="Select or search for a project..."
                                     PopupHeight="400px"
                                     PopupWidth="100%"
                                     ZIndex="1000"
-                                    AllowFiltering="false"
+                                    AllowFiltering="true"
+                                    FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains"
+                                    IgnoreCase="true"
+                                    IgnoreAccent="true"
                                     ShowClearButton="true"
+                                    FilterBarPlaceholder="Type to search projects..."
                                     FloatLabelType="Syncfusion.Blazor.Inputs.FloatLabelType.Never">
                         <DropDownListFieldSettings Text="Name" Value="Id" />
                         <DropDownListEvents TValue="string"
                                             TItem="ACCProject"
                                             ValueChange="OnProjectChange"
                                             OnOpen="@OnProjectDropdownOpen"
-                                            Opened="@OnProjectDropdownOpened" />
+                                            Opened="@OnProjectDropdownOpened"
+                                            Filtering="@OnProjectFiltering" />
+                        <DropDownListTemplates TItem="ACCProject">
+                            <ItemTemplate>
+                                @{
+                                    var project = context as ACCProject;
+                                }
+                                <div class="project-dropdown-item">
+                                    <span class="project-name">@project?.Name</span>
+                                </div>
+                            </ItemTemplate>
+                            <NoRecordsTemplate>
+                                <div class="no-records-template">
+                                    <i class="fas fa-search"></i>
+                                    <p>No projects found matching your search</p>
+                                    <small>Try different keywords or check your filters</small>
+                                </div>
+                            </NoRecordsTemplate>
+                            <FooterTemplate>
+                                <div class="dropdown-footer">
+                                    <small>@SortedProjects.Count total projects</small>
+                                    <small>Press <kbd>Ctrl+P</kbd> to quick search</small>
+                                </div>
+                            </FooterTemplate>
+                        </DropDownListTemplates>
                     </SfDropDownList>
                 </div>
 
@@ -182,22 +210,38 @@
 
 @code {
     private List<ACCProject> Projects = new List<ACCProject>();
+    private List<ACCProject> SortedProjects = new List<ACCProject>();
+    private List<ACCProject> FilteredProjects = new List<ACCProject>();
     private string? SelectedProjectId;
     private ACCProject? SelectedProject => Projects?.FirstOrDefault(p => p.Id == SelectedProjectId);
     private bool IsLoadingProjects = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Fix dropdown behavior after first render
+            // Enhanced dropdown behavior with focus on filter input
             await JSRuntime.InvokeVoidAsync("eval", @"
                 setTimeout(() => {
                     const dropdown = document.querySelector('.project-dropdown-container .e-ddl');
                     if (dropdown) {
                         dropdown.addEventListener('click', function() {
                             const input = this.querySelector('.e-input');
-                            if (input) input.focus();
+                            if (input) {
+                                input.focus();
+                                // Also focus the filter input if dropdown is open
+                                setTimeout(() => {
+                                    const filterInput = document.querySelector('.e-dropdown-popup .e-input-filter');
+                                    if (filterInput) {
+                                        filterInput.focus();
+                                    }
+                                }, 200);
+                            }
                         });
                     }
                 }, 500);
@@ -214,7 +258,12 @@
 
             Projects = await ACCService.GetProjectsAsync();
 
-            if (!Projects.Any())
+            if (Projects.Any())
+            {
+                // Sort projects: numeric first (A-Z), then non-numeric (A-Z)
+                SortedProjects = SortProjects(Projects);
+            }
+            else
             {
                 Console.WriteLine("No projects found. Make sure you're authenticated with ACC.");
             }
@@ -223,12 +272,67 @@
         {
             Console.WriteLine($"Error loading projects: {ex.Message}");
             Projects = new List<ACCProject>();
+            SortedProjects = new List<ACCProject>();
         }
         finally
         {
             IsLoadingProjects = false;
             StateHasChanged();
         }
+    }
+
+    private List<ACCProject> SortProjects(List<ACCProject> projects)
+    {
+        // Separate projects that start with numbers from those that don't
+        var numericProjects = projects
+            .Where(p => !string.IsNullOrEmpty(p.Name) && char.IsDigit(p.Name[0]))
+            .OrderBy(p => ExtractLeadingNumber(p.Name))
+            .ThenBy(p => p.Name)
+            .ToList();
+
+        var nonNumericProjects = projects
+            .Where(p => !string.IsNullOrEmpty(p.Name) && !char.IsDigit(p.Name[0]))
+            .OrderBy(p => p.Name)
+            .ToList();
+
+        // Combine: numeric first, then non-numeric
+        var sorted = new List<ACCProject>();
+        sorted.AddRange(numericProjects);
+        sorted.AddRange(nonNumericProjects);
+
+        return sorted;
+    }
+
+    private int ExtractLeadingNumber(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return int.MaxValue;
+
+        var numberString = new string(name.TakeWhile(char.IsDigit).ToArray());
+        if (int.TryParse(numberString, out var number))
+            return number;
+
+        return int.MaxValue;
+    }
+
+    private string? GetProjectNumber(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return null;
+
+        // Extract leading number from project name
+        var match = System.Text.RegularExpressions.Regex.Match(name, @"^(\d+)");
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    private string? GetProjectNameWithoutNumber(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return name;
+
+        // Remove leading number and any following separators (-, _, space)
+        var cleaned = System.Text.RegularExpressions.Regex.Replace(name, @"^\d+[\s\-_]*", "");
+        return string.IsNullOrEmpty(cleaned) ? name : cleaned;
     }
 
     private async Task RefreshProjects()
@@ -241,15 +345,22 @@
         // Ensure dropdown opens properly
         args.Cancel = false;
 
-        // Small delay to ensure proper focus
+        // Small delay to ensure proper focus on filter input
         await Task.Delay(50);
         StateHasChanged();
     }
 
     private void OnProjectDropdownOpened(Syncfusion.Blazor.DropDowns.PopupEventArgs args)
     {
-        // Force the dropdown to stay visible
+        // Force the dropdown to stay visible and focus filter
         StateHasChanged();
+    }
+
+    private void OnProjectFiltering(Syncfusion.Blazor.DropDowns.FilteringEventArgs args)
+    {
+        // Custom filtering logic if needed
+        // The component already handles basic filtering with FilterType.Contains
+        args.PreventDefaultAction = false;
     }
 
     private void OnProjectChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ACCProject> args)
