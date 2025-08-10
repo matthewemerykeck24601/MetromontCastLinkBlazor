@@ -299,6 +299,7 @@ namespace MetromontCastLink.Client.Services
 
                                         _projects.Add(new ACCProject
                                         {
+                                            HubId = hubId,
                                             Id = projectId,
                                             Name = projectName,
                                             Number = "",  // Project number not always available

@@ -300,7 +300,7 @@
             Console.WriteLine($"Getting models with Project ID: {CurrentProject.Id}, Hub ID: {CurrentHubId}");
 
             // Call the DataManagementService with both IDs in the correct order
-            CloudModels = await DataManagementService.GetProjectModelsAsync(CurrentProject.Id, CurrentHubId);
+            CloudModels = await DataManagementService.GetProjectModelsAsync(CurrentHubId, CurrentProject.Id);
 
             if (CloudModels == null || CloudModels.Count == 0)
             {
