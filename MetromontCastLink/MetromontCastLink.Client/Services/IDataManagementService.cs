@@ -243,8 +243,8 @@ namespace MetromontCastLink.Client.Services
                 // Use the correct Data Management API v1 endpoint for folder contents
                 var url = $"{BASE_URL}/data/v1/projects/{projectId}/folders/{folderId}/contents";
 
-                // Add query parameters for pagination and filtering
-                url += "?filter[extension.type]=items:autodesk.bim360:File,items:autodesk.bim360:C4RModel";
+                // Remove restrictive filtering - let's see all files first
+                // url += "?filter[extension.type]=items:autodesk.bim360:File,items:autodesk.bim360:C4RModel";
 
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -254,6 +254,9 @@ namespace MetromontCastLink.Client.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+                    Console.WriteLine($"=== FOLDER CONTENTS for {folderId}: {json} ===");
+
 
                     if (json.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
                     {
