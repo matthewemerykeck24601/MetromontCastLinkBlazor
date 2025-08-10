@@ -94,6 +94,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IForgeAuthService, ForgeAuthService>();
 builder.Services.AddScoped<IOssStorageService, OssStorageService>();
 builder.Services.AddScoped<IACCService, ACCService>();
+builder.Services.AddScoped<MetromontCastLink.Client.Services.IDataManagementService, MetromontCastLink.Client.Services.DataManagementService>();
 
 // Configure CORS for ACC/Forge APIs
 builder.Services.AddCors(options =>

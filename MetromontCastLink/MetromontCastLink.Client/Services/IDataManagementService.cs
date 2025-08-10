@@ -41,7 +41,7 @@ namespace MetromontCastLink.Client.Services
                 Console.WriteLine($"Getting models for hub: {hubId}, project: {projectId}");
 
                 // Get the top folders for the project
-                var folders = await GetProjectTopFoldersAsync(projectId);
+                var folders = await GetProjectTopFoldersAsync(hubId, projectId);
 
                 if (folders.Count == 0)
                 {
@@ -120,7 +120,7 @@ namespace MetromontCastLink.Client.Services
         /// <summary>
         /// Gets the top-level folders for a project
         /// </summary>
-        private async Task<List<FolderInfo>> GetProjectTopFoldersAsync(string projectId)
+        private async Task<List<FolderInfo>> GetProjectTopFoldersAsync(string hubId, string projectId)
         {
             var folders = new List<FolderInfo>();
 
@@ -134,7 +134,7 @@ namespace MetromontCastLink.Client.Services
                 }
 
                 // Get the project's top folders directly
-                var url = $"{BASE_URL}/project/v1/hubs/{ExtractHubId(projectId)}/projects/{projectId}/topFolders";
+                var url = $"{BASE_URL}/project/v1/hubs/{hubId}/projects/{projectId}/topFolders";
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
