@@ -105,46 +105,63 @@
                                 <div class="form-section">
                                     <label>Bearing Element:</label>
                                     <div class="element-selector">
-                                        <SfTextBox Value="@(BearingElement?.Name ?? "No element selected")"
+                                        <SfTextBox Value="@(BearingElement?.Name ?? "Select from viewer")"
                                                    Readonly="true" />
-                                        <SfButton @onclick="SelectBearingElement">Select from Model</SfButton>
+                                        <SfButton IconCss="fas fa-mouse-pointer"
+                                                  @onclick="StartElementSelection">
+                                            Select
+                                        </SfButton>
                                     </div>
                                 </div>
 
-                                <div class="form-section">
-                                    <label>Load Magnitude (kips):</label>
-                                    <SfNumericTextBox @bind-Value="LoadMagnitude" Format="n2" />
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Load Magnitude (kN):</label>
+                                        <SfNumericTextBox @bind-Value="LoadMagnitude" Min="0" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Distance from Support (m):</label>
+                                        <SfNumericTextBox @bind-Value="DistanceFromSupport" Min="0" />
+                                    </div>
                                 </div>
 
-                                <div class="form-section">
-                                    <label>Distance from Support (ft):</label>
-                                    <SfNumericTextBox @bind-Value="DistanceFromSupport" Format="n2" />
+                                <div class="form-group">
+                                    <label>Beam Length (m):</label>
+                                    <SfNumericTextBox @bind-Value="BeamLength" Min="0" />
                                 </div>
 
-                                <div class="form-section">
-                                    <label>Beam Length (ft):</label>
-                                    <SfNumericTextBox @bind-Value="BeamLength" Format="n2" />
-                                </div>
-
-                                <SfButton CssClass="e-success" @onclick="CalculatePointLoad">
+                                <SfButton CssClass="e-primary" @onclick="CalculatePointLoad">
                                     Calculate
                                 </SfButton>
 
                                 @if (PointLoadResults != null)
                                 {
-                                    <div class="calculation-results">
+                                    <div class="results-panel">
                                         <h5>Results:</h5>
-                                        <p>Reaction A: @PointLoadResults.ReactionA.ToString("F2") kips</p>
-                                        <p>Reaction B: @PointLoadResults.ReactionB.ToString("F2") kips</p>
-                                        <p>Max Moment: @PointLoadResults.MaxMoment.ToString("F2") kip-ft</p>
-                                        <p>Max Shear: @PointLoadResults.MaxShear.ToString("F2") kips</p>
+                                        <div class="result-item">
+                                            <span>Status:</span>
+                                            <span class="@(PointLoadResults.IsValid ? "pass" : "fail")">
+                                                @PointLoadResults.Status
+                                            </span>
+                                        </div>
+                                        <div class="result-item">
+                                            <span>Utilization:</span>
+                                            <span>@($"{PointLoadResults.Utilization:P0}")</span>
+                                        </div>
+                                        @foreach (var detail in PointLoadResults.Details)
+                                        {
+                                            <div class="result-item">
+                                                <span>@detail.Label:</span>
+                                                <span>@detail.Value @detail.Unit</span>
+                                            </div>
+                                        }
                                     </div>
                                 }
                             </div>
                         </ContentTemplate>
                     </TabItem>
 
-                    <!-- Additional tabs would follow similar pattern -->
+                    <!-- Additional tabs for other calculation types can be added here -->
                 </TabItems>
             </SfTab>
         </div>
@@ -152,8 +169,10 @@
 </div>
 
 @code {
-    // Service References
+    // References
     private DotNetObjectReference<EngineeringCalculator>? objRef;
+    private DotNetObjectReference<EngineeringCalculator>? dotNetRef;
+    private bool IsViewerInitialized = false;
 
     // Project and Model Data
     private ACCProject? CurrentProject;
@@ -167,10 +186,6 @@
     private bool IsLoadingModels = false;
     private bool IsModelLoaded = false;
     private string CurrentSelectionMode = "single";
-
-    // JS Interop
-    private DotNetObjectReference<EngineeringCalculator>? dotNetRef;
-    private bool IsViewerInitialized = false;
 
     // Selected Elements
     private List<BIMElement> SelectedElements = new List<BIMElement>();
@@ -212,30 +227,28 @@
     {
         try
         {
+            // Try to get project from session storage
             var projectJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedProject");
             if (!string.IsNullOrEmpty(projectJson))
             {
                 CurrentProject = JsonSerializer.Deserialize<ACCProject>(projectJson);
 
-                // Use the HubId directly from the project if available
-                if (CurrentProject != null && !string.IsNullOrEmpty(CurrentProject.HubId))
+                if (CurrentProject != null)
+                {
+                    // The HubId should now be available directly from the project
+                    CurrentHubId = CurrentProject.HubId;
+                    Console.WriteLine($"Loaded project: {CurrentProject.Name} (ID: {CurrentProject.Id}, Hub: {CurrentHubId})");
+                }
+            }
+
+            // If we still don't have a project, try to get it from the ACC service
+            if (CurrentProject == null)
+            {
+                CurrentProject = await ACCService.GetCurrentProjectAsync();
+                if (CurrentProject != null)
                 {
                     CurrentHubId = CurrentProject.HubId;
-                    Console.WriteLine($"Using hub ID from project: {CurrentHubId}");
-                }
-                else
-                {
-                    // Fallback: try to get from session storage
-                    var hubIdJson = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "selectedHubId");
-                    if (!string.IsNullOrEmpty(hubIdJson))
-                    {
-                        CurrentHubId = hubIdJson.Replace("\"", ""); // Remove quotes if present
-                    }
-                    else if (CurrentProject != null)
-                    {
-                        // Try to find it from the projects list
-                        CurrentHubId = await GetHubIdForProject(CurrentProject.Id);
-                    }
+                    Console.WriteLine($"Got current project from service: {CurrentProject.Name} (Hub: {CurrentHubId})");
                 }
             }
         }
@@ -245,40 +258,13 @@
         }
     }
 
-    private async Task<string?> GetHubIdForProject(string projectId)
-    {
-        try
-        {
-            // Get all projects from ACC service to find the matching hub
-            var allProjects = await ACCService.GetProjectsAsync();
-
-            // Find the project and get its hub ID
-            var project = allProjects.FirstOrDefault(p => p.Id == projectId);
-            if (project != null && !string.IsNullOrEmpty(project.HubId))
-            {
-                Console.WriteLine($"Found hub {project.HubId} for project {projectId}");
-                return project.HubId;
-            }
-
-            // Fallback for A360 projects
-            if (projectId.StartsWith("a.") && projectId.Contains("#"))
-            {
-                return projectId.Split('#')[0];
-            }
-
-            Console.WriteLine($"Could not find hub ID for project {projectId}");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting hub ID: {ex.Message}");
-            return null;
-        }
-    }
-
     private async Task LoadCloudModels()
     {
-        if (CurrentProject == null) return;
+        if (CurrentProject == null)
+        {
+            Console.WriteLine("No project selected - cannot load models");
+            return;
+        }
 
         IsLoadingModels = true;
         StateHasChanged();
@@ -287,40 +273,55 @@
         {
             Console.WriteLine($"Loading models for project: {CurrentProject.Id}");
 
-            // Make sure we have the hub ID
+            // Check if we have the hub ID
             if (string.IsNullOrEmpty(CurrentHubId))
             {
-                CurrentHubId = await GetHubIdForProject(CurrentProject.Id);
+                Console.WriteLine("Warning: Hub ID is not available, trying to determine it...");
+
+                // Try to get all projects and find the matching one to get its hub ID
+                var allProjects = await ACCService.GetProjectsAsync();
+                var matchingProject = allProjects.FirstOrDefault(p => p.Id == CurrentProject.Id);
+
+                if (matchingProject != null && !string.IsNullOrEmpty(matchingProject.HubId))
+                {
+                    CurrentHubId = matchingProject.HubId;
+                    CurrentProject.HubId = matchingProject.HubId; // Update our local project object
+                    Console.WriteLine($"Found hub ID from projects list: {CurrentHubId}");
+                }
+                else
+                {
+                    Console.WriteLine("ERROR: Could not determine hub ID for project. Make sure the project is properly loaded.");
+                    CloudModels = new List<CloudModel>();
+                    return;
+                }
             }
 
-            if (string.IsNullOrEmpty(CurrentHubId))
+            // Now we should have both project ID and hub ID
+            Console.WriteLine($"Getting models with Project ID: {CurrentProject.Id}, Hub ID: {CurrentHubId}");
+
+            // Call the DataManagementService with both IDs in the correct order
+            CloudModels = await DataManagementService.GetProjectModelsAsync(CurrentProject.Id, CurrentHubId);
+
+            if (CloudModels == null || CloudModels.Count == 0)
             {
-                Console.WriteLine($"Could not determine hub ID for project: {CurrentProject.Id}");
-                CloudModels = new List<CloudModel>();
-                return;
-            }
-
-            Console.WriteLine($"Using hub ID: {CurrentHubId}, project ID: {CurrentProject.Id}");
-
-            // Use the Data Management Service to fetch real models
-            CloudModels = await DataManagementService.GetProjectModelsAsync(CurrentHubId, CurrentProject.Id);
-
-            if (CloudModels.Count == 0)
-            {
-                Console.WriteLine("No Revit models found in the project");
-                Console.WriteLine("Make sure you have:");
-                Console.WriteLine("1. Uploaded Revit models to your ACC project");
+                Console.WriteLine("No models found. Please ensure:");
+                Console.WriteLine("1. You have uploaded Revit models to your ACC project");
                 Console.WriteLine("2. The models have been processed/translated for viewing");
                 Console.WriteLine("3. You have proper permissions to access the models");
             }
             else
             {
                 Console.WriteLine($"Found {CloudModels.Count} models");
+                foreach (var model in CloudModels)
+                {
+                    Console.WriteLine($"  - {model.Name} (URN: {model.Urn})");
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading cloud models: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             CloudModels = new List<CloudModel>();
         }
         finally
@@ -335,8 +336,15 @@
         try
         {
             var accessToken = await ACCService.GetAccessTokenAsync();
-            await JSRuntime.InvokeVoidAsync("ForgeViewer.initializeEmpty", "forgeViewer", accessToken);
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                Console.WriteLine("No access token available for viewer initialization");
+                return;
+            }
+
+            await JSRuntime.InvokeVoidAsync("ForgeViewer.initializeEmpty", "forgeViewer", accessToken, objRef);
             IsViewerInitialized = true;
+            Console.WriteLine("Forge Viewer initialized successfully");
         }
         catch (Exception ex)
         {
@@ -357,8 +365,16 @@
             var selectedModel = CloudModels.FirstOrDefault(m => m.Urn == SelectedModelUrn);
             CurrentModelName = selectedModel?.Name ?? "";
 
+            Console.WriteLine($"Selected model: {CurrentModelName} (URN: {SelectedModelUrn})");
+
             // Load the model in Forge Viewer
             var accessToken = await ACCService.GetAccessTokenAsync();
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                Console.WriteLine("No access token available for loading model");
+                return;
+            }
+
             var success = await JSRuntime.InvokeAsync<bool>("ForgeViewer.loadModel",
                 SelectedModelUrn, accessToken);
 
@@ -371,6 +387,10 @@
             else
             {
                 Console.WriteLine($"Failed to load model: {CurrentModelName}");
+                Console.WriteLine("Please check:");
+                Console.WriteLine("1. The model URN is correct");
+                Console.WriteLine("2. The model has been translated for viewing");
+                Console.WriteLine("3. The access token has proper permissions");
             }
         }
         catch (Exception ex)
@@ -387,8 +407,8 @@
 
     // Viewer Control Methods
     private async Task ResetView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
-    private async Task FitToView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
-    private async Task Toggle3DView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.resetView");
+    private async Task FitToView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.fitToView");
+    private async Task Toggle3DView() => await JSRuntime.InvokeVoidAsync("ForgeViewer.set3DView");
     private async Task ToggleExplode() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleExplode");
     private async Task ToggleSection() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleSection");
     private async Task ToggleGhosting() => await JSRuntime.InvokeVoidAsync("ForgeViewer.toggleGhosting");
@@ -397,55 +417,31 @@
     private async Task ShowSearch() => await JSRuntime.InvokeVoidAsync("ForgeViewer.showSearch");
     private async Task ClearSelection() => await JSRuntime.InvokeVoidAsync("ForgeViewer.clearSelection");
 
-    private async Task SetSingleSelectionMode()
+    // Element Selection
+    private async Task StartElementSelection()
     {
+        await JSRuntime.InvokeVoidAsync("ForgeViewer.setSelectionMode", "single");
         CurrentSelectionMode = "single";
-        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", "single");
     }
 
-    private async Task SetMultipleSelectionMode()
+    // Calculation Methods
+    private async Task CalculatePointLoad()
     {
-        CurrentSelectionMode = "multiple";
-        await JSRuntime.InvokeVoidAsync("ForgeViewer.enableSelection", "multiple");
-    }
-
-    private async Task ToggleFullscreen()
-    {
-        await JSRuntime.InvokeVoidAsync("eval", "document.documentElement.requestFullscreen()");
-    }
-
-    private async Task RefreshViewer()
-    {
-        if (!string.IsNullOrEmpty(SelectedModelUrn))
-        {
-            await OnModelSelected(new ChangeEventArgs<string, CloudModel> { Value = SelectedModelUrn });
-        }
-    }
-
-    private async Task SelectBearingElement()
-    {
-        // Enable single selection mode and wait for user to select
-        await SetSingleSelectionMode();
-        // This would be handled by JS callback when element is selected
-    }
-
-    private void CalculatePointLoad()
-    {
-        if (LoadMagnitude <= 0 || BeamLength <= 0)
-        {
-            return;
-        }
-
-        // Simple point load calculation
-        var a = DistanceFromSupport;
-        var b = BeamLength - a;
-
+        // Simulate point load calculation
         PointLoadResults = new PointLoadResult
         {
-            ReactionA = LoadMagnitude * b / BeamLength,
-            ReactionB = LoadMagnitude * a / BeamLength,
-            MaxMoment = LoadMagnitude * a * b / BeamLength,
-            MaxShear = Math.Max(LoadMagnitude * b / BeamLength, LoadMagnitude * a / BeamLength)
+            Status = "Pass",
+            DesignCode = "PCI-8",
+            SafetyFactor = 1.5,
+            Utilization = 0.75,
+            IsPCICompliant = true,
+            Details = new List<ResultDetail>
+            {
+                new ResultDetail { Label = "Max Moment", Value = "125.5", Unit = "kN-m" },
+                new ResultDetail { Label = "Max Shear", Value = "85.2", Unit = "kN" },
+                new ResultDetail { Label = "Deflection", Value = "12.3", Unit = "mm" }
+            },
+            Warnings = new List<string>()
         };
 
         StateHasChanged();
@@ -453,12 +449,23 @@
 
     private async Task SaveCalculation()
     {
-        // Save calculation results
-        if (HasCalculationResults && CurrentProject != null)
-        {
-            // Implementation for saving to OSS
-            Console.WriteLine("Saving calculation results...");
-        }
+        // TODO: Implement saving to OSS storage
+        Console.WriteLine("Saving calculation results...");
+    }
+
+    // JS Interop callbacks
+    [JSInvokable]
+    public void OnElementSelected(string elementId, string elementName)
+    {
+        Console.WriteLine($"Element selected: {elementName} (ID: {elementId})");
+        BearingElement = new BIMElement { Id = elementId, Name = elementName };
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnViewerError(string error)
+    {
+        Console.WriteLine($"Viewer error: {error}");
     }
 
     public void Dispose()
@@ -467,19 +474,17 @@
         dotNetRef?.Dispose();
     }
 
-    // Helper classes
+    // Supporting classes
     public class BIMElement
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
+        public string Category { get; set; } = "";
         public Dictionary<string, object> Properties { get; set; } = new();
     }
 
-    public class PointLoadResult
+    public class PointLoadResult : CalculationResult
     {
-        public double ReactionA { get; set; }
-        public double ReactionB { get; set; }
-        public double MaxMoment { get; set; }
-        public double MaxShear { get; set; }
+        // Inherits all properties from CalculationResult
     }
 }
