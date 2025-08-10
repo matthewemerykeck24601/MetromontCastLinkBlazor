@@ -3,6 +3,7 @@ using MetromontCastLink.Shared.Services;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MetromontCastLink.Client.Services
 {
@@ -144,7 +145,7 @@ namespace MetromontCastLink.Client.Services
                 tokenRequest.Content = JsonContent.Create(new
                 {
                     code = code,
-                    redirectUri = _callbackUrl
+                    RedirectUri = _callbackUrl  // Capital 'R' to match server
                 });
 
                 Console.WriteLine($"Sending token request with redirectUri: {_callbackUrl}");
@@ -432,11 +433,19 @@ namespace MetromontCastLink.Client.Services
 
         private class TokenResponse
         {
-            // These property names must match exactly what the backend sends
-            public string Token { get; set; } = string.Empty;           // Internal JWT token
-            public string AutodeskToken { get; set; } = string.Empty;   // Autodesk access token
+            [JsonPropertyName("token")]
+            public string Token { get; set; } = string.Empty;
+
+            [JsonPropertyName("autodeskToken")]
+            public string AutodeskToken { get; set; } = string.Empty;
+
+            [JsonPropertyName("refreshToken")]
             public string? RefreshToken { get; set; }
+
+            [JsonPropertyName("expiresIn")]
             public int ExpiresIn { get; set; }
+
+            [JsonPropertyName("tokenType")]
             public string? TokenType { get; set; }
         }
     }
